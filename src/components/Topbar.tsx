@@ -1,5 +1,4 @@
-import { Bell, Search, Moon, Sun, Command } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, Search, Moon, Sun, Command, Activity } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +9,14 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { notifications } from "@/lib/mock-data";
+import { useShell } from "@/stores/shell";
+import { useActivityTrace } from "@/stores/activityTrace";
 
 export function Topbar() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+  const { theme, toggleTheme } = useShell();
+  const dark = theme === "dark";
+  const openTrace = useActivityTrace((s) => s.setOpen);
+  const traceCount = useActivityTrace((s) => s.events.length);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
@@ -33,7 +34,13 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => setDark(d => !d)} className="rounded-xl">
+        <Button variant="ghost" size="icon" onClick={() => openTrace(true)} className="relative rounded-xl" title="Activity Trace">
+          <Activity className="h-4 w-4" />
+          {traceCount > 0 && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{traceCount}</span>
+          )}
+        </Button>
+        <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl">
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 

@@ -14,7 +14,8 @@ import {
 const core = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Students", url: "/students", icon: Users },
-  { title: "Admissions", url: "/admissions", icon: GraduationCap },
+  { title: "Add Student", url: "/students/new", icon: GraduationCap },
+  { title: "Import Pipeline", url: "/import", icon: ArrowUpCircle },
   { title: "Attendance", url: "/attendance", icon: ClipboardCheck },
   { title: "Exams & Results", url: "/exams", icon: FileBarChart },
   { title: "Timetable", url: "/timetable", icon: Calendar },
@@ -47,6 +48,8 @@ const advanced = [
 ];
 
 const system = [
+  { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
+  { title: "Headers & Fields", url: "/settings/headers", icon: Settings },
   { title: "Migration Center", url: "/migration", icon: ArrowUpCircle },
   { title: "Security & Audit", url: "/security", icon: Shield },
   { title: "Settings", url: "/settings", icon: Settings },
