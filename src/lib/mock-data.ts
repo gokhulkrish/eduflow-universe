@@ -89,3 +89,38 @@ export const pipelines = [
     progress: 35,
   },
 ];
+
+// ---- Dashboard hero (merged from legacy dashboardSection + erpOverviewSection) ----
+export const dashboardHero = {
+  eyebrow: "UMIS-inspired operations overview",
+  title: "NextGen EduERP Command Center",
+  subtitle:
+    "Track institute readiness, admissions movement, and record quality from one dashboard before you drill into student workspaces.",
+  academicYear: "AY 2025-26 · Term 2 active",
+  sourceCoverage: "84% UMIS-linked",
+  district: "Pune · Block 04",
+  lastUpdated: "Live · 3 sec ago",
+  heroStats: [
+    { label: "Registry Volume", value: "2,847", meta: "students across 12 grades" },
+    { label: "Import Operations", value: "31", meta: "batches in the last 30 days" },
+    { label: "Workflow Activity", value: "14", meta: "active workflow sessions" },
+  ],
+};
+
+export const erpKpis = [
+  { label: "Active Modules", value: 28, icon: "🧩" },
+  { label: "Workspace Views", value: 67, icon: "📂" },
+  { label: "Workspace Records", value: "184K", icon: "🗂️" },
+  { label: "Automation Rules", value: 42, icon: "🤖" },
+  { label: "Campuses Configured", value: 6, icon: "🏫" },
+];
+
+export const erpRealtimeFabric = [
+  { domain: "Academic", health: 98, signal: "Term plans synced", state: "healthy" },
+  { domain: "Finance", health: 94, signal: "Fee receipts posted", state: "healthy" },
+  { domain: "Student Success", health: 88, signal: "3 risk flags raised", state: "watch" },
+  { domain: "Campus Ops", health: 91, signal: "Transport routes live", state: "healthy" },
+  { domain: "Governance", health: 100, signal: "Policies enforced", state: "healthy" },
+  { domain: "Compliance", health: 86, signal: "GDPR review due", state: "watch" },
+  { domain: "Platform", health: 99, signal: "All services up", state: "healthy" },
+];
