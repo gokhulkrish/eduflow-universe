@@ -50,7 +50,7 @@ export default function Dashboard() {
     <div>
       <PageHeader
         title="Command Center"
-        subtitle="Realtime overview of NextGen EduERP · Academic Year 2025-26"
+        subtitle="Realtime overview of SMS · Academic Year 2025-26"
         icon={<LayoutDashboard className="h-6 w-6" />}
         actions={
           <>

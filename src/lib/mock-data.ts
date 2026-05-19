@@ -1,4 +1,4 @@
-// Centralized mock data for NextGen EduERP
+// Centralized mock data for SMS
 export const stats = {
   students: 2847,
   teachers: 184,
@@ -93,7 +93,7 @@ export const pipelines = [
 // ---- Dashboard hero (merged from legacy dashboardSection + erpOverviewSection) ----
 export const dashboardHero = {
   eyebrow: "UMIS-inspired operations overview",
-  title: "NextGen EduERP Command Center",
+  title: "SMS Command Center",
   subtitle:
     "Track institute readiness, admissions movement, and record quality from one dashboard before you drill into student workspaces.",
   academicYear: "AY 2025-26 · Term 2 active",

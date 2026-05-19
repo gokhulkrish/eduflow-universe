@@ -25,7 +25,7 @@ interface TraceState {
 }
 
 const seed: TraceEvent[] = [
-  { id: "1", ts: Date.now() - 60_000 * 8, category: "system", title: "Workspace booted", detail: "NextGen EduERP shell initialized", source: "shell" },
+  { id: "1", ts: Date.now() - 60_000 * 8, category: "system", title: "Workspace booted", detail: "SMS shell initialized", source: "shell" },
   { id: "2", ts: Date.now() - 60_000 * 6, category: "sync", title: "Legacy SIS sync resumed", detail: "412K / 528K records", source: "migration" },
   { id: "3", ts: Date.now() - 60_000 * 4, category: "navigation", title: "Dashboard opened", section: "/" },
   { id: "4", ts: Date.now() - 60_000 * 2, category: "alert", title: "Compatibility advisory", detail: "Core ERP v4.9.0 requires Payment Gateway v3.2.0+" },
