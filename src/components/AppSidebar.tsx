@@ -50,6 +50,7 @@ const advanced = [
 const system = [
   { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
   { title: "Headers & Fields", url: "/settings/headers", icon: Settings },
+  { title: "Permission Matrix", url: "/permissions", icon: Shield },
   { title: "Migration Center", url: "/migration", icon: ArrowUpCircle },
   { title: "Security & Audit", url: "/security", icon: Shield },
   { title: "Settings", url: "/settings", icon: Settings },
