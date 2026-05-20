@@ -1,4 +1,4 @@
-import { Bell, Search, Moon, Sun, Command, Activity } from "lucide-react";
+import { Bell, Search, Moon, Sun, Command, Activity, LogOut } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import {
 import { notifications } from "@/lib/mock-data";
 import { useShell } from "@/stores/shell";
 import { useActivityTrace } from "@/stores/activityTrace";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export function Topbar() {
   const { theme, toggleTheme } = useShell();
