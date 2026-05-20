@@ -14,16 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          action: string
+          id: string
+          label: string
+          module_key: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          label: string
+          module_key: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          label?: string
+          module_key?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          mfa_enrolled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          mfa_enrolled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          mfa_enrolled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          id: string
+          level: Database["public"]["Enums"]["access_level"]
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          level?: Database["public"]["Enums"]["access_level"]
+          permission_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          level?: Database["public"]["Enums"]["access_level"]
+          permission_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      access_level:
+        | "none"
+        | "view"
+        | "create"
+        | "edit"
+        | "approve"
+        | "delete"
+        | "export"
+        | "manage"
+      app_role:
+        | "super_admin"
+        | "admin"
+        | "principal"
+        | "hod"
+        | "faculty"
+        | "staff"
+        | "finance"
+        | "scholarship"
+        | "certificate"
+        | "librarian"
+        | "hostel_warden"
+        | "transport"
+        | "student"
+        | "parent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +309,33 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      access_level: [
+        "none",
+        "view",
+        "create",
+        "edit",
+        "approve",
+        "delete",
+        "export",
+        "manage",
+      ],
+      app_role: [
+        "super_admin",
+        "admin",
+        "principal",
+        "hod",
+        "faculty",
+        "staff",
+        "finance",
+        "scholarship",
+        "certificate",
+        "librarian",
+        "hostel_warden",
+        "transport",
+        "student",
+        "parent",
+      ],
+    },
   },
 } as const
