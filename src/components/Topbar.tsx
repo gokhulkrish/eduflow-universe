@@ -19,6 +19,10 @@ export function Topbar() {
   const dark = theme === "dark";
   const openTrace = useActivityTrace((s) => s.setOpen);
   const traceCount = useActivityTrace((s) => s.events.length);
+  const { user, roles, signOut } = useAuth();
+  const nav = useNavigate();
+  const primaryRole = roles[0] ?? "guest";
+  const initials = (user?.email ?? "??").slice(0, 2).toUpperCase();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
