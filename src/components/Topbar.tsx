@@ -74,15 +74,29 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="ml-1 flex items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-2 py-1.5 backdrop-blur">
-          <Avatar className="h-7 w-7">
-            <AvatarFallback className="bg-gradient-primary text-xs font-semibold text-primary-foreground">AV</AvatarFallback>
-          </Avatar>
-          <div className="hidden text-left sm:block">
-            <p className="text-xs font-semibold leading-tight">Anita Verma</p>
-            <p className="text-[10px] text-muted-foreground leading-tight">Super Admin</p>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="ml-1 flex items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-2 py-1.5 backdrop-blur hover:bg-card">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-gradient-primary text-xs font-semibold text-primary-foreground">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="hidden text-left sm:block">
+                <p className="text-xs font-semibold leading-tight">{user?.email ?? "Guest"}</p>
+                <p className="text-[10px] capitalize text-muted-foreground leading-tight">{primaryRole.replace("_"," ")}</p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Active session</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => nav("/permissions")}>Permission Matrix</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => nav("/settings/institute")}>Institute Settings</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={async () => { await signOut(); nav("/auth"); }} className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
