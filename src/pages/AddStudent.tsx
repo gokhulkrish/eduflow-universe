@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { GraduationCap, ArrowLeft, Save, RotateCcw, Trash2, Users, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { GraduationCap, ArrowLeft, Save, RotateCcw, Trash2, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -106,7 +107,19 @@ const sections: SectionDef[] = [
 
 export default function AddStudent() {
   const navigate = useNavigate();
+  const { studentId } = useParams();
   const [values, setValues] = useState<Record<string, string>>({});
+  const studentQuery = useQuery({
+    queryKey: ["student-form", studentId],
+    queryFn: () => fetchStudentFormValues(studentId as string),
+    enabled: Boolean(studentId),
+  });
+
+  useEffect(() => {
+    if (studentQuery.data) {
+      setValues(studentQuery.data);
+    }
+  }, [studentQuery.data]);
 
   const set = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }));
   const reset = () => { setValues({}); toast.info("Form reset"); };
@@ -132,6 +145,13 @@ export default function AddStudent() {
         {studentQuery.isLoading && (
           <Card className="glass flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading student record…
+          </Card>
+        )}
+
+        {studentQuery.isError && (
+          <Card className="glass border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-medium">Student record could not load.</p>
+            <p className="mt-1">{formatDataError(studentQuery.error)}</p>
           </Card>
         )}
 

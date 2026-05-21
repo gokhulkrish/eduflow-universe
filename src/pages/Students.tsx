@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Search, Plus, Filter, Download, Copy, Edit3, Eye, FileText, Trash2,
-  Clipboard, ClipboardPaste, Printer, RefreshCw, Settings2, ChevronDown,
+  Clipboard, ClipboardPaste, Printer, RefreshCw, Settings2, ChevronDown, AlertTriangle, Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { students } from "@/lib/mock-data";
+import { fetchStudentRegister, deleteStudentRecord, formatDataError, gradeLabelForStudent, initialsForStudent, type StudentRegisterRow } from "@/lib/student-records";
 import { toast } from "sonner";
 
 type Student = {
@@ -33,9 +34,54 @@ type Student = {
   status: string; district: string | null;
 };
 
+type StudentTableRow = {
+  id: string;
+  name: string;
+  grade: string;
+  roll: string | number;
+  attendance: number;
+  fees: string;
+  avatar: string;
+  email?: string | null;
+  community?: string | null;
+  district?: string | null;
+  status?: string;
+};
+
+type RibbonAction = {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+};
+
+const feeColor: Record<string, string> = {
+  paid: "bg-green-50 border-green-200 text-green-700",
+  pending: "bg-yellow-50 border-yellow-200 text-yellow-700",
+  overdue: "bg-red-50 border-red-200 text-red-700",
+};
+
+const exportCsv = () => {
+  toast.success("CSV exported");
+};
+
+const normalizeFeeStatus = (value: string | null | undefined) => String(value ?? "pending").toLowerCase();
+
+const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] =>
+  rows.map((row) => ({
+    id: row.id,
+    name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(" "),
+    grade: gradeLabelForStudent(row),
+    roll: row.roll_number ?? "—",
+    attendance: row.attendance_percent ?? 0,
+    fees: row.fee_status,
+    avatar: initialsForStudent(row),
+  }));
+
 export default function Students() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   const studentsQuery = useQuery({
     queryKey: ["student-register"],
@@ -43,6 +89,7 @@ export default function Students() {
   });
 
   const rows = studentsQuery.data ?? [];
+  const tableRows: StudentTableRow[] = rows.length ? liveRegisterRowsToTable(rows) : students;
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -58,18 +105,21 @@ export default function Students() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter((s) =>
+    if (!q) return tableRows;
+    return tableRows.filter((s) =>
       [s.name, s.id, s.grade].some((v) => v.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, tableRows]);
 
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.has(s.id));
   const toggleAll = () => {
     setSelected(allChecked ? new Set() : new Set(filtered.map((s) => s.id)));
   };
   const toggleOne = (id: string) => {
-    const next = new Set(selected); next.has(id) ? next.delete(id) : next.add(id); setSelected(next);
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
   };
 
   const act = (label: string) => () => toast.success(`${label} · ${selected.size || 1} record(s)`);
@@ -137,7 +187,7 @@ export default function Students() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMutation.mutate(selectedIds)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -160,7 +210,7 @@ export default function Students() {
           </TabsList>
           <TabsContent value="home" className="m-0">
             <div className="flex flex-wrap gap-2 p-3">
-              {ribbon.map((g) => (
+              {groups.map((g) => (
                 <div key={g.title} className="flex flex-col items-stretch rounded-xl border border-border/60 bg-secondary/40 p-2">
                   <div className="mb-1 flex gap-1">
                     {g.actions.map((a) => (
@@ -256,7 +306,7 @@ export default function Students() {
                     </div>
                   </td>
                   <td className="py-3">
-                    <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-medium ${feeColor[s.fees]}`}>{s.fees}</span>
+                    <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-medium ${feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border"}`}>{s.fees}</span>
                   </td>
                   <td className="py-3 pr-2 text-right">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={act("Opened actions")}>

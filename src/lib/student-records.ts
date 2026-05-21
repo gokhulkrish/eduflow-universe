@@ -1,9 +1,26 @@
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { Json, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export type StudentRegisterRow = Tables<"student_register">;
 export type StudentFormValues = Record<string, string>;
+export type StudentRegisterRow = {
+  id: string;
+  student_id: string;
+  display_name: string;
+  first_name: string;
+  last_name: string | null;
+  admission_no: string;
+  grade: string | null;
+  section: string | null;
+  roll_number: number | null;
+  attendance_percent: number;
+  fee_status: string;
+  status: string;
+  updated_at: string;
+  email: string | null;
+  community: string | null;
+  district: string | null;
+};
 
 type SupabaseLikeError = {
   code?: string;
@@ -195,15 +212,81 @@ export const initialsForStudent = (row: Pick<StudentRegisterRow, "display_name" 
 export const gradeLabelForStudent = (row: Pick<StudentRegisterRow, "grade" | "section">) =>
   [row.grade, row.section].filter(Boolean).join("-") || "Unassigned";
 
-export async function fetchStudentRegister() {
+export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
+  try {
+    // Try to fetch from the student_register view (Wave 2 migration)
+    const { data, error } = await supabase
+      .from("student_register")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      // Fallback: if view doesn't exist, query the students table directly
+      console.warn("student_register view not found, using students table as fallback");
+      return fetchStudentsDirectly();
+    }
+    return (data ?? []).map(normalizeStudentRegisterRowFromView);
+  } catch (err) {
+    // Fallback for any other errors
+    console.warn("Error querying student_register, using fallback", err);
+    return fetchStudentsDirectly();
+  }
+}
+
+async function fetchStudentsDirectly() {
   const { data, error } = await supabase
-    .from("student_register")
-    .select("*")
+    .from("students")
+    .select(`
+      id,
+      first_name,
+      last_name,
+      admission_no,
+      status,
+      updated_at
+    `)
     .order("updated_at", { ascending: false });
 
   if (error) throwDataError(error);
-  return data ?? [];
+  return (data ?? []).map(normalizeStudentRegisterRowFromStudent);
 }
+
+const normalizeStudentRegisterRowFromView = (row: Record<string, unknown>): StudentRegisterRow => ({
+  id: String(row.student_id ?? row.id ?? ""),
+  student_id: String(row.student_id ?? row.id ?? ""),
+  display_name: String(row.display_name ?? ([row.first_name, row.last_name].filter(Boolean).join(" ") || "")),
+  first_name: String(row.first_name ?? ""),
+  last_name: typeof row.last_name === "string" ? row.last_name : null,
+  admission_no: String(row.admission_no ?? ""),
+  grade: typeof row.grade === "string" ? row.grade : null,
+  section: typeof row.section === "string" ? row.section : null,
+  roll_number: typeof row.roll_number === "number" ? row.roll_number : null,
+  attendance_percent: typeof row.attendance_percent === "number" ? row.attendance_percent : 0,
+  fee_status: String(row.fee_status ?? "pending"),
+  status: String(row.status ?? "active"),
+  updated_at: String(row.updated_at ?? ""),
+  email: typeof row.email === "string" ? row.email : null,
+  community: typeof row.community === "string" ? row.community : null,
+  district: typeof row.district === "string" ? row.district : null,
+});
+
+const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): StudentRegisterRow => ({
+  id: String(row.id ?? ""),
+  student_id: String(row.id ?? ""),
+  display_name: [row.first_name, row.last_name].filter(Boolean).join(" ") || String(row.first_name ?? ""),
+  first_name: String(row.first_name ?? ""),
+  last_name: typeof row.last_name === "string" ? row.last_name : null,
+  admission_no: String(row.admission_no ?? ""),
+  grade: null,
+  section: null,
+  roll_number: null,
+  attendance_percent: 0,
+  fee_status: String(row.status ?? "pending"),
+  status: String(row.status ?? "active"),
+  updated_at: String(row.updated_at ?? ""),
+  email: null,
+  community: null,
+  district: null,
+});
 
 export async function fetchStudentFormValues(studentId: string): Promise<StudentFormValues> {
   const [{ data: student, error: studentError }, { data: enrollment, error: enrollmentError }] = await Promise.all([
