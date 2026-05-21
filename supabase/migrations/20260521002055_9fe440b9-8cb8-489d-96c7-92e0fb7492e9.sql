@@ -18,7 +18,7 @@ returns trigger language plpgsql set search_path=public as $$
 begin new.updated_at = now(); return new; end $$;
 
 -- ACADEMICS
-create table public.academic_years(
+create table if not exists public.academic_years(
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   start_date date not null,
@@ -31,7 +31,7 @@ create policy "ay read auth" on public.academic_years for select to authenticate
 create policy "ay admin manage" on public.academic_years for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 
-create table public.classes(
+create table if not exists public.classes(
   id uuid primary key default gen_random_uuid(),
   grade text not null,
   section text not null default 'A',
@@ -47,7 +47,7 @@ create policy "cls read auth" on public.classes for select to authenticated usin
 create policy "cls admin manage" on public.classes for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 
-create table public.subjects(
+create table if not exists public.subjects(
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -60,7 +60,7 @@ create policy "sub admin manage" on public.subjects for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 
 -- STUDENTS
-create table public.students(
+create table if not exists public.students(
   id uuid primary key default gen_random_uuid(),
   user_id uuid unique,
   admission_no text not null unique,
@@ -93,18 +93,20 @@ create table public.students(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index on public.students(admission_no);
-create index on public.students(user_id);
+alter table public.students add column if not exists user_id uuid;
+create index if not exists students_admission_no_idx on public.students(admission_no);
+create unique index if not exists students_user_id_idx on public.students(user_id);
 alter table public.students enable row level security;
 create policy "stu staff read" on public.students for select to authenticated
   using (public.is_staff(auth.uid()) or user_id = auth.uid());
 create policy "stu admin write" on public.students for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+drop trigger if exists trg_stu_upd on public.students;
 create trigger trg_stu_upd before update on public.students
   for each row execute function public.update_updated_at_column();
 
 -- STAFF
-create table public.staff(
+create table if not exists public.staff(
   id uuid primary key default gen_random_uuid(),
   user_id uuid unique,
   employee_no text not null unique,
@@ -119,16 +121,18 @@ create table public.staff(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.staff add column if not exists user_id uuid;
 alter table public.staff enable row level security;
 create policy "stf staff read" on public.staff for select to authenticated
   using (public.is_staff(auth.uid()) or user_id = auth.uid());
 create policy "stf admin write" on public.staff for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+drop trigger if exists trg_stf_upd on public.staff;
 create trigger trg_stf_upd before update on public.staff
   for each row execute function public.update_updated_at_column();
 
 -- ENROLLMENT
-create table public.enrollments(
+create table if not exists public.enrollments(
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id) on delete cascade,
   class_id uuid not null references public.classes(id) on delete cascade,
@@ -146,7 +150,7 @@ create policy "enr admin write" on public.enrollments for all to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 
 -- ATTENDANCE
-create table public.attendance(
+create table if not exists public.attendance(
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id) on delete cascade,
   class_id uuid references public.classes(id) on delete set null,
@@ -166,7 +170,7 @@ create policy "att staff write" on public.attendance for all to authenticated
   using (public.is_staff(auth.uid())) with check (public.is_staff(auth.uid()));
 
 -- FINANCE
-create table public.fee_structures(
+create table if not exists public.fee_structures(
   id uuid primary key default gen_random_uuid(),
   name text not null,
   grade text,
@@ -182,7 +186,7 @@ create policy "fs finance manage" on public.fee_structures for all to authentica
   using (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()));
 
-create table public.fee_invoices(
+create table if not exists public.fee_invoices(
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id) on delete cascade,
   fee_structure_id uuid references public.fee_structures(id) on delete set null,
@@ -201,7 +205,7 @@ create policy "fi finance write" on public.fee_invoices for all to authenticated
   using (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()));
 
-create table public.fee_payments(
+create table if not exists public.fee_payments(
   id uuid primary key default gen_random_uuid(),
   invoice_id uuid not null references public.fee_invoices(id) on delete cascade,
   amount numeric not null,
@@ -213,15 +217,15 @@ create table public.fee_payments(
 alter table public.fee_payments enable row level security;
 create policy "fp read" on public.fee_payments for select to authenticated using (
   public.is_staff(auth.uid()) or exists(
-    select 1 from public.fee_invoices i join public.students s on s.id=i.student_id
-    where i.id=invoice_id and s.user_id=auth.uid())
+    select 1 from public.students s
+    where s.id=student_id and s.user_id=auth.uid())
 );
 create policy "fp finance write" on public.fee_payments for all to authenticated
   using (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'finance') or public.is_admin(auth.uid()));
 
 -- LIBRARY
-create table public.library_books(
+create table if not exists public.library_books(
   id uuid primary key default gen_random_uuid(),
   isbn text,
   title text not null,
@@ -238,7 +242,7 @@ create policy "lb librarian manage" on public.library_books for all to authentic
   using (public.has_role(auth.uid(),'librarian') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'librarian') or public.is_admin(auth.uid()));
 
-create table public.library_loans(
+create table if not exists public.library_loans(
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references public.library_books(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
@@ -258,7 +262,7 @@ create policy "ll librarian write" on public.library_loans for all to authentica
   with check (public.has_role(auth.uid(),'librarian') or public.is_admin(auth.uid()));
 
 -- HOSTEL
-create table public.hostel_rooms(
+create table if not exists public.hostel_rooms(
   id uuid primary key default gen_random_uuid(),
   block text not null,
   room_no text not null,
@@ -274,7 +278,7 @@ create policy "hr warden manage" on public.hostel_rooms for all to authenticated
   using (public.has_role(auth.uid(),'hostel_warden') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'hostel_warden') or public.is_admin(auth.uid()));
 
-create table public.hostel_allocations(
+create table if not exists public.hostel_allocations(
   id uuid primary key default gen_random_uuid(),
   room_id uuid not null references public.hostel_rooms(id) on delete cascade,
   student_id uuid not null references public.students(id) on delete cascade,
@@ -291,7 +295,7 @@ create policy "ha warden write" on public.hostel_allocations for all to authenti
   with check (public.has_role(auth.uid(),'hostel_warden') or public.is_admin(auth.uid()));
 
 -- TRANSPORT
-create table public.transport_routes(
+create table if not exists public.transport_routes(
   id uuid primary key default gen_random_uuid(),
   route_no text not null unique,
   name text not null,
@@ -308,7 +312,7 @@ create policy "tr transport manage" on public.transport_routes for all to authen
   using (public.has_role(auth.uid(),'transport') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'transport') or public.is_admin(auth.uid()));
 
-create table public.transport_allocations(
+create table if not exists public.transport_allocations(
   id uuid primary key default gen_random_uuid(),
   route_id uuid not null references public.transport_routes(id) on delete cascade,
   student_id uuid not null references public.students(id) on delete cascade,
@@ -325,7 +329,7 @@ create policy "ta transport write" on public.transport_allocations for all to au
   with check (public.has_role(auth.uid(),'transport') or public.is_admin(auth.uid()));
 
 -- CERTIFICATES
-create table public.certificate_templates(
+create table if not exists public.certificate_templates(
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null,
@@ -339,7 +343,7 @@ create policy "ct cert manage" on public.certificate_templates for all to authen
   using (public.has_role(auth.uid(),'certificate') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'certificate') or public.is_admin(auth.uid()));
 
-create table public.certificate_requests(
+create table if not exists public.certificate_requests(
   id uuid primary key default gen_random_uuid(),
   template_id uuid not null references public.certificate_templates(id) on delete restrict,
   student_id uuid not null references public.students(id) on delete cascade,
@@ -354,7 +358,8 @@ create table public.certificate_requests(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index on public.certificate_requests(qr_token);
+alter table public.certificate_requests add column if not exists qr_token text not null default replace(gen_random_uuid()::text,'-','');
+create unique index if not exists certificate_requests_qr_token_idx on public.certificate_requests(qr_token);
 alter table public.certificate_requests enable row level security;
 create policy "cr read" on public.certificate_requests for select to authenticated using (
   public.is_staff(auth.uid()) or exists(select 1 from public.students s where s.id=student_id and s.user_id=auth.uid())
@@ -362,5 +367,6 @@ create policy "cr read" on public.certificate_requests for select to authenticat
 create policy "cr cert write" on public.certificate_requests for all to authenticated
   using (public.has_role(auth.uid(),'certificate') or public.is_admin(auth.uid()))
   with check (public.has_role(auth.uid(),'certificate') or public.is_admin(auth.uid()));
+drop trigger if exists trg_cr_upd on public.certificate_requests;
 create trigger trg_cr_upd before update on public.certificate_requests
   for each row execute function public.update_updated_at_column();
