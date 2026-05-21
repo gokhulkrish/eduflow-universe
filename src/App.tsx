@@ -52,6 +52,12 @@ const App = () => (
               <Route path="/permissions" element={<Permissions />} />
               <Route path="/settings/institute" element={<InstituteSettings />} />
               <Route path="/settings/headers" element={<SettingsHeaders />} />
+              <Route path="/staff" element={<Staff />} />
+              <Route path="/fees" element={<Fees />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/hostel" element={<Hostel />} />
+              <Route path="/transport" element={<Transport />} />
+              <Route path="/certificates" element={<Certificates />} />
               {Object.keys(moduleConfigs)
                 .filter((s) => !dedicated.has(s))
                 .map((slug) => (
