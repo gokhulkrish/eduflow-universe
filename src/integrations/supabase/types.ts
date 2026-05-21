@@ -124,6 +124,300 @@ export type Database = {
           },
         ]
       }
+      students: {
+        Row: {
+          address: string | null
+          admission_no: string
+          alternate_phone: string | null
+          attendance_percent: number
+          blood_group: string | null
+          campus_id: string | null
+          community: string | null
+          created_at: string
+          created_by: string | null
+          dob: string | null
+          email: string | null
+          emis_id: string | null
+          fee_status: string
+          first_graduate: boolean
+          first_name: string
+          gender: string | null
+          id: string
+          income_verification_status: Database["public"]["Enums"]["verification_status"]
+          institution_id: string | null
+          last_name: string | null
+          meta: Json
+          nationality: string | null
+          phone: string | null
+          profile_id: string | null
+          scholarship_notes: string | null
+          status: Database["public"]["Enums"]["student_status"]
+          umis_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          admission_no: string
+          alternate_phone?: string | null
+          attendance_percent?: number
+          blood_group?: string | null
+          campus_id?: string | null
+          community?: string | null
+          created_at?: string
+          created_by?: string | null
+          dob?: string | null
+          email?: string | null
+          emis_id?: string | null
+          fee_status?: string
+          first_graduate?: boolean
+          first_name: string
+          gender?: string | null
+          id?: string
+          income_verification_status?: Database["public"]["Enums"]["verification_status"]
+          institution_id?: string | null
+          last_name?: string | null
+          meta?: Json
+          nationality?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          scholarship_notes?: string | null
+          status?: Database["public"]["Enums"]["student_status"]
+          umis_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          admission_no?: string
+          alternate_phone?: string | null
+          attendance_percent?: number
+          blood_group?: string | null
+          campus_id?: string | null
+          community?: string | null
+          created_at?: string
+          created_by?: string | null
+          dob?: string | null
+          email?: string | null
+          emis_id?: string | null
+          fee_status?: string
+          first_graduate?: boolean
+          first_name?: string
+          gender?: string | null
+          id?: string
+          income_verification_status?: Database["public"]["Enums"]["verification_status"]
+          institution_id?: string | null
+          last_name?: string | null
+          meta?: Json
+          nationality?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          scholarship_notes?: string | null
+          status?: Database["public"]["Enums"]["student_status"]
+          umis_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guardians: {
+        Row: {
+          address: string | null
+          annual_income: number | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          institution_id: string | null
+          is_primary: boolean
+          meta: Json
+          occupation: string | null
+          phone: string | null
+          profile_id: string | null
+          relationship: Database["public"]["Enums"]["guardian_relationship"]
+          status: Database["public"]["Enums"]["person_status"]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          annual_income?: number | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          institution_id?: string | null
+          is_primary?: boolean
+          meta?: Json
+          occupation?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          relationship?: Database["public"]["Enums"]["guardian_relationship"]
+          status?: Database["public"]["Enums"]["person_status"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          annual_income?: number | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          institution_id?: string | null
+          is_primary?: boolean
+          meta?: Json
+          occupation?: string | null
+          phone?: string | null
+          profile_id?: string | null
+          relationship?: Database["public"]["Enums"]["guardian_relationship"]
+          status?: Database["public"]["Enums"]["person_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardians_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_guardians: {
+        Row: {
+          can_pickup: boolean
+          created_at: string
+          guardian_id: string
+          id: string
+          is_primary: boolean
+          meta: Json
+          relationship: Database["public"]["Enums"]["guardian_relationship"]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_pickup?: boolean
+          created_at?: string
+          guardian_id: string
+          id?: string
+          is_primary?: boolean
+          meta?: Json
+          relationship?: Database["public"]["Enums"]["guardian_relationship"]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_pickup?: boolean
+          created_at?: string
+          guardian_id?: string
+          id?: string
+          is_primary?: boolean
+          meta?: Json
+          relationship?: Database["public"]["Enums"]["guardian_relationship"]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_guardians_guardian_id_fkey"
+            columns: ["guardian_id"]
+            isOneToOne: false
+            referencedRelation: "guardians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_guardians_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enrollments: {
+        Row: {
+          academic_year_id: string | null
+          academic_year_label: string | null
+          campus_id: string | null
+          class_level_id: string | null
+          created_at: string
+          grade_label: string | null
+          house: string | null
+          id: string
+          institution_id: string | null
+          joined_on: string | null
+          left_on: string | null
+          meta: Json
+          program_id: string | null
+          roll_number: number | null
+          section_id: string | null
+          section_label: string | null
+          status: Database["public"]["Enums"]["enrollment_status"]
+          stream: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id?: string | null
+          academic_year_label?: string | null
+          campus_id?: string | null
+          class_level_id?: string | null
+          created_at?: string
+          grade_label?: string | null
+          house?: string | null
+          id?: string
+          institution_id?: string | null
+          joined_on?: string | null
+          left_on?: string | null
+          meta?: Json
+          program_id?: string | null
+          roll_number?: number | null
+          section_id?: string | null
+          section_label?: string | null
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          stream?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string | null
+          academic_year_label?: string | null
+          campus_id?: string | null
+          class_level_id?: string | null
+          created_at?: string
+          grade_label?: string | null
+          house?: string | null
+          id?: string
+          institution_id?: string | null
+          joined_on?: string | null
+          left_on?: string | null
+          meta?: Json
+          program_id?: string | null
+          roll_number?: number | null
+          section_id?: string | null
+          section_label?: string | null
+          status?: Database["public"]["Enums"]["enrollment_status"]
+          stream?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -147,9 +441,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      student_register: {
+        Row: {
+          academic_year: string | null
+          address: string | null
+          admission_no: string
+          alternate_phone: string | null
+          attendance_percent: number
+          blood_group: string | null
+          community: string | null
+          created_at: string
+          display_name: string
+          dob: string | null
+          email: string | null
+          emis_id: string | null
+          enrollment_id: string | null
+          enrollment_status: Database["public"]["Enums"]["enrollment_status"] | null
+          fee_status: string
+          first_graduate: boolean
+          first_name: string
+          gender: string | null
+          grade: string | null
+          guardian_annual_income: number | null
+          guardian_email: string | null
+          guardian_id: string | null
+          guardian_name: string | null
+          guardian_occupation: string | null
+          guardian_phone: string | null
+          house: string | null
+          income_verification_status: Database["public"]["Enums"]["verification_status"]
+          last_name: string | null
+          nationality: string | null
+          phone: string | null
+          roll_number: number | null
+          scholarship_notes: string | null
+          section: string | null
+          status: Database["public"]["Enums"]["student_status"]
+          stream: string | null
+          student_id: string
+          umis_id: string | null
+          updated_at: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      can_manage_people_academics: {
+        Args: {
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -183,6 +525,41 @@ export type Database = {
         | "transport"
         | "student"
         | "parent"
+      enrollment_status:
+        | "active"
+        | "completed"
+        | "promoted"
+        | "transferred"
+        | "withdrawn"
+      guardian_relationship:
+        | "father"
+        | "mother"
+        | "guardian"
+        | "grandparent"
+        | "sibling"
+        | "other"
+      person_status:
+        | "active"
+        | "inactive"
+        | "archived"
+      staff_status:
+        | "active"
+        | "on_leave"
+        | "inactive"
+        | "relieved"
+      student_status:
+        | "active"
+        | "inactive"
+        | "graduated"
+        | "transferred"
+        | "withdrawn"
+        | "alumni"
+      verification_status:
+        | "pending"
+        | "agreed"
+        | "appealed"
+        | "verified"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -335,6 +712,38 @@ export const Constants = {
         "transport",
         "student",
         "parent",
+      ],
+      enrollment_status: [
+        "active",
+        "completed",
+        "promoted",
+        "transferred",
+        "withdrawn",
+      ],
+      guardian_relationship: [
+        "father",
+        "mother",
+        "guardian",
+        "grandparent",
+        "sibling",
+        "other",
+      ],
+      person_status: ["active", "inactive", "archived"],
+      staff_status: ["active", "on_leave", "inactive", "relieved"],
+      student_status: [
+        "active",
+        "inactive",
+        "graduated",
+        "transferred",
+        "withdrawn",
+        "alumni",
+      ],
+      verification_status: [
+        "pending",
+        "agreed",
+        "appealed",
+        "verified",
+        "rejected",
       ],
     },
   },
