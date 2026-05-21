@@ -18,11 +18,17 @@ import Migration from "./pages/Migration";
 import Permissions from "./pages/Permissions";
 import Auth from "./pages/Auth";
 import Mfa from "./pages/Mfa";
+import Staff from "./pages/Staff";
+import Fees from "./pages/Fees";
+import Library from "./pages/Library";
+import Hostel from "./pages/Hostel";
+import Transport from "./pages/Transport";
+import Certificates from "./pages/Certificates";
 import GenericModule, { moduleConfigs } from "./pages/GenericModule";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
-const dedicated = new Set(["attendance"]);
+const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates"]);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,6 +52,12 @@ const App = () => (
               <Route path="/permissions" element={<Permissions />} />
               <Route path="/settings/institute" element={<InstituteSettings />} />
               <Route path="/settings/headers" element={<SettingsHeaders />} />
+              <Route path="/staff" element={<Staff />} />
+              <Route path="/fees" element={<Fees />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/hostel" element={<Hostel />} />
+              <Route path="/transport" element={<Transport />} />
+              <Route path="/certificates" element={<Certificates />} />
               {Object.keys(moduleConfigs)
                 .filter((s) => !dedicated.has(s))
                 .map((slug) => (

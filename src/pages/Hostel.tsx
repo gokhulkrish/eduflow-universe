@@ -1,0 +1,29 @@
+import { Building2 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
+import { useDbList } from "@/hooks/useDbList";
+import { Badge } from "@/components/ui/badge";
+
+type Room = { id: string; block: string; room_no: string; capacity: number; occupied: number; room_type: string };
+
+export default function Hostel() {
+  const { data, loading } = useDbList<Room>("hostel_rooms", { order: { column: "block", ascending: true } });
+  return (
+    <div>
+      <PageHeader title="Hostel Management" subtitle={`${data.length} rooms · ${data.reduce((s,r)=>s+r.capacity,0)} bed capacity`} icon={<Building2 className="h-6 w-6" />} />
+      <DataTable rows={data} loading={loading} columns={[
+        { key: "block", header: "Block" },
+        { key: "room_no", header: "Room", className: "font-mono" },
+        { key: "room_type", header: "Type", render: r => <Badge variant="secondary">{r.room_type}</Badge> },
+        { key: "occupancy", header: "Occupancy", render: r => (
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-secondary">
+              <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${(r.occupied/r.capacity)*100}%` }} />
+            </div>
+            <span className="text-xs">{r.occupied}/{r.capacity}</span>
+          </div>
+        ) },
+      ]} />
+    </div>
+  );
+}
