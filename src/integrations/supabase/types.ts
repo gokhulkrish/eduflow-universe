@@ -625,31 +625,43 @@ export type Database = {
         Row: {
           academic_year_id: string | null
           class_id: string
+          class_level_id: string | null
           created_at: string
           grade_label: string | null
           id: string
           roll_no: string | null
+          roll_number: string | null
+          section_label: string | null
           status: string
+          stream: string | null
           student_id: string
         }
         Insert: {
           academic_year_id?: string | null
           class_id: string
+          class_level_id?: string | null
           created_at?: string
           grade_label?: string | null
           id?: string
           roll_no?: string | null
+          roll_number?: string | null
+          section_label?: string | null
           status?: string
+          stream?: string | null
           student_id: string
         }
         Update: {
           academic_year_id?: string | null
           class_id?: string
+          class_level_id?: string | null
           created_at?: string
           grade_label?: string | null
           id?: string
           roll_no?: string | null
+          roll_number?: string | null
+          section_label?: string | null
           status?: string
+          stream?: string | null
           student_id?: string
         }
         Relationships: [
@@ -665,6 +677,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_class_level_id_fkey"
+            columns: ["class_level_id"]
+            isOneToOne: false
+            referencedRelation: "class_levels"
             referencedColumns: ["id"]
           },
           {
@@ -1935,6 +1954,7 @@ export type Database = {
           stream: string | null
           umis_id: string | null
           updated_at: string
+          updated_by: string | null
           user_id: string | null
         }
         Insert: {
@@ -1987,6 +2007,7 @@ export type Database = {
           stream?: string | null
           umis_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string | null
         }
         Update: {
@@ -2039,6 +2060,7 @@ export type Database = {
           stream?: string | null
           umis_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string | null
         }
         Relationships: []
