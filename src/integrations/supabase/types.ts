@@ -311,6 +311,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          comments: string | null
           created_at: string
           id: string
           issued_at: string | null
@@ -326,6 +327,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          comments?: string | null
           created_at?: string
           id?: string
           issued_at?: string | null
@@ -341,6 +343,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          comments?: string | null
           created_at?: string
           id?: string
           issued_at?: string | null
@@ -377,7 +380,10 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          institution_id: string | null
           name: string
+          status: string | null
+          template_html: string | null
         }
         Insert: {
           active?: boolean
@@ -385,7 +391,10 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          institution_id?: string | null
           name: string
+          status?: string | null
+          template_html?: string | null
         }
         Update: {
           active?: boolean
@@ -393,7 +402,10 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          institution_id?: string | null
           name?: string
+          status?: string | null
+          template_html?: string | null
         }
         Relationships: []
       }
@@ -500,6 +512,7 @@ export type Database = {
           code: string | null
           created_at: string
           id: string
+          label: string | null
           name: string
           sort_order: number | null
         }
@@ -507,6 +520,7 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          label?: string | null
           name: string
           sort_order?: number | null
         }
@@ -514,6 +528,7 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          label?: string | null
           name?: string
           sort_order?: number | null
         }
@@ -619,8 +634,11 @@ export type Database = {
           created_at: string
           entered_by: string | null
           exam_id: string | null
+          grade: string | null
           id: string
           marks_obtained: number | null
+          moderated_at: string | null
+          moderated_by: string | null
           remarks: string | null
           status: string
           student_id: string | null
@@ -632,8 +650,11 @@ export type Database = {
           created_at?: string
           entered_by?: string | null
           exam_id?: string | null
+          grade?: string | null
           id?: string
           marks_obtained?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           remarks?: string | null
           status?: string
           student_id?: string | null
@@ -645,8 +666,11 @@ export type Database = {
           created_at?: string
           entered_by?: string | null
           exam_id?: string | null
+          grade?: string | null
           id?: string
           marks_obtained?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           remarks?: string | null
           status?: string
           student_id?: string | null
@@ -667,15 +691,22 @@ export type Database = {
           class_id: string | null
           created_at: string
           created_by: string | null
+          date: string | null
+          description: string | null
           end_time: string | null
           exam_date: string | null
           exam_type: string | null
+          grade: string | null
           id: string
           instructions: string | null
+          max_marks: number | null
+          pass_marks: number | null
           passing_marks: number | null
           room: string | null
+          section: string | null
           start_time: string | null
           status: string
+          subject: string | null
           subject_id: string | null
           title: string
           total_marks: number | null
@@ -685,15 +716,22 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           created_by?: string | null
+          date?: string | null
+          description?: string | null
           end_time?: string | null
           exam_date?: string | null
           exam_type?: string | null
+          grade?: string | null
           id?: string
           instructions?: string | null
+          max_marks?: number | null
+          pass_marks?: number | null
           passing_marks?: number | null
           room?: string | null
+          section?: string | null
           start_time?: string | null
           status?: string
+          subject?: string | null
           subject_id?: string | null
           title: string
           total_marks?: number | null
@@ -703,15 +741,22 @@ export type Database = {
           class_id?: string | null
           created_at?: string
           created_by?: string | null
+          date?: string | null
+          description?: string | null
           end_time?: string | null
           exam_date?: string | null
           exam_type?: string | null
+          grade?: string | null
           id?: string
           instructions?: string | null
+          max_marks?: number | null
+          pass_marks?: number | null
           passing_marks?: number | null
           room?: string | null
+          section?: string | null
           start_time?: string | null
           status?: string
+          subject?: string | null
           subject_id?: string | null
           title?: string
           total_marks?: number | null
@@ -832,31 +877,70 @@ export type Database = {
       }
       fee_payments: {
         Row: {
+          academic_year_id: string | null
           amount: number
+          amount_paid: number | null
+          created_by: string | null
+          fee_category_id: string | null
           id: string
+          institution_id: string | null
           invoice_id: string
+          meta: Json
           method: string
           paid_at: string
+          payment_date: string | null
+          payment_method: string | null
+          receipt_no: string | null
           received_by: string | null
           reference: string | null
+          status: string | null
+          student_id: string | null
+          transaction_reference: string | null
+          updated_at: string
         }
         Insert: {
+          academic_year_id?: string | null
           amount: number
+          amount_paid?: number | null
+          created_by?: string | null
+          fee_category_id?: string | null
           id?: string
+          institution_id?: string | null
           invoice_id: string
+          meta?: Json
           method?: string
           paid_at?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          receipt_no?: string | null
           received_by?: string | null
           reference?: string | null
+          status?: string | null
+          student_id?: string | null
+          transaction_reference?: string | null
+          updated_at?: string
         }
         Update: {
+          academic_year_id?: string | null
           amount?: number
+          amount_paid?: number | null
+          created_by?: string | null
+          fee_category_id?: string | null
           id?: string
+          institution_id?: string | null
           invoice_id?: string
+          meta?: Json
           method?: string
           paid_at?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          receipt_no?: string | null
           received_by?: string | null
           reference?: string | null
+          status?: string | null
+          student_id?: string | null
+          transaction_reference?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -905,31 +989,46 @@ export type Database = {
         Row: {
           academic_year_id: string | null
           amount: number
+          class_level_id: string | null
           created_at: string
+          due_date: string | null
           due_day: number | null
+          fee_category_id: string | null
           frequency: string
           grade: string | null
           id: string
+          institution_id: string | null
+          meta: Json
           name: string
         }
         Insert: {
           academic_year_id?: string | null
           amount?: number
+          class_level_id?: string | null
           created_at?: string
+          due_date?: string | null
           due_day?: number | null
+          fee_category_id?: string | null
           frequency?: string
           grade?: string | null
           id?: string
+          institution_id?: string | null
+          meta?: Json
           name: string
         }
         Update: {
           academic_year_id?: string | null
           amount?: number
+          class_level_id?: string | null
           created_at?: string
+          due_date?: string | null
           due_day?: number | null
+          fee_category_id?: string | null
           frequency?: string
           grade?: string | null
           id?: string
+          institution_id?: string | null
+          meta?: Json
           name?: string
         }
         Relationships: [
@@ -938,6 +1037,20 @@ export type Database = {
             columns: ["academic_year_id"]
             isOneToOne: false
             referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_structures_class_level_id_fkey"
+            columns: ["class_level_id"]
+            isOneToOne: false
+            referencedRelation: "class_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_structures_fee_category_id_fkey"
+            columns: ["fee_category_id"]
+            isOneToOne: false
+            referencedRelation: "fee_categories"
             referencedColumns: ["id"]
           },
         ]
