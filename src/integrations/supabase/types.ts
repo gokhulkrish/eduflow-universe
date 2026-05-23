@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           end_date: string
           id: string
+          institution_id: string | null
           is_current: boolean
           name: string
           start_date: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           end_date: string
           id?: string
+          institution_id?: string | null
           is_current?: boolean
           name: string
           start_date: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           end_date?: string
           id?: string
+          institution_id?: string | null
           is_current?: boolean
           name?: string
           start_date?: string
@@ -384,6 +387,7 @@ export type Database = {
           name: string
           status: string | null
           template_html: string | null
+          variables: Json
         }
         Insert: {
           active?: boolean
@@ -395,6 +399,7 @@ export type Database = {
           name: string
           status?: string | null
           template_html?: string | null
+          variables?: Json
         }
         Update: {
           active?: boolean
@@ -406,44 +411,54 @@ export type Database = {
           name?: string
           status?: string | null
           template_html?: string | null
+          variables?: Json
         }
         Relationships: []
       }
       certificates: {
         Row: {
           certificate_no: string | null
+          content_snapshot: string | null
           created_at: string
           id: string
           issued_by: string | null
           issued_on: string
+          meta: Json
           qr_token: string | null
           request_id: string | null
           status: string
           student_id: string | null
+          template_id: string | null
           verification_code: string | null
         }
         Insert: {
           certificate_no?: string | null
+          content_snapshot?: string | null
           created_at?: string
           id?: string
           issued_by?: string | null
           issued_on?: string
+          meta?: Json
           qr_token?: string | null
           request_id?: string | null
           status?: string
           student_id?: string | null
+          template_id?: string | null
           verification_code?: string | null
         }
         Update: {
           certificate_no?: string | null
+          content_snapshot?: string | null
           created_at?: string
           id?: string
           issued_by?: string | null
           issued_on?: string
+          meta?: Json
           qr_token?: string | null
           request_id?: string | null
           status?: string
           student_id?: string | null
+          template_id?: string | null
           verification_code?: string | null
         }
         Relationships: []
@@ -512,6 +527,7 @@ export type Database = {
           code: string | null
           created_at: string
           id: string
+          institution_id: string | null
           label: string | null
           name: string
           sort_order: number | null
@@ -520,6 +536,7 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          institution_id?: string | null
           label?: string | null
           name: string
           sort_order?: number | null
@@ -528,6 +545,7 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          institution_id?: string | null
           label?: string | null
           name?: string
           sort_order?: number | null
@@ -770,6 +788,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          institution_id: string | null
           name: string
         }
         Insert: {
@@ -777,6 +796,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          institution_id?: string | null
           name: string
         }
         Update: {
@@ -784,6 +804,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          institution_id?: string | null
           name?: string
         }
         Relationships: []
@@ -878,13 +899,13 @@ export type Database = {
       fee_payments: {
         Row: {
           academic_year_id: string | null
-          amount: number
+          amount: number | null
           amount_paid: number | null
           created_by: string | null
           fee_category_id: string | null
           id: string
           institution_id: string | null
-          invoice_id: string
+          invoice_id: string | null
           meta: Json
           method: string
           paid_at: string
@@ -900,13 +921,13 @@ export type Database = {
         }
         Insert: {
           academic_year_id?: string | null
-          amount: number
+          amount?: number | null
           amount_paid?: number | null
           created_by?: string | null
           fee_category_id?: string | null
           id?: string
           institution_id?: string | null
-          invoice_id: string
+          invoice_id?: string | null
           meta?: Json
           method?: string
           paid_at?: string
@@ -922,13 +943,13 @@ export type Database = {
         }
         Update: {
           academic_year_id?: string | null
-          amount?: number
+          amount?: number | null
           amount_paid?: number | null
           created_by?: string | null
           fee_category_id?: string | null
           id?: string
           institution_id?: string | null
-          invoice_id?: string
+          invoice_id?: string | null
           meta?: Json
           method?: string
           paid_at?: string
@@ -999,7 +1020,7 @@ export type Database = {
           id: string
           institution_id: string | null
           meta: Json
-          name: string
+          name: string | null
         }
         Insert: {
           academic_year_id?: string | null
@@ -1014,7 +1035,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           meta?: Json
-          name: string
+          name?: string | null
         }
         Update: {
           academic_year_id?: string | null
@@ -1029,7 +1050,7 @@ export type Database = {
           id?: string
           institution_id?: string | null
           meta?: Json
-          name?: string
+          name?: string | null
         }
         Relationships: [
           {
@@ -1581,6 +1602,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           difficulty: string | null
+          explanation: string | null
+          grade: string | null
           id: string
           marks: number | null
           options: Json
@@ -1588,6 +1611,7 @@ export type Database = {
           question_type: string | null
           subject_id: string | null
           tags: string[] | null
+          topic: string | null
           updated_at: string
         }
         Insert: {
@@ -1595,6 +1619,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           difficulty?: string | null
+          explanation?: string | null
+          grade?: string | null
           id?: string
           marks?: number | null
           options?: Json
@@ -1602,6 +1628,7 @@ export type Database = {
           question_type?: string | null
           subject_id?: string | null
           tags?: string[] | null
+          topic?: string | null
           updated_at?: string
         }
         Update: {
@@ -1609,6 +1636,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           difficulty?: string | null
+          explanation?: string | null
+          grade?: string | null
           id?: string
           marks?: number | null
           options?: Json
@@ -1616,6 +1645,7 @@ export type Database = {
           question_type?: string | null
           subject_id?: string | null
           tags?: string[] | null
+          topic?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1626,6 +1656,8 @@ export type Database = {
           exam_id: string | null
           id: string
           notes: string | null
+          notify_parents: boolean
+          notify_students: boolean
           published_at: string | null
           published_by: string | null
           status: string
@@ -1637,6 +1669,8 @@ export type Database = {
           exam_id?: string | null
           id?: string
           notes?: string | null
+          notify_parents?: boolean
+          notify_students?: boolean
           published_at?: string | null
           published_by?: string | null
           status?: string
@@ -1648,6 +1682,8 @@ export type Database = {
           exam_id?: string | null
           id?: string
           notes?: string | null
+          notify_parents?: boolean
+          notify_students?: boolean
           published_at?: string | null
           published_by?: string | null
           status?: string
@@ -2081,37 +2117,58 @@ export type Database = {
       }
       transcripts: {
         Row: {
+          academic_year: string | null
           academic_year_id: string | null
           body: Json
           certificate_no: string | null
           created_at: string
           created_by: string | null
+          exam_ids: string[] | null
+          gpa: number | null
           id: string
           issued_at: string | null
+          obtained_marks: number | null
+          percentage: number | null
+          qr_token: string | null
           status: string
           student_id: string | null
+          total_marks: number | null
         }
         Insert: {
+          academic_year?: string | null
           academic_year_id?: string | null
           body?: Json
           certificate_no?: string | null
           created_at?: string
           created_by?: string | null
+          exam_ids?: string[] | null
+          gpa?: number | null
           id?: string
           issued_at?: string | null
+          obtained_marks?: number | null
+          percentage?: number | null
+          qr_token?: string | null
           status?: string
           student_id?: string | null
+          total_marks?: number | null
         }
         Update: {
+          academic_year?: string | null
           academic_year_id?: string | null
           body?: Json
           certificate_no?: string | null
           created_at?: string
           created_by?: string | null
+          exam_ids?: string[] | null
+          gpa?: number | null
           id?: string
           issued_at?: string | null
+          obtained_marks?: number | null
+          percentage?: number | null
+          qr_token?: string | null
           status?: string
           student_id?: string | null
+          total_marks?: number | null
         }
         Relationships: []
       }
