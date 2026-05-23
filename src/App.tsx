@@ -10,7 +10,7 @@ import { AppLayout } from "./components/AppLayout";
 import Auth from "./pages/Auth";
 import Mfa from "./pages/Mfa";
 import { moduleConfigs } from "./pages/module-configs";
-import NotFound from "./pages/NotFound.tsx";
+import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
