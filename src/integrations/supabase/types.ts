@@ -626,6 +626,7 @@ export type Database = {
           academic_year_id: string | null
           class_id: string
           created_at: string
+          grade_label: string | null
           id: string
           roll_no: string | null
           status: string
@@ -635,6 +636,7 @@ export type Database = {
           academic_year_id?: string | null
           class_id: string
           created_at?: string
+          grade_label?: string | null
           id?: string
           roll_no?: string | null
           status?: string
@@ -644,6 +646,7 @@ export type Database = {
           academic_year_id?: string | null
           class_id?: string
           created_at?: string
+          grade_label?: string | null
           id?: string
           roll_no?: string | null
           status?: string
@@ -1883,10 +1886,12 @@ export type Database = {
       }
       students: {
         Row: {
+          academic_year: string | null
           address: string | null
           admission_no: string
           alternate_phone: string | null
           annual_income: number | null
+          attendance_percent: number | null
           block: string | null
           blood_group: string | null
           community: string | null
@@ -1898,12 +1903,19 @@ export type Database = {
           email: string | null
           emis_id: string | null
           enrollment_id: string | null
+          enrollment_status: string | null
           father_name: string | null
           father_occupation: string | null
+          fee_status: string | null
           first_graduate: boolean | null
           first_name: string
           gender: string | null
+          grade: string | null
+          guardian_annual_income: number | null
+          guardian_email: string | null
           guardian_id: string | null
+          guardian_name: string | null
+          guardian_occupation: string | null
           guardian_phone: string | null
           house: string | null
           id: string
@@ -1916,17 +1928,22 @@ export type Database = {
           nationality: string | null
           notes: string | null
           phone: string | null
+          roll_number: string | null
           scholarship_notes: string | null
+          section: string | null
           status: string
+          stream: string | null
           umis_id: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          academic_year?: string | null
           address?: string | null
           admission_no: string
           alternate_phone?: string | null
           annual_income?: number | null
+          attendance_percent?: number | null
           block?: string | null
           blood_group?: string | null
           community?: string | null
@@ -1938,12 +1955,19 @@ export type Database = {
           email?: string | null
           emis_id?: string | null
           enrollment_id?: string | null
+          enrollment_status?: string | null
           father_name?: string | null
           father_occupation?: string | null
+          fee_status?: string | null
           first_graduate?: boolean | null
           first_name: string
           gender?: string | null
+          grade?: string | null
+          guardian_annual_income?: number | null
+          guardian_email?: string | null
           guardian_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string
@@ -1956,17 +1980,22 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          roll_number?: string | null
           scholarship_notes?: string | null
+          section?: string | null
           status?: string
+          stream?: string | null
           umis_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          academic_year?: string | null
           address?: string | null
           admission_no?: string
           alternate_phone?: string | null
           annual_income?: number | null
+          attendance_percent?: number | null
           block?: string | null
           blood_group?: string | null
           community?: string | null
@@ -1978,12 +2007,19 @@ export type Database = {
           email?: string | null
           emis_id?: string | null
           enrollment_id?: string | null
+          enrollment_status?: string | null
           father_name?: string | null
           father_occupation?: string | null
+          fee_status?: string | null
           first_graduate?: boolean | null
           first_name?: string
           gender?: string | null
+          grade?: string | null
+          guardian_annual_income?: number | null
+          guardian_email?: string | null
           guardian_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string
@@ -1996,8 +2032,11 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          roll_number?: string | null
           scholarship_notes?: string | null
+          section?: string | null
           status?: string
+          stream?: string | null
           umis_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -2408,10 +2447,12 @@ export type Database = {
     Views: {
       student_register: {
         Row: {
+          academic_year: string | null
           address: string | null
           admission_no: string | null
           alternate_phone: string | null
           annual_income: number | null
+          attendance_percent: number | null
           block: string | null
           blood_group: string | null
           community: string | null
@@ -2423,12 +2464,19 @@ export type Database = {
           email: string | null
           emis_id: string | null
           enrollment_id: string | null
+          enrollment_status: string | null
           father_name: string | null
           father_occupation: string | null
+          fee_status: string | null
           first_graduate: boolean | null
           first_name: string | null
           gender: string | null
+          grade: string | null
+          guardian_annual_income: number | null
+          guardian_email: string | null
           guardian_id: string | null
+          guardian_name: string | null
+          guardian_occupation: string | null
           guardian_phone: string | null
           house: string | null
           id: string | null
@@ -2441,18 +2489,23 @@ export type Database = {
           nationality: string | null
           notes: string | null
           phone: string | null
+          roll_number: string | null
           scholarship_notes: string | null
+          section: string | null
           status: string | null
+          stream: string | null
           student_id: string | null
           umis_id: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          academic_year?: string | null
           address?: string | null
           admission_no?: string | null
           alternate_phone?: string | null
           annual_income?: number | null
+          attendance_percent?: number | null
           block?: string | null
           blood_group?: string | null
           community?: string | null
@@ -2464,12 +2517,19 @@ export type Database = {
           email?: string | null
           emis_id?: string | null
           enrollment_id?: string | null
+          enrollment_status?: string | null
           father_name?: string | null
           father_occupation?: string | null
+          fee_status?: string | null
           first_graduate?: boolean | null
           first_name?: string | null
           gender?: string | null
+          grade?: string | null
+          guardian_annual_income?: number | null
+          guardian_email?: string | null
           guardian_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string | null
@@ -2482,18 +2542,23 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          roll_number?: string | null
           scholarship_notes?: string | null
+          section?: string | null
           status?: string | null
+          stream?: string | null
           student_id?: string | null
           umis_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          academic_year?: string | null
           address?: string | null
           admission_no?: string | null
           alternate_phone?: string | null
           annual_income?: number | null
+          attendance_percent?: number | null
           block?: string | null
           blood_group?: string | null
           community?: string | null
@@ -2505,12 +2570,19 @@ export type Database = {
           email?: string | null
           emis_id?: string | null
           enrollment_id?: string | null
+          enrollment_status?: string | null
           father_name?: string | null
           father_occupation?: string | null
+          fee_status?: string | null
           first_graduate?: boolean | null
           first_name?: string | null
           gender?: string | null
+          grade?: string | null
+          guardian_annual_income?: number | null
+          guardian_email?: string | null
           guardian_id?: string | null
+          guardian_name?: string | null
+          guardian_occupation?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string | null
@@ -2523,8 +2595,11 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          roll_number?: string | null
           scholarship_notes?: string | null
+          section?: string | null
           status?: string | null
+          stream?: string | null
           student_id?: string | null
           umis_id?: string | null
           updated_at?: string | null
