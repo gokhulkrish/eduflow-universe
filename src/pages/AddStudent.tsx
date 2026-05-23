@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { GraduationCap, ArrowLeft, Save, RotateCcw, Trash2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
+import { StickyActionBar } from "@/components/StickyActionBar";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -26,94 +27,29 @@ import {
   fetchStudentFormValues,
   formatDataError,
   saveStudentRecord,
-  studentSections,
   type StudentFormValues,
 } from "@/lib/student-records";
+import { buildRegistrySections, getHeaderFieldMeta, invalidateRegistryCache, loadCustomImportFields, loadHeaderRegistrySettings, registryStorageKey } from "@/lib/header-registry";
+import { importStorageKeys } from "@/lib/student-import";
+import { subscribeAppSync } from "@/lib/app-sync";
 import { toast } from "sonner";
-
-type SectionDef = {
-  title: string;
-  description?: string;
-  fields: { name: string; label: string; type?: "text" | "date" | "email" | "tel" | "number" | "textarea" | "select"; options?: string[]; placeholder?: string; col?: 1 | 2 | 3 }[];
-};
-
-// Merged from legacy `customStudentFields` builder — flattened to a clean, static schema.
-const sections: SectionDef[] = [
-  {
-    title: "Personal Information",
-    description: "Core identity captured for the SMS register.",
-    fields: [
-      { name: "firstName", label: "First Name", placeholder: "Aarav" },
-      { name: "lastName", label: "Last Name", placeholder: "Sharma" },
-      { name: "dob", label: "Date of Birth", type: "date" },
-      { name: "gender", label: "Gender", type: "select", options: ["Male", "Female", "Other", "Prefer not to say"] },
-      { name: "bloodGroup", label: "Blood Group", type: "select", options: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"] },
-      { name: "nationality", label: "Nationality", placeholder: "Indian" },
-    ],
-  },
-  {
-    title: "Academic Details",
-    description: "Grade, roll number, section assignment.",
-    fields: [
-      { name: "admissionNo", label: "Admission No", placeholder: "ADM-2026-0184" },
-      { name: "grade", label: "Grade", type: "select", options: ["Pre-KG", "KG", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"] },
-      { name: "section", label: "Section", type: "select", options: ["A", "B", "C", "D"] },
-      { name: "roll", label: "Roll Number", type: "number" },
-      { name: "stream", label: "Stream", type: "select", options: ["Science", "Commerce", "Arts", "Vocational", "N/A"] },
-      { name: "house", label: "House", type: "select", options: ["Red", "Blue", "Green", "Yellow"] },
-    ],
-  },
-  {
-    title: "Contact & Address",
-    fields: [
-      { name: "email", label: "Email", type: "email", placeholder: "student@school.edu" },
-      { name: "phone", label: "Phone", type: "tel", placeholder: "+91 98765 43210" },
-      { name: "alternatePhone", label: "Alternate Phone", type: "tel" },
-      { name: "address", label: "Address", type: "textarea", col: 3, placeholder: "Street, Area, City, State, PIN" },
-    ],
-  },
-  {
-    title: "Guardian Information",
-    fields: [
-      { name: "fatherName", label: "Father's Name" },
-      { name: "fatherOccupation", label: "Father's Occupation" },
-      { name: "motherName", label: "Mother's Name" },
-      { name: "motherOccupation", label: "Mother's Occupation" },
-      { name: "guardianPhone", label: "Guardian Phone", type: "tel" },
-      { name: "annualIncome", label: "Annual Income", type: "number", placeholder: "₹" },
-    ],
-  },
-  {
-    title: "UMIS / EMIS Context",
-    description: "Optional — auto-filled when the student is imported from UMIS.",
-    fields: [
-      { name: "umisId", label: "UMIS ID" },
-      { name: "emisId", label: "EMIS ID" },
-      { name: "district", label: "District" },
-      { name: "block", label: "Block" },
-    ],
-  },
-  {
-    title: "Verification & Scholarship",
-    description: "Community, first graduate, income verification (Scholarship module-aligned).",
-    fields: [
-      { name: "community", label: "Community", type: "select", options: ["OC", "BC", "MBC", "SC", "ST", "Other"] },
-      { name: "firstGraduate", label: "First Graduate", type: "select", options: ["Yes", "No"] },
-      { name: "incomeVerified", label: "Income Verified", type: "select", options: ["Pending", "Agreed", "Appealed"] },
-      { name: "scholarshipNotes", label: "Notes", type: "textarea", col: 3 },
-    ],
-  },
-];
 
 export default function AddStudent() {
   const navigate = useNavigate();
   const { studentId } = useParams();
   const [values, setValues] = useState<Record<string, string>>({});
+  const [registrySettings, setRegistrySettings] = useState(() => loadHeaderRegistrySettings());
+  const [customFields, setCustomFields] = useState(() => loadCustomImportFields());
   const studentQuery = useQuery({
     queryKey: ["student-form", studentId],
     queryFn: () => fetchStudentFormValues(studentId as string),
     enabled: Boolean(studentId),
   });
+
+  const sections = useMemo(
+    () => buildRegistrySections(customFields, registrySettings).filter((section) => section.enabled),
+    [customFields, registrySettings]
+  );
 
   useEffect(() => {
     if (studentQuery.data) {
@@ -121,11 +57,29 @@ export default function AddStudent() {
     }
   }, [studentQuery.data]);
 
+  useEffect(() => {
+    return subscribeAppSync([registryStorageKey, importStorageKeys.customFields, importStorageKeys.profiles], () => {
+      setRegistrySettings(loadHeaderRegistrySettings());
+      setCustomFields(loadCustomImportFields());
+    });
+  }, []);
+
   const set = (k: string, v: string) => setValues((s) => ({ ...s, [k]: v }));
   const reset = () => { setValues({}); toast.info("Form reset"); };
-  const save = () => {
-    toast.success("Student saved to register");
-    setTimeout(() => navigate("/students"), 600);
+  const refreshRegistry = () => {
+    invalidateRegistryCache();
+    setRegistrySettings(loadHeaderRegistrySettings());
+    setCustomFields(loadCustomImportFields());
+    toast.success("Header registry refreshed");
+  };
+  const save = async () => {
+    try {
+      await saveStudentRecord(values);
+      toast.success("Student saved to register");
+      setTimeout(() => navigate("/students"), 600);
+    } catch (error) {
+      toast.error(formatDataError(error));
+    }
   };
 
   return (
@@ -135,9 +89,14 @@ export default function AddStudent() {
         subtitle="Manually register a student with grouped sections and custom fields"
         icon={<GraduationCap className="h-6 w-6" />}
         actions={
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link to="/students"><ArrowLeft className="mr-2 h-4 w-4" />Back to Register</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={refreshRegistry}>
+              Refresh Registry
+            </Button>
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link to="/students"><ArrowLeft className="mr-2 h-4 w-4" />Back to Register</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -155,7 +114,7 @@ export default function AddStudent() {
           </Card>
         )}
 
-        {studentSections.map((sec) => (
+        {sections.map((sec) => (
           <Card key={sec.title} className="glass p-5">
             <div className="mb-4 flex items-baseline justify-between gap-3">
               <div>
@@ -165,10 +124,13 @@ export default function AddStudent() {
               <Badge variant="secondary" className="text-[10px]">{sec.fields.length} fields</Badge>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sec.fields.map((f) => (
+              {sec.fields.map((f) => {
+                const meta = getHeaderFieldMeta(f.name);
+                return (
                 <div key={f.name} className={`flex flex-col gap-1.5 ${f.col === 3 ? "lg:col-span-3 sm:col-span-2" : ""}`}>
                   <Label htmlFor={f.name} className="text-xs">
                     {f.label}{f.required && <span className="text-destructive ml-1">*</span>}
+                    {meta?.source && <span className="text-[10px] text-muted-foreground ml-2 opacity-60">({meta.source})</span>}
                   </Label>
                   {f.type === "textarea" ? (
                     <Textarea id={f.name} value={values[f.name] || ""} onChange={(e) => set(f.name, e.target.value)} placeholder={f.placeholder} rows={3} />
@@ -183,23 +145,24 @@ export default function AddStudent() {
                     <Input id={f.name} type={f.type || "text"} value={values[f.name] || ""} onChange={(e) => set(f.name, e.target.value)} placeholder={f.placeholder} />
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           </Card>
         ))}
       </div>
 
-      <div className="sticky bottom-4 mt-6 flex flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-elegant backdrop-blur">
-        <Button onClick={save} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
-          <Save className="mr-2 h-4 w-4" /> Save Student
+      <StickyActionBar className="justify-end">
+        <Button variant="ghost" className="rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" /> Delete
         </Button>
         <Button variant="outline" onClick={reset} className="rounded-xl">
           <RotateCcw className="mr-2 h-4 w-4" /> Reset
         </Button>
-        <Button variant="ghost" className="ml-auto rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" /> Delete
+        <Button onClick={save} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+          <Save className="mr-2 h-4 w-4" /> Save Student
         </Button>
-      </div>
+      </StickyActionBar>
     </div>
   );
 }

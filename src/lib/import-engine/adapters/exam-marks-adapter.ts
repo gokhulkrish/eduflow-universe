@@ -1,0 +1,147 @@
+import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
+
+const fieldGroups: ImportModuleFieldGroup[] = [
+  {
+    title: "Student Identity",
+    fields: [
+      { key: "admissionNo", label: "Admission No", aliases: ["admission_no", "admission number", "registration_no", "reg_no", "roll_no", "student_id"] },
+      { key: "fullName", label: "Student Name", aliases: ["name", "student_name", "studentname", "full_name"] },
+    ],
+  },
+  {
+    title: "Exam & Marks",
+    fields: [
+      { key: "examTitle", label: "Exam Title", aliases: ["exam", "exam_title", "exam name", "test", "examination"], required: true },
+      { key: "subject", label: "Subject", aliases: ["subject", "sub", "subject_name"] },
+      { key: "marksObtained", label: "Marks Obtained", aliases: ["marks_obtained", "marks", "score", "obtained", "marks obtained"], required: true },
+      { key: "maxMarks", label: "Max Marks", aliases: ["max_marks", "maximum marks", "total marks", "out of"] },
+      { key: "grade", label: "Grade", aliases: ["grade", "exam_grade"] },
+      { key: "remarks", label: "Remarks", aliases: ["remarks", "notes", "comment"] },
+    ],
+  },
+  {
+    title: "Schedule",
+    fields: [
+      { key: "date", label: "Exam Date", aliases: ["date", "exam_date", "exam date"] },
+      { key: "grade", label: "Grade / Class", aliases: ["grade", "class", "standard"] },
+      { key: "section", label: "Section", aliases: ["section", "division"] },
+    ],
+  },
+];
+
+const matchStrategies: ImportModuleMatchStrategy[] = [
+  { id: "admission_only", label: "Admission Number Only", fields: ["admissionNo"] },
+  { id: "name_only", label: "Student Name Only", fields: ["fullName"] },
+  { id: "admission_or_name", label: "Admission No OR Name", fields: ["admissionNo", "fullName"] },
+];
+
+async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data } = await (supabase.from("students") as any).select("id, admission_no, first_name, last_name");
+  return (data || []).map((s: Record<string, unknown>) => ({
+    studentId: s.id,
+    admissionNo: s.admission_no,
+    fullName: [s.first_name, s.last_name].filter(Boolean).join(" "),
+  }));
+}
+
+async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promise<ImportCommitResult> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { emitAppSync } = await import("@/lib/app-sync");
+
+  let inserted = 0, updated = 0, skipped = 0, failed = 0;
+  const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];
+  const errors: { rowNumber: number; message: string }[] = [];
+
+  for (const row of rows) {
+    if (row.action === "skip") { skipped++; continue; }
+    try {
+      const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
+      const { data: student } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
+      if (!student) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` }); continue; }
+
+      const examTitle = row.mapped.examTitle || row.sourceRow.examTitle || "";
+      const subject = row.mapped.subject || row.sourceRow.subject || "";
+      const marksObtained = parseFloat(row.mapped.marksObtained || "0");
+      const maxMarks = row.mapped.maxMarks ? parseFloat(row.mapped.maxMarks) : null;
+      const grade = row.mapped.grade || null;
+      const remarks = row.mapped.remarks || null;
+
+      if (isNaN(marksObtained)) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Invalid marks: ${row.mapped.marksObtained}` }); continue; }
+
+      let examId: string | null = null;
+      if (examTitle) {
+        const { data: exams } = await supabase.from("exam_schedules").select("id").eq("title", examTitle).limit(1);
+        if (exams && exams.length > 0) examId = exams[0].id;
+      }
+
+      if (row.action === "insert") {
+        const payload: Record<string, unknown> = {
+          student_id: student.id,
+          marks_obtained: marksObtained,
+          grade,
+          remarks: remarks || "",
+          status: "pending",
+        };
+        if (examId) payload.exam_id = examId;
+        const { data: result, error } = await (supabase.from("exam_marks") as any).insert(payload).select().single();
+        if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+        else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+      } else if (row.action === "update") {
+        const { data: existing } = await (supabase.from("exam_marks") as any)
+          .select("id").eq("student_id", student.id).maybeSingle();
+        if (existing) {
+          const { error } = await (supabase.from("exam_marks") as any)
+            .update({ marks_obtained: marksObtained, grade, remarks: remarks || "" })
+            .eq("id", existing.id);
+          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+          else { updated++; rowResults.push({ rowKey: row.rowKey, id: existing.id, action: "updated" }); }
+        } else {
+          const payload: Record<string, unknown> = {
+            student_id: student.id,
+            marks_obtained: marksObtained,
+            grade,
+            remarks: remarks || "",
+            status: "pending",
+          };
+          if (examId) payload.exam_id = examId;
+          const { data: result, error } = await (supabase.from("exam_marks") as any).insert(payload).select().single();
+          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+          else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+        }
+      }
+    } catch (err) {
+      failed++;
+      errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });
+    }
+  }
+
+  emitAppSync("sms.exam-marks.v1");
+  return { inserted, updated, skipped, failed, errors, rowResults };
+}
+
+async function rollbackRows(rollbackData: ImportRollbackEntry[]): Promise<{ success: boolean; restored: number }> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  let restored = 0, success = true;
+  for (const entry of rollbackData) {
+    try {
+      if (entry.changeType === "inserted") {
+        const { error } = await supabase.from("exam_marks").delete().eq("id", entry.studentKey);
+        if (error) throw error; restored++;
+      } else if (entry.changeType === "updated") {
+        const { error } = await supabase.from("exam_marks").update(entry.previousState as any).eq("id", entry.studentKey);
+        if (error) throw error; restored++;
+      }
+    } catch { success = false; }
+  }
+  return { success, restored };
+}
+
+export const examMarksModule: ImportModule = {
+  id: "exam-marks",
+  name: "Exam Marks",
+  description: "Import exam scores, grades, and marks by student and subject",
+  icon: "GraduationCap",
+  fieldGroups, matchStrategies,
+  adapter: { loadExistingRecords, commitRows, rollbackRows },
+};

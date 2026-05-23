@@ -56,8 +56,8 @@ export default function Auth() {
             <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold">NextGen EduERP</h1>
-            <p className="text-xs text-muted-foreground">Secure workspace access</p>
+            <h1 className="font-display text-xl font-bold">GCT ERP</h1>
+            <p className="text-xs text-muted-foreground">Secure campus workspace access</p>
           </div>
         </div>
         <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
@@ -74,7 +74,7 @@ export default function Auth() {
             )}
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@institute.edu" maxLength={255} required />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gct.ac.in" maxLength={255} required />
             </div>
             <div className="space-y-1.5">
               <Label>Password</Label>

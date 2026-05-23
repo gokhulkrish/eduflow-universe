@@ -9,6 +9,9 @@ import { Shield, Search, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, AppRole } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { tableExists } from "@/lib/supabase-health";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 const ROLES: AppRole[] = [
   "super_admin","admin","principal","hod","faculty","staff",
@@ -48,6 +51,13 @@ export default function Permissions() {
 
   useEffect(() => {
     (async () => {
+      if (!(await tableExists("permissions")) || !(await tableExists("role_permissions"))) {
+        setPerms([]);
+        setMatrix(new Map());
+        setLoading(false);
+        return;
+      }
+
       const [{ data: p }, { data: rp }] = await Promise.all([
         supabase.from("permissions").select("*").order("module_key").order("action"),
         supabase.from("role_permissions").select("role,permission_id,level"),
@@ -65,6 +75,8 @@ export default function Permissions() {
     [perms, q]
   );
 
+  const pag = usePagination({ data: filtered, pageSize: 10 });
+
   const setCell = (role: AppRole, pid: string, level: Level) => {
     if (!isSuper) return;
     const key = `${role}:${pid}`;
@@ -80,6 +92,10 @@ export default function Permissions() {
 
   const save = async () => {
     if (!dirty.size) return;
+    if (!(await tableExists("role_permissions"))) {
+      toast.error("Role permissions table is not available yet.");
+      return;
+    }
     setSaving(true);
     const rows = Array.from(dirty).map((k) => {
       const [role, permission_id] = k.split(":") as [AppRole, string];
@@ -130,6 +146,7 @@ export default function Permissions() {
           <div className="flex h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
           <div className="overflow-auto">
+            <TablePagination {...pag} />
             <table className="min-w-full border-collapse text-xs">
               <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                 <tr>
@@ -140,7 +157,7 @@ export default function Permissions() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {pag.pageData.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/30">
                     <td className="sticky left-0 z-10 border-b border-r border-border bg-card/95 p-2">
                       <div className="font-medium">{p.label}</div>

@@ -1,5 +1,5 @@
 import { Bell, Search, Moon, Sun, Command, Activity, LogOut } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -24,9 +24,12 @@ export function Topbar() {
   const primaryRole = roles[0] ?? "guest";
   const initials = (user?.email ?? "??").slice(0, 2).toUpperCase();
 
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
-      <SidebarTrigger className="text-foreground" />
+      {/* Sidebar trigger moved into sidebar for both states; Topbar no longer renders it */}
 
       <div className="relative ml-2 hidden flex-1 max-w-md md:block">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

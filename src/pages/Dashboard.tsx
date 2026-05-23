@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  enrollmentTrend, attendanceWeek, performanceByGrade,
+  enrollmentTrend, attendanceWeek, performanceByProgram,
   departmentDist, activities, pipelines,
   dashboardHero, erpKpis, erpRealtimeFabric,
 } from "@/lib/mock-data";
@@ -237,12 +237,12 @@ export default function Dashboard() {
 
         <Card className="glass p-5">
           <h3 className="mb-1 font-display text-lg font-semibold">Avg Performance</h3>
-          <p className="mb-3 text-xs text-muted-foreground">By grade · latest term</p>
+          <p className="mb-3 text-xs text-muted-foreground">By program · latest term</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={performanceByGrade} layout="vertical">
+            <BarChart data={performanceByProgram} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
               <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} />
-              <YAxis dataKey="grade" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={70} />
+              <YAxis dataKey="program" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={70} />
               <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "12px" }} />
               <Bar dataKey="avg" fill="hsl(270 90% 70%)" radius={[0, 6, 6, 0]} />
             </BarChart>

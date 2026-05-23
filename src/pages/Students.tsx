@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,9 +24,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
-import { students } from "@/lib/mock-data";
-import { fetchStudentRegister, deleteStudentRecord, formatDataError, gradeLabelForStudent, initialsForStudent, type StudentRegisterRow } from "@/lib/student-records";
+import { fetchStudentRegister, deleteStudentRecord, formatDataError, cohortLabelForStudent, initialsForStudent, studentRegisterSyncKey, type StudentRegisterRow } from "@/lib/student-records";
+import { subscribeAppSync } from "@/lib/app-sync";
 import { toast } from "sonner";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 
 type Student = {
   id: string; admission_no: string; first_name: string; last_name: string | null;
@@ -36,8 +38,9 @@ type Student = {
 
 type StudentTableRow = {
   id: string;
+  admission_no: string;
   name: string;
-  grade: string;
+  cohort: string;
   roll: string | number;
   attendance: number;
   fees: string;
@@ -61,8 +64,31 @@ const feeColor: Record<string, string> = {
   overdue: "bg-red-50 border-red-200 text-red-700",
 };
 
-const exportCsv = () => {
-  toast.success("CSV exported");
+const downloadStudentsCsv = (rows: StudentTableRow[]) => {
+  const lines = [
+    ["Student ID", "Admission No", "Name", "Cohort", "Roll", "Attendance", "Fee Status", "Email", "Community", "District", "Status"],
+    ...rows.map((row) => [
+      row.id,
+      row.admission_no,
+      row.name,
+      row.cohort,
+      String(row.roll),
+      String(row.attendance),
+      row.fees,
+      row.email ?? "",
+      row.community ?? "",
+      row.district ?? "",
+      row.status ?? "",
+    ]),
+  ];
+  const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `students-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast.success(`Exported ${rows.length} student record(s)`);
 };
 
 const normalizeFeeStatus = (value: string | null | undefined) => String(value ?? "pending").toLowerCase();
@@ -70,17 +96,23 @@ const normalizeFeeStatus = (value: string | null | undefined) => String(value ??
 const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] =>
   rows.map((row) => ({
     id: row.id,
+    admission_no: row.admission_no,
     name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(" "),
-    grade: gradeLabelForStudent(row),
+    cohort: cohortLabelForStudent(row),
     roll: row.roll_number ?? "—",
     attendance: row.attendance_percent ?? 0,
     fees: row.fee_status,
     avatar: initialsForStudent(row),
+    email: row.email,
+    community: row.community,
+    district: row.district,
+    status: row.status,
   }));
 
 export default function Students() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const studentsQuery = useQuery({
@@ -88,8 +120,14 @@ export default function Students() {
     queryFn: fetchStudentRegister,
   });
 
+  useEffect(() => {
+    return subscribeAppSync([studentRegisterSyncKey], () => {
+      queryClient.invalidateQueries({ queryKey: ["student-register"] });
+    });
+  }, [queryClient]);
+
   const rows = studentsQuery.data ?? [];
-  const tableRows: StudentTableRow[] = rows.length ? liveRegisterRowsToTable(rows) : students;
+  const tableRows: StudentTableRow[] = liveRegisterRowsToTable(rows);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -107,9 +145,11 @@ export default function Students() {
     const q = query.trim().toLowerCase();
     if (!q) return tableRows;
     return tableRows.filter((s) =>
-      [s.name, s.id, s.grade].some((v) => v.toLowerCase().includes(q))
+      [s.name, s.admission_no, s.id, s.cohort, s.email ?? "", s.community ?? "", s.district ?? "", s.status ?? ""].some((v) => v.toLowerCase().includes(q))
     );
   }, [query, tableRows]);
+
+  const pag = usePagination({ data: filtered, pageSize: 10 });
 
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.has(s.id));
   const toggleAll = () => {
@@ -122,40 +162,53 @@ export default function Students() {
     setSelected(next);
   };
 
-  const act = (label: string) => () => toast.success(`${label} · ${selected.size || 1} record(s)`);
+  const activeRows = selected.size ? filtered.filter((row) => selected.has(row.id)) : filtered;
+  const firstActive = activeRows[0] ?? null;
+  const copyRows = async (format: "table" | "json") => {
+    if (!activeRows.length) return toast.error("No student records to copy");
+    const text = format === "json"
+      ? JSON.stringify(activeRows, null, 2)
+      : activeRows.map((row) => [row.admission_no, row.name, row.cohort, row.roll, row.status].join("\t")).join("\n");
+    await navigator.clipboard.writeText(text);
+    toast.success(`Copied ${activeRows.length} student record(s)`);
+  };
+  const openFirst = (mode: "view" | "edit") => {
+    if (!firstActive) return toast.error("Select a student first");
+    navigate(`/students/${firstActive.id}${mode === "view" ? "?mode=view" : ""}`);
+  };
 
   const groups: { title: string; actions: RibbonAction[] }[] = [
     {
       title: "Clipboard",
       actions: [
-        { id: "copy", label: "Copy", icon: Copy, onClick: act("Copied") },
-        { id: "dup", label: "Duplicate", icon: Clipboard, onClick: act("Duplicated") },
-        { id: "paste", label: "Paste", icon: ClipboardPaste, onClick: act("Pasted") },
+        { id: "copy", label: "Copy", icon: Copy, onClick: () => void copyRows("table") },
+        { id: "dup", label: "JSON", icon: Clipboard, onClick: () => void copyRows("json") },
+        { id: "paste", label: "Import", icon: ClipboardPaste, onClick: () => navigate("/import") },
       ],
     },
     {
       title: "Records",
       actions: [
-        { id: "new", label: "New", icon: Plus, onClick: () => (window.location.href = "/students/new") },
-        { id: "edit", label: "Edit", icon: Edit3, onClick: act("Edit opened") },
-        { id: "view", label: "View", icon: Eye, onClick: act("View opened") },
-        { id: "pdf", label: "PDF", icon: FileText, onClick: act("PDF exported") },
-        { id: "del", label: "Delete", icon: Trash2, onClick: act("Deleted") },
+        { id: "new", label: "New", icon: Plus, onClick: () => navigate("/students/new") },
+        { id: "edit", label: "Edit", icon: Edit3, onClick: () => openFirst("edit") },
+        { id: "view", label: "View", icon: Eye, onClick: () => openFirst("view") },
+        { id: "pdf", label: "Print", icon: FileText, onClick: () => window.print() },
+        { id: "del", label: "Delete", icon: Trash2, onClick: () => activeRows.length ? deleteMutation.mutate(activeRows.map((row) => row.id)) : toast.error("Select records to delete") },
       ],
     },
     {
       title: "Data",
       actions: [
-        { id: "exp", label: "Export", icon: Download, onClick: act("Exported") },
-        { id: "print", label: "Print", icon: Printer, onClick: act("Print queued") },
-        { id: "refresh", label: "Refresh", icon: RefreshCw, onClick: act("Refreshed") },
+        { id: "exp", label: "Export", icon: Download, onClick: () => downloadStudentsCsv(activeRows) },
+        { id: "print", label: "Print", icon: Printer, onClick: () => window.print() },
+        { id: "refresh", label: "Refresh", icon: RefreshCw, onClick: () => queryClient.invalidateQueries({ queryKey: ["student-register"] }) },
       ],
     },
     {
       title: "Advanced",
       actions: [
-        { id: "set", label: "Settings", icon: Settings2, onClick: act("Opened settings") },
-        { id: "filter", label: "Filters", icon: Filter, onClick: act("Filters opened") },
+        { id: "set", label: "Settings", icon: Settings2, onClick: () => navigate("/settings/headers") },
+        { id: "filter", label: "Clear", icon: Filter, onClick: () => setQuery("") },
       ],
     },
   ];
@@ -168,7 +221,7 @@ export default function Students() {
         icon={<Users className="h-6 w-6" />}
         actions={
           <>
-            <Button variant="outline" className="rounded-xl" onClick={exportCsv}>
+            <Button variant="outline" className="rounded-xl" onClick={() => downloadStudentsCsv(activeRows)}>
               <Download className="mr-2 h-4 w-4" />Export
             </Button>
             {selected.size > 0 && (
@@ -263,21 +316,29 @@ export default function Students() {
           </div>
         )}
 
+        {!studentsQuery.isLoading && filtered.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/60 bg-secondary/20 px-4 py-10 text-center text-sm text-muted-foreground">
+            No student records were returned from the live register.
+          </div>
+        ) : null}
+
         <div className="overflow-x-auto">
+          <TablePagination {...pag} />
           <table className="w-full text-sm">
-            <thead>
+            <thead className="">
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="w-8 py-3 pl-2"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
                 <th className="py-3">Student</th>
                 <th className="py-3">Admission</th>
-                <th className="py-3">Email</th>
-                <th className="py-3">Community</th>
-                <th className="py-3">District</th>
+                <th className="py-3">Cohort</th>
+                <th className="py-3">Roll</th>
+                <th className="py-3">Attendance</th>
+                <th className="py-3">Fees</th>
                 <th className="py-3">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s, i) => (
+              {pag.pageData.map((s, i) => (
                 <tr
                   key={s.id}
                   className="border-b border-border/40 transition-colors hover:bg-secondary/40 animate-fade-in"
@@ -294,8 +355,8 @@ export default function Students() {
                       <span className="font-medium">{s.name}</span>
                     </div>
                   </td>
-                  <td className="py-3 font-mono text-xs text-muted-foreground">{s.id}</td>
-                  <td className="py-3"><Badge variant="secondary">{s.grade}</Badge></td>
+                  <td className="py-3 font-mono text-xs text-muted-foreground">{s.admission_no}</td>
+                  <td className="py-3"><Badge variant="secondary">{s.cohort}</Badge></td>
                   <td className="py-3">{s.roll}</td>
                   <td className="py-3">
                     <div className="flex items-center gap-2">
@@ -308,8 +369,11 @@ export default function Students() {
                   <td className="py-3">
                     <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-medium ${feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border"}`}>{s.fees}</span>
                   </td>
+                  <td className="py-3">
+                    <Badge variant="secondary" className="capitalize">{s.status ?? "active"}</Badge>
+                  </td>
                   <td className="py-3 pr-2 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={act("Opened actions")}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/students/${s.id}`)}>
                       <Edit3 className="h-3.5 w-3.5" />
                     </Button>
                   </td>

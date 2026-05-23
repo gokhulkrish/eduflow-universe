@@ -28,7 +28,7 @@ export function ModulePlaceholder({ title, subtitle, icon, features }: ModulePla
               </div>
               <h3 className="font-display text-base font-semibold">{f}</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Module ready · mock data wired · production schema simulated.
+                GCT module ready · campus data wired · production schema simulated.
               </p>
             </div>
           </Card>

@@ -1,0 +1,60 @@
+{
+  "source": "src/lib/migration-registry.ts",
+  "runtimeNotes": [
+    "The live module inventory is derived from lib/module-registry.ts at runtime.",
+    "Feature gates are managed in src/lib/featureFlags.ts.",
+    "Rollback state is managed in src/lib/rollbackRegistry.ts."
+  ],
+  "patches": [
+    {
+      "key": "patch-001-foundation-audit",
+      "label": "Patch 001: Foundation audit",
+      "defaultEnabled": true
+    },
+    {
+      "key": "patch-002-safe-feature-flags",
+      "label": "Patch 002: Safe feature flags",
+      "defaultEnabled": true
+    },
+    {
+      "key": "patch-003-runtime-shell-compatibility",
+      "label": "Patch 003: Runtime shell compatibility",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-004-state-normalization",
+      "label": "Patch 004: State normalization",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-005-workspace-actions",
+      "label": "Patch 005: Workspace actions",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-006-settings-orchestration",
+      "label": "Patch 006: Settings orchestration",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-007-registry-core",
+      "label": "Patch 007: Registry core",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-008-registry-explorer",
+      "label": "Patch 008: Registry explorer",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-009-student-workspace",
+      "label": "Patch 009: Student workspace",
+      "defaultEnabled": false
+    },
+    {
+      "key": "patch-010-erp-context",
+      "label": "Patch 010: ERP context",
+      "defaultEnabled": false
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { tableExists } from "@/lib/supabase-health";
 import { Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,10 +24,14 @@ export default function Mfa() {
     if (code === DEMO_CODE) {
       setMfaPassed(true);
       if (user) {
-        await supabase.from("audit_log").insert({
-          actor: user.id, action: "mfa.verify", entity: "auth_session", metadata: { method: "demo_otp" },
-        });
-        await supabase.from("profiles").update({ mfa_enrolled: true }).eq("id", user.id);
+        if (await tableExists("audit_log")) {
+          await supabase.from("audit_log").insert({
+            actor: user.id, action: "mfa.verify", entity: "auth_session", metadata: { method: "demo_otp" },
+          });
+        }
+        if (await tableExists("profiles")) {
+          await supabase.from("profiles").update({ mfa_enrolled: true }).eq("id", user.id);
+        }
       }
       toast.success("MFA verified");
       nav("/", { replace: true });

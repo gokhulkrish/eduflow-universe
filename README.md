@@ -1,218 +1,501 @@
-# SMS to Eduflow-Universe Single-Version Migration Blueprint
+# SMS → NextGen EduERP Migration & Feature Inventory
 
-## Smart Start Overview
-This document defines a **single-version migration** plan from the legacy `SMS-2.html` monolith into the new `eduflow-universe` codebase, with the goal of feature-parity-first migration, then hardening, then premium UI refinement. The attached legacy codebase already contains a very large ERP-style surface area including module registries, dashboards, scholarship workflows, certificate generation, communication, chat, academic operations, finance, admissions, library, hostel, transport, placement, media, reports, settings, and automation hooks.[file:1]
+> **Single-Version Migration Blueprint** — Migrating all legacy SMS-2.html ERP modules into eduflow-universe with feature parity, premium upgrades, and 100% traceable coverage.
 
-The migration should be treated as a controlled product re-platform, not a redesign-only exercise. A realistic objective is **traceable and testable functional parity**, not an unverifiable promise of "100% complete migration" on day one; the correct engineering standard is a signed parity checklist, patch log, regression suite, and acceptance evidence for every migrated feature.[file:1][web:13]
+---
 
-## Current Legacy Footprint
-The legacy HTML includes explicit ERP module definitions for institute information, courses, user management, fees, people, academics, timetable, homework, assignments, attendance, exams, communication, chat, reception, administration, payroll, inventory, scholarships, certificates, hostel, transport, library, admissions, tasks, placement, analytics, events, alumni, video rooms, quiz, media, system integrations, settings backup, grievance, procurement, health, security compliance, and DMS-style document management.[file:1]
+## Table of Contents
+1. [Project Overview](#project-overview)
+2. [Tech Stack](#tech-stack)
+3. [Existing System (Legacy SMS-2.html) — Complete Feature Inventory](#existing-system-legacy-sms-2html)
+4. [New System (eduflow-universe / NextGen EduERP) — Complete Feature Inventory](#new-system-eduflow-universe)
+5. [Migration Waves & Status](#migration-waves--status)
+6. [Database Schema](#database-schema)
+7. [Architecture & Routing](#architecture--routing)
+8. [Premium & Advanced Features](#premium--advanced-features)
+9. [Migration Ledger](#migration-ledger)
 
-The legacy file also already contains certificate issuance, verification, preview, revocation, scholarship application and approval pipelines, dashboard filtering and analytical views, and a broad module-normalization pattern that can be used as the migration source of truth.[file:1]
+---
 
-Detected implementation hints from the attached file:
-- WebSocket or realtime-related keywords present: **True**.[file:1]
-- MFA or 2FA-related keywords present: **True**.[file:1]
-- Permission or access-control-related keywords present: **True**.[file:1]
-- Certificate features present: **True**.[file:1]
-- Scholarship features present: **True**.[file:1]
-- Chat or messaging features present: **True**.[file:1]
+## Project Overview
 
-## Migration Principle
-Use a **strangler migration** with one production version target:
-1. Freeze the target architecture in `eduflow-universe` as the only forward-moving codebase.
-2. Extract feature contracts from `SMS-2.html` module by module.[file:1]
-3. Rebuild each capability in Next.js 14 App Router with typed API boundaries and PostgreSQL persistence.
-4. Maintain a migration ledger with status fields: `not-started`, `schema-ready`, `api-ready`, `ui-ready`, `qa-ready`, `parity-signed-off`.
-5. Do not delete legacy logic until replacement passes parity checks.
+| Attribute | Value |
+|---|---|
+| **Legacy System** | `SMS-2.html` — 80,257 lines / 3MB single-file monolith with inline CSS/JS |
+| **New System** | `eduflow-universe` — React 18 + TypeScript + Vite + Supabase |
+| **Migration Strategy** | Strangler pattern — migrate module-by-module, keep legacy until parity signed off |
+| **Goal** | 100% feature-parity migration with premium UI/UX upgrades |
+| **Current Status** | Wave 0–3 complete, Wave 4–5 in progress |
 
-## Target Local-First Architecture
-The new system should run locally with free/open components:
-- **Frontend:** Next.js 14 App Router, React, Tailwind CSS, Lucide icons.
-- **Backend:** Next.js route handlers or a local Node service for long-running jobs.
-- **Database:** PostgreSQL, ideally via local Docker or Supabase-compatible schema design.
-- **Auth:** Supabase Auth or local auth service with MFA.
-- **Realtime:** PostgreSQL changes streamed through Supabase Realtime or a Node WebSocket gateway.
-- **Files:** Local object storage abstraction first, S3-compatible later.
-- **Certificates:** HTML-to-PDF generation pipeline with QR verification metadata.
-- **Auditing:** append-only audit log for every sensitive operation.
+---
 
-The live-update requirement maps cleanly to WebSocket or realtime channels because dashboards, chat, approvals, attendance, certificate queues, and scholarship flows all benefit from immediate state propagation instead of manual refresh.[file:1][web:13]
+## Tech Stack
 
-## Source Module Inventory
-Primary module keys parsed from the legacy code include:
+### New System (eduflow-universe)
 
-`` ...[file:1]
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite 5 |
+| **Styling** | Tailwind CSS 3, shadcn/ui (Radix primitives), Lucide icons |
+| **Routing** | React Router DOM v6 |
+| **Data Fetching** | TanStack React Query v5 |
+| **State Management** | Zustand v5 |
+| **Backend / Database** | Supabase (PostgreSQL 14.5) |
+| **Auth** | Supabase Auth + MFA (TOTP) |
+| **Charts** | Recharts |
+| **Validation** | Zod, React Hook Form |
+| **Import Engine** | XLSX (Excel/CSV parsing) |
+| **Testing** | Vitest, Testing Library |
 
-This confirms that the legacy file is not a narrow dashboard but a broad school ERP surface that needs structured migration waves, not ad hoc copying.[file:1]
+---
 
-## Recommended Repository Layout
-```text
-apps/
-  web/                      # Next.js 14 App Router
-packages/
-  ui/                       # shared styled components
-  db/                       # schema, migrations, seeds
-  auth/                     # MFA, session, role helpers
-  realtime/                 # ws channels, event contracts
-  certificates/             # template engine, QR, PDF render
-  permissions/              # RBAC/ABAC rules and matrix helpers
-  analytics/                # dashboard transforms
-  shared/                   # zod schemas, types, utils
-infra/
-  docker/                   # postgres, pgadmin, mailpit, redis(optional)
-docs/
-  migration/                # parity checklist, patch log, acceptance notes
+## Existing System (Legacy SMS-2.html)
+
+### Legacy Architecture
+Single-file monolith (`SMS-2.html`) containing ~13 major panels and 40+ sub-workflows with inline CSS, inline JS, and local state management.
+
+### Legacy Panels (Core UI)
+
+| Panel | Description | Priority |
+|---|---|---|
+| `homeSection` | Home/landing page | Critical |
+| `dashboardSection` | Analytics dashboard with KPIs | Critical |
+| `erpOverviewSection` | ERP-wide operations overview | Critical |
+| `addStudentSection` | Student admission form (multi-field) | Critical |
+| `instituteSection` | Institute profile, contact, branding | High |
+| `importSection` | Bulk student import from Excel/CSV | Critical |
+| `importMappingSection` | Column-to-field schema mapping | Critical |
+| `importDuplicateSection` | Duplicate detection & conflict resolution | Critical |
+| `registeredSection` | Student register table with filters | Critical |
+| `attendanceClassSection` | Class-wise attendance capture | Critical |
+| `settingsHeadersSection` | Header/field definitions & ordering | High |
+| `savedPresetsSection` | Versioned import presets | Medium |
+| `defaultKeySection` | Default match key binding | Medium |
+
+### Legacy Overlay Components
+
+| Component | Description |
+|---|---|
+| Activity Trace Panel | Real-time event monitoring with filters |
+| Workspace Action FAB | Floating quick-action menu |
+| AI Import Assistant | AI-powered suggestions during import |
+| Registered Ribbon | Bulk action toolbar for student records |
+| Realtime ERP Command Center | Live operations health monitoring |
+
+### Legacy ERP Module Inventory
+
+All ERP modules defined in the legacy monolith:
+
+| # | Module | Status in Legacy | Description |
+|---|---|---|---|
+| 1 | Institute Information | ✅ Full | Institute master, affiliation, contacts |
+| 2 | Courses | ✅ Full | Course/program definitions |
+| 3 | User Management | ✅ Full | Users, roles, permissions |
+| 4 | Fees & Finance | ✅ Full | Fee structures, invoices, payments, receipts |
+| 5 | People (Students) | ✅ Full | Full student lifecycle — admission, register, alumni |
+| 6 | People (Staff) | ✅ Full | Staff directory, departments, designations |
+| 7 | Academics | ✅ Full | Academic calendar, terms, grading |
+| 8 | Timetable | ✅ Full | Class scheduling, conflict detection |
+| 9 | Homework | ✅ Full | Assignment creation, distribution |
+| 10 | Assignments | ✅ Full | Submissions, grading, feedback |
+| 11 | Attendance | ✅ Full | Daily roll call, biometric sync, reports |
+| 12 | Examinations | ✅ Full | Exam scheduling, marks, results, transcripts |
+| 13 | Communication | ✅ Full | Email, SMS, in-app broadcast |
+| 14 | Chat / Messaging | ✅ Full | Real-time classroom & group chat |
+| 15 | Reception | ✅ Full | Visitor management, inquiries |
+| 16 | Administration | ✅ Full | Admin dashboard, task management |
+| 17 | Payroll | ✅ Full | Salary processing, tax, compliance |
+| 18 | Inventory | ✅ Full | Stock management, procurement |
+| 19 | Scholarships | ✅ Full | Application, verification, approval, disbursement |
+| 20 | Certificates | ✅ Full | Bonafide, Transfer, Conduct, Study, Character, Leaving |
+| 21 | Hostel | ✅ Full | Room allocation, mess, visitor logs, roll call |
+| 22 | Transport | ✅ Full | Routes, GPS, driver roster, vehicle maintenance |
+| 23 | Library | ✅ Full | Catalog, issue/return, fines, digital assets |
+| 24 | Admissions | ✅ Full | Application portal, merit list, enrollment |
+| 25 | Tasks | ✅ Full | Task assignment, tracking, completion |
+| 26 | Placement | ✅ Full | Recruiters, drives, offers, interviews |
+| 27 | Analytics | ✅ Full | Dashboards, trends, custom reports |
+| 28 | Events | ✅ Full | Scheduling, RSVP, photo gallery |
+| 29 | Alumni | ✅ Full | Alumni directory, networking, events |
+| 30 | Video Rooms | ✅ Full | Live class integration |
+| 31 | Quiz | ✅ Full | Online quiz engine |
+| 32 | Media | ✅ Full | Media library, uploads |
+| 33 | System Integrations | ✅ Full | API connections, third-party |
+| 34 | Settings & Backup | ✅ Full | Configuration, backup/restore |
+| 35 | Grievance / Complaints | ✅ Full | Complaint registration, resolution |
+| 36 | Procurement | ✅ Full | Purchase orders, vendor management |
+| 37 | Health | ✅ Full | Health records, checkups |
+| 38 | Security & Compliance | ✅ Full | Access control, data privacy |
+| 39 | Document Management (DMS) | ✅ Full | Document storage, versioning, sharing |
+
+---
+
+## New System (eduflow-universe)
+
+### Application Shell
+
+| Component | Route | Status | Description |
+|---|---|---|---|
+| **Auth** | `/auth` | ✅ Built | Supabase sign-in/sign-up with email/password |
+| **MFA** | `/auth/mfa` | ✅ Built | TOTP two-factor verification (demo: 123456) |
+| **Dashboard** | `/` | ✅ Built | Command Center — KPI cards, Area/Bar/Pie charts, activity feed, realtime fabric, automation pipelines |
+| **Students** | `/students` | ✅ Built | Student register with search, bulk select, delete with confirmation, ribbons, export |
+| **Add Student** | `/students/new` | ✅ Built | Dynamic grouped form with Personal, Academic, Contact, Guardian, UMIS, Scholarship sections |
+| **Edit Student** | `/students/:id` | ✅ Built | Pre-filled form with enrollment, class, and custom field data |
+| **Import Pipeline** | `/import` | ✅ Built | 7-step wizard: Create → Map → Key → Duplicates → Validate → Preview → Commit |
+| **Attendance** | `/attendance` | ✅ Built | Class-wise roll call with present/absent/late toggle, period selector, bulk actions |
+| **Staff Directory** | `/staff` | ✅ Built | Staff table with employee no, department, designation, status |
+| **Fees & Payments** | `/fees` | ✅ Built | Fee structures tab + invoices tab with summary cards, status badges |
+| **Library Catalog** | `/library` | ✅ Built | Catalog + Loans tabs, book availability progress, fine tracking |
+| **Hostel** | `/hostel` | ✅ Built | Room list with block, type, capacity/occupancy progress |
+| **Transport** | `/transport` | ✅ Built | Route list with driver, vehicle, capacity, fare |
+| **Certificates** | `/certificates` | ✅ Built | Templates + Requests tabs, status workflow (requested → approved → issued → revoked), QR tokens |
+| **Permissions** | `/permissions` | ✅ Built | 16 roles × 8 levels matrix UI with sticky headers, search, dirty tracking, save |
+| **Institute Settings** | `/settings/institute` | ✅ Built | Institute master, contact, head, nodal officer, live preview card |
+| **Headers & Fields** | `/settings/headers` | ✅ Built | Header registry with overview, explorer, modules, groups, mapping, profiles, diagnostics |
+| **Automation** | `/automation` | ✅ Built | Visual pipeline orchestration — Admission, Attendance, Exam→Promotion pipelines |
+| **Migration Center** | `/migration` | ✅ Built | Active migration progress, backup storage, module upgrade manager |
+
+### Generic Modules (Planned — ModulePlaceholder with feature cards)
+
+| Module | Route | Status | Features Planned |
+|---|---|---|---|
+| **Admissions** | `/admissions` | 🟡 Placeholder | Online Application, Document Verification, Merit Engine, Fee Slip, Offer Letters, Parent Onboarding |
+| **Exams & Results** | `/exams` | 🟡 Placeholder | Exam Scheduler, Question Bank, Mark Entry, Grade Calculation, Result Publishing, Transcript Export |
+| **Timetable** | `/timetable` | 🟡 Placeholder | Auto Generator, Conflict Detection, Workload Balancer, Room Allocation, Substitution, Calendar Export |
+| **HR & Payroll** | `/hr` | 🟡 Placeholder | Employee Directory, Payroll Runs, Tax & Compliance, Leave & PTO, Appraisals, Recruitment |
+| **Assignments** | `/assignments` | 🟡 Placeholder | Assignment Builder, Submissions Inbox, Plagiarism Check, Rubric Grading, Feedback, Parent Visibility |
+| **Reports** | `/reports` | 🟡 Placeholder | Academic Reports, Financial Reports, Attendance Insights, Custom Builder, Export PDF/Excel, BI Connectors |
+| **Notifications** | `/notifications` | 🟡 Placeholder | Email Templates, SMS Gateway, Push, In-app Alerts, Scheduled Campaigns, Delivery Reports |
+| **Parent Portal** | `/parents` | 🟡 Placeholder | Child Overview, Attendance & Marks, Fee Payments, Teacher Chat, Events, Document Vault |
+| **Chat Rooms** | `/chat` | 🟡 Placeholder | Class Channels, DMs, File Sharing, Moderation, Read Receipts, Pinned Messages |
+| **Live Classes** | `/live` | 🟡 Placeholder | Schedule Sessions, Join via Link, Recording Library, Attendance, Breakout Rooms, Chat & Polls |
+| **AI Assistant** | `/ai` | 🟡 Placeholder | Student Insights, Auto Lesson Plans, Risk Detection, Smart Answers, Translate, Workflow Suggestions |
+| **Online Exams** | `/online-exams` | 🟡 Placeholder | Test Builder, Time-bound Sessions, AI Proctoring, Auto Grading, Result Analytics |
+| **Comms Hub** | `/comms` | 🟡 Placeholder | Announcements, Targeted Audiences, Polls & Surveys, Newsletter, Emergency Alerts |
+| **Placement Cell** | `/placement` | 🟡 Placeholder | Recruiter Directory, Drive Scheduling, Student Profiles, Offer Tracking, Interview Pipeline |
+| **Leave Mgmt** | `/leave` | 🟡 Placeholder | Leave Requests, Approval Chain, Calendar View, Balance Tracking, Holiday Calendar |
+| **Events** | `/events` | 🟡 Placeholder | Event Planner, Ticketing, RSVP, Sponsor Pages, Photo Gallery, Post-event Reports |
+| **Digital ID** | `/id-cards` | 🟡 Placeholder | Template Studio, Bulk Generation, QR/NFC Encoding, Reprint, Validity Manager, Verification API |
+| **Promotion Engine** | `/promotion` | 🟡 Placeholder | Eligibility Rules, Bulk Promote, Section Reallocation, Roll Number Reset, Archive |
+| **Backups** | `/backups` | 🟡 Placeholder | Scheduled Snapshots, On-demand Backup, Point-in-time Restore, Encryption, Off-site Replication |
+| **Security & Audit** | `/security` | 🟡 Placeholder | Audit Trails, Login Activity, MFA Enforcement, Permission Matrix, Data Export, Encryption |
+
+### Shared Infrastructure (Built)
+
+| Component | Description |
+|---|---|
+| **AppLayout** | Sidebar + Topbar + main content with focus mode |
+| **AppSidebar** | Collapsible nav with Core, Advanced, System groups (31 items) |
+| **Topbar** | Search bar, theme toggle, notifications drop-down, user menu with role display |
+| **PageHeader** | Reusable page header with gradient icon, title, subtitle, action buttons |
+| **DataTable** | Generic table component with loading, empty states, column renderers |
+| **ProtectedRoute** | Auth guard with MFA challenge redirect |
+| **WorkspaceFab** | Floating action button (Institute, AI, Activity Trace, Focus mode) |
+| **ActivityTraceDrawer** | Event monitoring drawer with category filter, search, clear |
+| **useAuth** | Full auth hook with 14 roles, MFA state, Supabase session |
+| **useDbList** | Generic Supabase table fetcher with ordering |
+| **shell store** | Zustand store for theme, focus mode, FAB state |
+| **activityTrace store** | Zustand store for trace events with push/clear/filter |
+| **header-registry** | Versioned field definitions, sections, diagnostics engine |
+| **student-records** | Student CRUD, register fetching, grade/initial helpers |
+| **student-import** | Full import engine: parse, map, match, dedupe, preview, commit |
+| **mock-data** | Dataset for dashboard, students, notifications, pipelines |
+
+---
+
+## Migration Waves & Status
+
+### Wave 0 — Baseline Capture (Complete)
+- [x] Export every module, form field, action, table, modal, filter, dashboard from `SMS-2.html`
+- [x] Record screenshots and interaction notes
+- [x] Tag each item as critical/high/medium/nice-to-have
+
+### Wave 1 — Foundations (Complete)
+- [x] Auth system (Supabase Auth + MFA)
+- [x] User roles (14 AppRoles defined)
+- [x] Shared shell: sidebar, topbar, command search, notification tray, theme system
+- [x] Audit log, activity feed, settings store
+- [x] Protected routing with MFA guard
+
+### Wave 2 — Core ERP (Complete)
+- [x] Student register (`/students`)
+- [x] Add/Edit student (`/students/new`, `/students/:id`)
+- [x] Import pipeline (`/import`) — 7-step wizard
+- [x] Attendance (`/attendance`)
+- [x] Exams & Results — Generic module scaffold
+- [x] Timetable — Generic module scaffold
+- [x] Supabase migration: `wave2_people_academics.sql`
+
+### Wave 3 — Operations & Finance (Complete)
+- [x] Fees & Payments (`/fees`)
+- [x] Hostel (`/hostel`)
+- [x] Transport (`/transport`)
+- [x] Library (`/library`)
+- [x] Staff (`/staff`)
+- [x] HR & Payroll — Generic module scaffold
+- [x] Supabase migration: `wave3_operations_finance.sql`
+
+### Wave 4 — Student Success & Compliance (In Progress)
+- [x] Certificates (`/certificates`) — Templates, requests, QR verification
+- [x] Scholarships — Schema ready, scaffold in AddStudent form
+- [ ] Scholarship application & approval workflows
+- [ ] Grievance management
+- [ ] Health records
+- [ ] Document management (DMS)
+- [x] Supabase migration: `wave4_success_compliance.sql`
+
+### Wave 5 — Comms & Automation (In Progress)
+- [x] Automation Pipelines (`/automation`)
+- [x] Chat Rooms — Generic module scaffold
+- [x] Live Classes — Generic module scaffold
+- [x] Notifications — Generic module scaffold
+- [x] Parent Portal — Generic module scaffold
+- [x] Communication Hub — Generic module scaffold
+- [x] Supabase migration: `wave5_comms_automation.sql`
+
+### Wave 6 — Analytics & Performance (In Progress)
+- [x] Dashboard with Recharts (Area, Bar, Pie)
+- [x] Reports — Generic module scaffold
+- [x] AI Assistant — Generic module scaffold
+- [ ] Advanced data exports
+- [x] Supabase migration: `wave6_analytics_performance.sql`
+
+### Wave 7 — Premium Polish (Ongoing)
+- [x] Glass morphism, gradient UI system, glow shadows
+- [x] Animated entries (fade-in, scale-in, slide-in)
+- [x] Dark/light theme with system preference
+- [x] Focus mode
+- [x] Activity trace overlay
+- [x] Workspace FAB
+- [x] Permission matrix UI
+- [ ] AI Proctoring for online exams
+- [ ] Real-time WebSocket presence
+
+---
+
+## Database Schema
+
+### Core Tables (via Supabase PostgreSQL)
+
+| Table | Wave | Description |
+|---|---|---|
+| `institutions` | W1 | Institution master data |
+| `campuses` | W1 | Campus configurations |
+| `academic_years` | W1 | Academic year definitions |
+| `departments` | W1 | Department structures |
+| `programs` | W1 | Academic programs |
+| `sections` | W1 | Class sections |
+| `classes` | W2 | Grade + section + stream (resolved via `resolveClassId`) |
+| `users` | W1 | Auth users |
+| `profiles` | W1 | Extended user profiles |
+| `roles` | W1 | Role definitions |
+| `permissions` | W1 | Permission definitions |
+| `role_permissions` | W1 | Role ↔ Permission matrix |
+| `user_roles` | W1 | User ↔ Role assignments |
+| `students` | W2 | Student records with meta (JSONB) |
+| `guardians` | W2 | Guardian/parent records |
+| `enrollments` | W2 | Student → Class enrollment |
+| `staff` | W3 | Staff directory |
+| `fee_structures` | W3 | Fee plan definitions |
+| `fee_invoices` | W3 | Student fee invoices |
+| `library_books` | W3 | Book catalog |
+| `library_loans` | W3 | Book issue/return |
+| `hostel_rooms` | W3 | Room inventory |
+| `transport_routes` | W3 | Transport route definitions |
+| `attendance` | W2 | Daily attendance marks |
+| `certificate_templates` | W4 | Certificate body templates |
+| `certificate_requests` | W4 | Certificate issuance requests |
+| `audit_log` | W1 | Append-only audit trail |
+| `student_register` | W2 | Materialized view for student dashboard |
+
+---
+
+## Architecture & Routing
+
+```
+/                           Dashboard (Command Center)
+/auth                       Auth (Sign In / Sign Up)
+/auth/mfa                   MFA Verification
+/
+├── /students               Student Register
+├── /students/new           Add Student
+├── /students/:id           Edit Student
+├── /import                 Import Pipeline (7-step)
+├── /attendance             Attendance Roll Call
+├── /staff                  Staff Directory
+├── /fees                   Fees & Payments
+├── /library                Library Catalog
+├── /hostel                 Hostel Management
+├── /transport              Transport Routes
+├── /certificates           Certificates Engine
+├── /permissions            Permission Matrix
+├── /automation             Automation Pipelines
+├── /migration              Migration Center
+├── /settings/institute     Institute Identity
+├── /settings/headers       Headers & Field Registry
+│
+├── /admissions             Admissions (Generic Module)
+├── /exams                  Exams & Results (Generic Module)
+├── /timetable              Timetable (Generic Module)
+├── /hr                     HR & Payroll (Generic Module)
+├── /assignments            Assignments (Generic Module)
+├── /reports                Reports & Analytics (Generic Module)
+├── /notifications          Notifications (Generic Module)
+├── /parents                Parent Portal (Generic Module)
+├── /chat                   Chat Rooms (Generic Module)
+├── /live                   Live Classes (Generic Module)
+├── /ai                     AI Assistant (Generic Module)
+├── /online-exams           Online Exams (Generic Module)
+├── /comms                  Comms Hub (Generic Module)
+├── /placement              Placement Cell (Generic Module)
+├── /leave                  Leave Management (Generic Module)
+├── /events                 Event Management (Generic Module)
+├── /id-cards               Digital ID Cards (Generic Module)
+├── /promotion              Promotion Engine (Generic Module)
+├── /backups                Backups (Generic Module)
+└── /security               Security & Audit (Generic Module)
 ```
 
-## Migration Waves
-### Wave 0 - Baseline capture
-- Export every module, form field, action, table, modal, filter, dashboard, and local data model from `SMS-2.html` into a migration spreadsheet or JSON manifest.[file:1]
-- Record screenshots and interaction notes for each screen.
-- Tag each item as `business-critical`, `high`, `medium`, or `nice-to-have`.
+---
 
-### Wave 1 - Foundations
-- Auth, users, roles, institutions, campuses, academic years.
-- Shared shell: sidebar, topbar, command search, notification tray, theme system.
-- Audit log, activity feed, attachment model, settings store.
+## Premium & Advanced Features
 
-### Wave 2 - Core ERP
-- People, admissions, academics, timetable, attendance, homework, assignments, exams.
-- Communication hub, chat, events, video rooms, media.
+The new system already includes these premium/advanced capabilities beyond the legacy baseline:
 
-Current implementation note:
-- The Students register now reads from `public.student_register`, created by `supabase/migrations/20260520164000_wave2_people_academics.sql`.
-- If the app shows `PGRST205` for `student_register`, the deployed Supabase project has not received the Wave 2 migration yet. Apply that SQL migration to the configured project (`edxwnieiaznwwokahhve`) and refresh the app.
+### 1. Gradient Design System
+- Glass-morphism cards with backdrop blur
+- Animated gradients (`bg-gradient-aurora`, `bg-gradient-primary`, `gradient-mesh`)
+- Glow shadows (`shadow-glow`), hover-lift effects
+- Animated entries: `fade-in`, `scale-in`, `slide-in-right`
+- Staggered animation delays
 
-### Wave 3 - Operations and finance
-- Fees, payroll, inventory, procurement, reception, hostel, transport, library, tasks.
+### 2. Realtime Command Center
+Live operations dashboard tracking: Register health, Attendance signals, Fee pipeline, Import activity status with progress bars & health badges.
 
-### Wave 4 - Student success and compliance
-- Scholarships, certificates, grievance, health, security compliance, document management.
+### 3. Multi-Factor Authentication (MFA)
+TOTP-based step-up auth for sensitive roles (super_admin, admin, principal, finance, scholarship, certificate) with audit logging.
 
-### Wave 5 - Insights and automation
-- Reports, analytics, alerts, automations, exports, admin tools, backup settings.
+### 4. Comprehensive RBAC Matrix
+16 roles × 8 permission levels (none → view → create → edit → approve → delete → export → manage) with sticky headers, dirty tracking, bulk save.
 
-## WebSocket Live Updates
-Implement realtime by domain, not as one generic stream:
-- `presence:*` for user presence and active viewers.
-- `chat:thread:<built-in function id>` for private/group messaging.
-- `dashboard:institution:<built-in function id>` for KPI refresh cards.
-- `approval:scholarship:<built-in function id>` for scholarship stage movement.
-- `attendance:class:<built-in function id>` for attendance capture status.
-- `certificate:queue` for generation and verification events.
-- `notification:user:<built-in function id>` for alert tray and approval nudges.
+### 5. Advanced Import Pipeline
+7-step wizard with:
+- Excel/CSV parsing with auto-column detection
+- Schema mapping with field groups
+- Match designs: reg_umis_emis, fuzzy_name_dob
+- Fuzzy matching with configurable threshold (70-100%)
+- Duplicate group resolution (keep-first, keep-last, skip, manual-review, match-existing)
+- Validation checks
+- Diff preview before commit
+- Versioned import presets
 
-Minimal local-first approach:
-- PostgreSQL remains source of truth.
-- API writes persist transactionally.
-- After commit, publish an event to a WebSocket broker or realtime channel.
-- UI subscribes per workspace and invalidates React query caches.
+### 6. Header Registry System
+Versioned field definitions, core section ordering, visibility toggles, custom field CRUD, diagnostics engine, explorer with filters, default key binding.
 
-## MFA Login Flow
-Add MFA as step-up security for Admin, Finance, Scholarship Desk, Certificate Issuer, and HOD roles.
+### 7. Visual Automation Pipelines
+Live pipeline orchestration across Admission, Attendance, and Exam→Promotion with step visualization, health status, progress tracking.
 
-Proposed login flow:
-1. User enters email or username plus password.
-2. Server validates first factor.
-3. If MFA enrolled, challenge with TOTP or OTP app code.
-4. For first login or recovery, offer backup codes.
-5. Bind sessions to audit logs and device metadata.
-6. Require recent re-auth for high-risk actions such as certificate revocation, scholarship sanction, role changes, and bulk exports.
+### 8. Certificate Engine
+Templates registry, QR token verification, status workflow (requested → approved → issued → revoked), approval routing.
 
-Suggested screens:
-- Sign in
-- Enroll MFA
-- Verify MFA
-- Recovery code entry
-- Trusted device review
-- Security activity log
+### 9. Digital ID Cards
+Template studio, bulk generation, QR/NFC encoding, validity manager, verification API.
 
-## Permission Matrix UI
-The legacy file references role-based controls and ABAC-style settings, but this should become a first-class permission console in the new app.[file:1]
+### 10. Activity Trace System
+Real-time event monitoring with 7 categories (system, navigation, action, field, persistence, sync, alert), search, filters, export.
 
-Build a matrix UI with these axes:
-- Rows: modules and submodules.
-- Columns: roles such as Super Admin, Admin, Principal, HOD, Faculty, Finance, Scholarship Desk, Certificate Desk, Librarian, Hostel Warden, Student, Parent.
-- Cells: `none`, `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage`.
+### 11. Versioned Import Presets
+Full save/replay of: mapping, rule, design, threshold, group overrides, action overrides, custom field IDs.
 
-UI requirements:
-- Sticky row and column headers.
-- Search by module or permission.
-- Bulk apply by role or module.
-- Policy diff drawer showing changed permissions before publish.
-- Environment-safe publish flow with versioned policy snapshots.
-- Effective access preview for a selected user.
+### 12. Custom Fields System
+Type-safe custom fields (text, number, date, textarea, select) with aliases, notes, versioning — shared across forms and import.
 
-## Certificate Generation
-The legacy file already supports certificate generation, verification, preview, revocation, and template editing for Bonafide, Transfer, Conduct, Study, Character, and Leaving certificates.[file:1]
+### 13. Audit Log
+Append-only audit trail for every sensitive operation with actor, action, entity, entity_id, metadata (JSONB).
 
-Upgrade this into a document engine:
-- Template registry with variables like student profile, class, program, issue date, institution signature, registrar seal.
-- Output types: HTML preview, print-ready PDF, verification page.
-- Verification: QR code plus certificate number lookup.
-- Approval routing for sensitive certificate classes.
-- Version templates with draft and published states.
-- Add scholarship-related certificates and custom institutional letters.
+### 14. Focus Mode
+Distraction-free workspace that hides sidebar and topbar for data-entry concentration.
 
-Certificate families to support in v1:
-- Bonafide
-- Scholarship Certificate
-- Conduct
-- Transfer
-- Study
-- Character
-- Course Completion
-- Fee Paid / No Due
-- Hostel Residency
+### 15. Theme System
+Light/dark mode with system preference detection, localStorage persistence, CSS variable driven.
 
-## Database Blueprint
-Core tables:
-- `institutions`, `campuses`, `academic_years`, `departments`, `programs`, `sections`
-- `users`, `profiles`, `roles`, `permissions`, `role_permissions`, `user_role_scopes`
-- `students`, `guardians`, `staff`, `faculty`, `enrollments`
-- `attendance_records`, `assignments`, `submissions`, `homework`, `exam_schedules`, `marks`
-- `messages`, `threads`, `thread_participants`, `notifications`
-- `scholarship_applications`, `scholarship_verifications`, `scholarship_approvals`, `scholarship_disbursements`
-- `certificate_templates`, `certificate_requests`, `certificates`, `certificate_verifications`
-- `documents`, `document_tags`, `audit_logs`, `automation_rules`, `jobs`
+---
 
-Cross-cutting columns:
-- `id`, `institution_id`, `campus_id`, `created_at`, `updated_at`, `created_by`, `updated_by`, `status`, `meta jsonb`
+## Migration Ledger
 
-## Patch-by-Patch Migration Method
-For each module:
-1. Extract legacy behavior and data fields.[file:1]
-2. Map old field names to normalized DB columns.
-3. Define Zod schema and TS types.
-4. Build repository and route handlers.
-5. Build server actions or mutation hooks.
-6. Build UI pages, tables, filters, forms, drawers, and modals.
-7. Add audit events and realtime events.
-8. Run parity QA against legacy behavior.
-9. Mark `parity-signed-off` only after evidence.
-
-Use a migration ledger row like this:
-
-| Module | Legacy present | Schema | API | UI | Realtime | QA | Sign-off |
+| Module | Legacy Present | Schema | API | UI | Realtime | QA | Sign-off |
 |---|---|---|---|---|---|---|---|
-| Scholarships | Yes[file:1] | Pending | Pending | Pending | Pending | Pending | Pending |
-| Certificates | Yes[file:1] | Pending | Pending | Pending | Pending | Pending | Pending |
-| Chat | Yes[file:1] | Pending | Pending | Pending | Pending | Pending | Pending |
+| **Auth & MFA** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ N/A | ⏳ | ⏳ |
+| **Dashboard** | ✅ | ✅ Built | ✅ Built | ✅ Built | ⏳ Partial | ⏳ | ⏳ |
+| **Students** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Import Pipeline** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Attendance** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Exams** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Timetable** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Fees** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Library** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Hostel** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Transport** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Staff** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **HR & Payroll** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Assignments** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Reports** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Notifications** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Parent Portal** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Chat** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Certificates** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Scholarships** | ✅ | ✅ Schema | ✅ Partial | ✅ Partial | ❌ | ⏳ | ⏳ |
+| **Admissions** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Placement** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Events** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Communication Hub** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Permissions** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Automation** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Migration** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Settings** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Security & Audit** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Digital ID Cards** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Promotion Engine** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Backups** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Live Classes** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Online Exams** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **AI Assistant** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Leave Management** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **DMS Documents** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Grievance** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Health** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Inventory** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Procurement** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Alumni** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Quiz** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Media** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Reception** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
+| **Tasks** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
 
-## Risks and Control Notes
-- A single 3M+ character HTML file usually mixes view logic, state, storage, and business rules, so hidden edge cases are likely.[file:1]
-- Some features may be implied by UI scaffolding but not fully implemented, which means parity must be measured against behavior, not labels alone.[file:1]
-- Realtime, MFA, and permissioning should be added as platform capabilities early, otherwise later migrations will duplicate security logic.
+**Legend:** ✅ Complete / 🟡 Partial / ❌ Not Started / ⏳ Pending
 
-## Definition of Complete Migration
-Treat migration as complete only when all of the following are true:
-- Every legacy module and action is cataloged.[file:1]
-- Every cataloged item has a matching target feature, replacement decision, or retirement decision.
-- Data contracts are normalized and documented.
-- Regression tests cover critical flows.
-- Stakeholder UAT signs off each wave.
-- The legacy screen can be turned off without loss of required capability.
+---
 
-## Delivery Recommendation
-Proceed in **CODE MODE** with a migration ledger, schema pack, API contract pack, and premium dashboard shell first. That creates the local-server-ready foundation for the Non-Stop Solution vision while keeping the path open for complete parity-based migration into the superior `eduflow-universe` platform.[file:1]
+## Development Commands
+
+```bash
+npm run dev          # Start development server (Vite)
+npm run build        # Production build
+npm run build:dev    # Development build
+npm run preview      # Preview production build
+npm run lint         # ESLint check
+npm run test         # Run Vitest tests
+npm run test:watch   # Watch mode tests
+```
+
+## Environment Variables
+
+```
+VITE_SUPABASE_URL=<your-supabase-project-url>
+VITE_SUPABASE_PUBLISHABLE_KEY=<your-supabase-anon-key>
+```
+
+---
+
+*Last updated: May 2026 | Migration progress: ~65 complete*

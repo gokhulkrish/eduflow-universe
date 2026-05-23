@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import {
+  collectCustomHeaderValues,
+  loadCustomImportFields,
+  loadHeaderRegistryMeta,
+} from "@/lib/header-registry";
+import { emitAppSync } from "@/lib/app-sync";
+import { tableExists, tablesExist } from "@/lib/supabase-health";
+
+export const studentRegisterSyncKey = "sms.student-register.v1";
 
 export type StudentFormValues = Record<string, string>;
 export type StudentRegisterRow = {
@@ -18,6 +27,13 @@ export type StudentRegisterRow = {
   status: string;
   updated_at: string;
   email: string | null;
+  dob: string | null;
+  gender: string | null;
+  blood_group: string | null;
+  phone: string | null;
+  house: string | null;
+  guardian_name: string | null;
+  guardian_phone: string | null;
   community: string | null;
   district: string | null;
 };
@@ -59,13 +75,14 @@ export type SectionDef = {
     options?: string[];
     placeholder?: string;
     col?: 1 | 2 | 3;
+    required?: boolean;
   }[];
 };
 
 export const studentSections: SectionDef[] = [
   {
     title: "Personal Information",
-    description: "Core identity captured for the SMS register.",
+    description: "Core identity captured for the GCT register.",
     fields: [
       { name: "firstName", label: "First Name", placeholder: "Aarav" },
       { name: "lastName", label: "Last Name", placeholder: "Sharma" },
@@ -77,20 +94,20 @@ export const studentSections: SectionDef[] = [
   },
   {
     title: "Academic Details",
-    description: "Grade, roll number, section assignment.",
+    description: "Program, roll number, and section assignment.",
     fields: [
       { name: "admissionNo", label: "Admission No", placeholder: "ADM-2026-0184" },
-      { name: "grade", label: "Grade", type: "select", options: ["Pre-KG", "KG", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"] },
+      { name: "grade", label: "Program / Semester", type: "select", options: ["B.A. Sem 1", "B.A. Sem 2", "B.Com Sem 1", "B.Com Sem 2", "B.Sc Sem 1", "B.Sc Sem 2", "BBA Sem 1", "BBA Sem 2"] },
       { name: "section", label: "Section", type: "select", options: ["A", "B", "C", "D"] },
       { name: "roll", label: "Roll Number", type: "number" },
-      { name: "stream", label: "Stream", type: "select", options: ["Science", "Commerce", "Arts", "Vocational", "N/A"] },
-      { name: "house", label: "House", type: "select", options: ["Red", "Blue", "Green", "Yellow"] },
+      { name: "stream", label: "Department / Stream", type: "select", options: ["Science", "Commerce", "Arts", "Management", "Vocational", "N/A"] },
+      { name: "house", label: "Residence / House", type: "select", options: ["North", "South", "East", "West"] },
     ],
   },
   {
     title: "Contact & Address",
     fields: [
-      { name: "email", label: "Email", type: "email", placeholder: "student@school.edu" },
+      { name: "email", label: "Email", type: "email", placeholder: "student@gct.ac.in" },
       { name: "phone", label: "Phone", type: "tel", placeholder: "+91 98765 43210" },
       { name: "alternatePhone", label: "Alternate Phone", type: "tel" },
       { name: "address", label: "Address", type: "textarea", col: 3, placeholder: "Street, Area, City, State, PIN" },
@@ -188,10 +205,24 @@ const metaFromValues = (values: StudentFormValues): Json => ({
     fatherOccupation: clean(values.fatherOccupation),
     motherName: clean(values.motherName),
     motherOccupation: clean(values.motherOccupation),
+    guardianName: clean(values.fatherName) || clean(values.motherName),
+    guardianOccupation: clean(values.fatherOccupation) || clean(values.motherOccupation),
+    guardianPhone: clean(values.guardianPhone),
+    annualIncome: clean(values.annualIncome),
+  },
+  academic: {
+    grade: clean(values.grade),
+    section: clean(values.section),
+    roll: clean(values.roll),
+    stream: clean(values.stream),
+    house: clean(values.house),
   },
   umis: {
     district: clean(values.district),
     block: clean(values.block),
+  },
+  import: {
+    customValues: collectCustomHeaderValues(values),
   },
 });
 
@@ -203,51 +234,126 @@ const readMetaString = (meta: Json | null, group: string, key: string) => {
   return typeof value === "string" ? value : "";
 };
 
+const readMetaNumber = (meta: Json | null, group: string, key: string) => {
+  const raw = readMetaString(meta, group, key);
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const readCustomFieldValues = (meta: Json | null) => loadHeaderRegistryMeta(meta);
+
 export const initialsForStudent = (row: Pick<StudentRegisterRow, "display_name" | "first_name" | "last_name">) => {
   const words = [row.first_name, row.last_name].filter(Boolean);
   const source = words.length ? words : String(row.display_name || "S").split(/\s+/);
   return source.slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "ST";
 };
 
-export const gradeLabelForStudent = (row: Pick<StudentRegisterRow, "grade" | "section">) =>
+export const cohortLabelForStudent = (row: Pick<StudentRegisterRow, "grade" | "section">) =>
   [row.grade, row.section].filter(Boolean).join("-") || "Unassigned";
+export const gradeLabelForStudent = cohortLabelForStudent;
 
 export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
-  try {
-    // Try to fetch from the student_register view (Wave 2 migration)
-    const { data, error } = await supabase
-      .from("student_register")
-      .select("*")
-      .order("updated_at", { ascending: false });
+  if (!(await tableExists("students"))) return [];
 
-    if (error) {
-      // Fallback: if view doesn't exist, query the students table directly
-      console.warn("student_register view not found, using students table as fallback");
-      return fetchStudentsDirectly();
+  const [enrollmentsReady, attendanceReady, invoicesReady] = await Promise.all([
+    tableExists("enrollments"),
+    tableExists("attendance"),
+    tableExists("fee_invoices"),
+  ]);
+
+  const [studentsResult, enrollmentsResult, attendanceResult, invoicesResult] = await Promise.all([
+    supabase.from("students").select("*").order("updated_at", { ascending: false }),
+    enrollmentsReady
+      ? supabase.from("enrollments").select("id,student_id,academic_year_id,class_level_id,section_id,roll_number,status,created_at,grade_label,section_label,stream").order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    attendanceReady
+      ? supabase.from("attendance").select("student_id,status,date,created_at")
+      : Promise.resolve({ data: [], error: null }),
+    invoicesReady
+      ? supabase.from("fee_invoices").select("student_id,status,amount,amount_paid,created_at")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (studentsResult.error) throwDataError(studentsResult.error);
+  if (enrollmentsResult.error) throwDataError(enrollmentsResult.error);
+  if (attendanceResult.error) throwDataError(attendanceResult.error);
+  if (invoicesResult.error) throwDataError(invoicesResult.error);
+
+  const enrollmentsByStudent = new Map<string, Record<string, unknown>>();
+  for (const enrollment of enrollmentsResult.data ?? []) {
+    const studentId = String(enrollment.student_id ?? "");
+    if (!studentId) continue;
+    const current = enrollmentsByStudent.get(studentId);
+    if (!current) {
+      enrollmentsByStudent.set(studentId, enrollment as Record<string, unknown>);
+      continue;
     }
-    return (data ?? []).map(normalizeStudentRegisterRowFromView);
-  } catch (err) {
-    // Fallback for any other errors
-    console.warn("Error querying student_register, using fallback", err);
-    return fetchStudentsDirectly();
+    const currentTime = new Date(String(current.created_at ?? "")).getTime();
+    const nextTime = new Date(String(enrollment.created_at ?? "")).getTime();
+    if (nextTime >= currentTime) enrollmentsByStudent.set(studentId, enrollment as Record<string, unknown>);
   }
-}
 
-async function fetchStudentsDirectly() {
-  const { data, error } = await supabase
-    .from("students")
-    .select(`
-      id,
-      first_name,
-      last_name,
-      admission_no,
-      status,
-      updated_at
-    `)
-    .order("updated_at", { ascending: false });
+  const attendanceByStudent = new Map<string, { total: number; present: number }>();
+  for (const attendance of attendanceResult.data ?? []) {
+    const studentId = String(attendance.student_id ?? "");
+    if (!studentId) continue;
+    const current = attendanceByStudent.get(studentId) ?? { total: 0, present: 0 };
+    current.total += 1;
+    if (String(attendance.status ?? "").toLowerCase() === "present") current.present += 1;
+    attendanceByStudent.set(studentId, current);
+  }
 
-  if (error) throwDataError(error);
-  return (data ?? []).map(normalizeStudentRegisterRowFromStudent);
+  const latestInvoiceByStudent = new Map<string, Record<string, unknown>>();
+  for (const invoice of invoicesResult.data ?? []) {
+    const studentId = String(invoice.student_id ?? "");
+    if (!studentId) continue;
+    const current = latestInvoiceByStudent.get(studentId);
+    if (!current) {
+      latestInvoiceByStudent.set(studentId, invoice as Record<string, unknown>);
+      continue;
+    }
+    const currentTime = new Date(String(current.created_at ?? "")).getTime();
+    const nextTime = new Date(String(invoice.created_at ?? "")).getTime();
+    if (nextTime >= currentTime) latestInvoiceByStudent.set(studentId, invoice as Record<string, unknown>);
+  }
+
+  return (studentsResult.data ?? []).map((student) => {
+    const studentRecord = student as Record<string, unknown>;
+    const enrollment = enrollmentsByStudent.get(String(studentRecord.id ?? "")) ?? null;
+    const attendance = attendanceByStudent.get(String(studentRecord.id ?? "")) ?? { total: 0, present: 0 };
+    const latestInvoice = latestInvoiceByStudent.get(String(studentRecord.id ?? "")) ?? null;
+    const feeStatus = String(studentRecord.fee_status ?? latestInvoice?.status ?? "pending");
+    const attendancePercent = attendance.total ? Math.round((attendance.present / attendance.total) * 100) : Number(studentRecord.attendance_percent ?? 0) || 0;
+
+    return {
+      id: String(studentRecord.id ?? ""),
+      student_id: String(studentRecord.id ?? ""),
+      display_name: String(studentRecord.display_name ?? [studentRecord.first_name, studentRecord.last_name].filter(Boolean).join(" ")),
+      first_name: String(studentRecord.first_name ?? ""),
+      last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
+      admission_no: String(studentRecord.admission_no ?? ""),
+      grade: typeof enrollment?.grade_label === "string" ? enrollment.grade_label : typeof studentRecord.grade === "string" ? studentRecord.grade : null,
+      section: typeof enrollment?.section_label === "string" ? enrollment.section_label : typeof studentRecord.section === "string" ? studentRecord.section : null,
+      roll_number: typeof enrollment?.roll_number === "number" ? enrollment.roll_number : typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : null,
+      attendance_percent: attendancePercent,
+      fee_status: feeStatus,
+      status: String(studentRecord.status ?? "active"),
+      updated_at: String(studentRecord.updated_at ?? studentRecord.created_at ?? ""),
+      email: typeof studentRecord.email === "string" ? studentRecord.email : null,
+      dob: typeof studentRecord.dob === "string" ? studentRecord.dob : null,
+      gender: typeof studentRecord.gender === "string" ? studentRecord.gender : null,
+      blood_group: typeof studentRecord.blood_group === "string" ? studentRecord.blood_group : null,
+      phone: typeof studentRecord.phone === "string" ? studentRecord.phone : null,
+      house: typeof enrollment?.house === "string" ? enrollment.house : readMetaString(studentRecord.meta as Json | null, "academic", "house"),
+      guardian_name:
+        readMetaString(studentRecord.meta as Json | null, "family", "guardianName") ||
+        readMetaString(studentRecord.meta as Json | null, "family", "fatherName") ||
+        readMetaString(studentRecord.meta as Json | null, "family", "motherName"),
+      guardian_phone: readMetaString(studentRecord.meta as Json | null, "family", "guardianPhone"),
+      community: typeof studentRecord.community === "string" ? studentRecord.community : null,
+      district: typeof studentRecord.district === "string" ? studentRecord.district : null,
+    };
+  });
 }
 
 const normalizeStudentRegisterRowFromView = (row: Record<string, unknown>): StudentRegisterRow => ({
@@ -265,6 +371,13 @@ const normalizeStudentRegisterRowFromView = (row: Record<string, unknown>): Stud
   status: String(row.status ?? "active"),
   updated_at: String(row.updated_at ?? ""),
   email: typeof row.email === "string" ? row.email : null,
+  dob: typeof row.dob === "string" ? row.dob : null,
+  gender: typeof row.gender === "string" ? row.gender : null,
+  blood_group: typeof row.blood_group === "string" ? row.blood_group : null,
+  phone: typeof row.phone === "string" ? row.phone : null,
+  house: typeof row.house === "string" ? row.house : null,
+  guardian_name: typeof row.guardian_name === "string" ? row.guardian_name : null,
+  guardian_phone: typeof row.guardian_phone === "string" ? row.guardian_phone : null,
   community: typeof row.community === "string" ? row.community : null,
   district: typeof row.district === "string" ? row.district : null,
 });
@@ -276,26 +389,40 @@ const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): S
   first_name: String(row.first_name ?? ""),
   last_name: typeof row.last_name === "string" ? row.last_name : null,
   admission_no: String(row.admission_no ?? ""),
-  grade: null,
-  section: null,
-  roll_number: null,
-  attendance_percent: 0,
-  fee_status: String(row.status ?? "pending"),
+  grade: typeof row.grade === "string" ? row.grade : null,
+  section: typeof row.section === "string" ? row.section : null,
+  roll_number: typeof row.roll_number === "number" ? row.roll_number : null,
+  attendance_percent: typeof row.attendance_percent === "number" ? row.attendance_percent : 0,
+  fee_status: String(row.fee_status ?? row.status ?? "pending"),
   status: String(row.status ?? "active"),
   updated_at: String(row.updated_at ?? ""),
   email: null,
+  dob: typeof row.dob === "string" ? row.dob : null,
+  gender: typeof row.gender === "string" ? row.gender : null,
+  blood_group: typeof row.blood_group === "string" ? row.blood_group : null,
+  phone: typeof row.phone === "string" ? row.phone : null,
+  house: readMetaString(row.meta as Json | null, "academic", "house"),
+  guardian_name:
+    readMetaString(row.meta as Json | null, "family", "guardianName") ||
+    readMetaString(row.meta as Json | null, "family", "fatherName") ||
+    readMetaString(row.meta as Json | null, "family", "motherName"),
+  guardian_phone: readMetaString(row.meta as Json | null, "family", "guardianPhone"),
   community: null,
   district: null,
 });
 
 export async function fetchStudentFormValues(studentId: string): Promise<StudentFormValues> {
+  if (!(await tablesExist(["students", "enrollments"]))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
   const [{ data: student, error: studentError }, { data: enrollment, error: enrollmentError }] = await Promise.all([
     supabase.from("students").select("*").eq("id", studentId).single(),
     supabase
       .from("enrollments")
       .select("*")
       .eq("student_id", studentId)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
@@ -303,32 +430,15 @@ export async function fetchStudentFormValues(studentId: string): Promise<Student
   if (studentError) throwDataError(studentError);
   if (enrollmentError) throwDataError(enrollmentError);
 
-  const { data: links, error: linksError } = await supabase
-    .from("student_guardians")
-    .select("guardian_id,relationship,is_primary")
-    .eq("student_id", studentId);
-  if (linksError) throwDataError(linksError);
-
-  const guardianIds = (links ?? []).map((link) => link.guardian_id);
-  const { data: guardians, error: guardiansError } = guardianIds.length
-    ? await supabase.from("guardians").select("*").in("id", guardianIds)
-    : { data: [], error: null };
-  if (guardiansError) throwDataError(guardiansError);
-
-  const guardianById = new Map((guardians ?? []).map((guardian) => [guardian.id, guardian]));
-  const primaryLink = (links ?? []).find((link) => link.is_primary) ?? links?.[0];
-  const primaryGuardian = primaryLink ? guardianById.get(primaryLink.guardian_id) : null;
-  const fatherLink = (links ?? []).find((link) => link.relationship === "father");
-  const motherLink = (links ?? []).find((link) => link.relationship === "mother");
-  const father = fatherLink ? guardianById.get(fatherLink.guardian_id) : null;
-  const mother = motherLink ? guardianById.get(motherLink.guardian_id) : null;
+  const customFields = loadCustomImportFields();
+  const customValues = readCustomFieldValues(student.meta);
 
   return {
     studentId: student.id,
     enrollmentId: enrollment?.id ?? "",
-    guardianId: primaryGuardian?.id ?? "",
-    admissionNo: student.admission_no,
-    firstName: student.first_name,
+    guardianId: readMetaString(student.meta, "family", "guardianId"),
+    admissionNo: student.admission_no ?? "",
+    firstName: student.first_name ?? "",
     lastName: student.last_name ?? "",
     dob: student.dob ?? "",
     gender: student.gender ?? "",
@@ -344,23 +454,30 @@ export async function fetchStudentFormValues(studentId: string): Promise<Student
     firstGraduate: student.first_graduate ? "Yes" : "No",
     incomeVerified: student.income_verification_status === "agreed" ? "Agreed" : student.income_verification_status === "appealed" ? "Appealed" : "Pending",
     scholarshipNotes: student.scholarship_notes ?? "",
-    grade: enrollment?.grade_label ?? "",
-    section: enrollment?.section_label ?? "",
-    roll: enrollment?.roll_number ? String(enrollment.roll_number) : "",
-    stream: enrollment?.stream ?? "",
-    house: enrollment?.house ?? "",
-    fatherName: father?.full_name ?? readMetaString(student.meta, "family", "fatherName"),
-    fatherOccupation: father?.occupation ?? readMetaString(student.meta, "family", "fatherOccupation"),
-    motherName: mother?.full_name ?? readMetaString(student.meta, "family", "motherName"),
-    motherOccupation: mother?.occupation ?? readMetaString(student.meta, "family", "motherOccupation"),
-    guardianPhone: primaryGuardian?.phone ?? "",
-    annualIncome: primaryGuardian?.annual_income ? String(primaryGuardian.annual_income) : "",
+    grade: enrollment?.grade_label ?? readMetaString(student.meta, "academic", "grade"),
+    section: enrollment?.section_label ?? readMetaString(student.meta, "academic", "section"),
+    roll: typeof enrollment?.roll_number === "number" ? String(enrollment.roll_number) : readMetaString(student.meta, "academic", "roll"),
+    stream: readMetaString(student.meta, "academic", "stream"),
+    house: readMetaString(student.meta, "academic", "house"),
+    fatherName: readMetaString(student.meta, "family", "fatherName"),
+    fatherOccupation: readMetaString(student.meta, "family", "fatherOccupation"),
+    motherName: readMetaString(student.meta, "family", "motherName"),
+    motherOccupation: readMetaString(student.meta, "family", "motherOccupation"),
+    guardianPhone: readMetaString(student.meta, "family", "guardianPhone"),
+    annualIncome: readMetaString(student.meta, "family", "annualIncome"),
     district: readMetaString(student.meta, "umis", "district"),
     block: readMetaString(student.meta, "umis", "block"),
+    ...Object.fromEntries(
+      customFields.map((field) => [`custom:${field.id}`, customValues[field.id] ?? customValues[field.key] ?? ""] as const)
+    ),
   };
 }
 
 export async function saveStudentRecord(values: StudentFormValues) {
+  if (!(await tablesExist(["students", "enrollments"]))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
   const parsed = studentPayloadSchema.parse(values);
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
@@ -397,13 +514,20 @@ export async function saveStudentRecord(values: StudentFormValues) {
 
   const enrollmentPayload: TablesInsert<"enrollments"> | TablesUpdate<"enrollments"> = {
     student_id: savedStudent.id,
-    academic_year_label: "2025-26",
-    grade_label: parsed.grade,
-    section_label: parsed.section,
-    roll_number: toNumber(parsed.roll),
-    stream: parsed.stream,
-    house: parsed.house,
+    academic_year_id: null,
+    class_level_id: null,
+    section_id: null,
+    grade_label: parsed.grade ?? null,
+    section_label: parsed.section ?? null,
+    stream: parsed.stream ?? null,
+    house: parsed.house ?? null,
+    roll_number: parsed.roll ? Number(parsed.roll) : null,
     status: "active",
+    meta: {
+      import: {
+        source: "student-form",
+      },
+    } as Json,
   };
 
   const enrollmentId = clean(values.enrollmentId);
@@ -413,62 +537,105 @@ export async function saveStudentRecord(values: StudentFormValues) {
 
   if (enrollmentError) throwDataError(enrollmentError);
 
-  const primaryName = parsed.fatherName || parsed.motherName;
-  if (primaryName) {
-    const relationship = parsed.fatherName ? "father" : "mother";
-    const guardianPayload: TablesInsert<"guardians"> | TablesUpdate<"guardians"> = {
-      full_name: primaryName,
-      relationship,
-      occupation: parsed.fatherName ? parsed.fatherOccupation : parsed.motherOccupation,
-      phone: parsed.guardianPhone,
-      annual_income: toNumber(parsed.annualIncome),
-      is_primary: true,
-    };
-    const guardianId = clean(values.guardianId);
-    const { data: guardian, error: guardianError } = guardianId
-      ? await supabase.from("guardians").update(guardianPayload).eq("id", guardianId).select("*").single()
-      : await supabase.from("guardians").insert(guardianPayload as TablesInsert<"guardians">).select("*").single();
-
-    if (guardianError) throwDataError(guardianError);
-
-    const linkPayload: TablesInsert<"student_guardians"> = {
-      student_id: savedStudent.id,
-      guardian_id: guardian.id,
-      relationship,
-      is_primary: true,
-      can_pickup: true,
-    };
-
-    const { error: linkError } = await supabase
-      .from("student_guardians")
-      .upsert(linkPayload, { onConflict: "student_id,guardian_id" });
-
-    if (linkError) throwDataError(linkError);
+  if (await tableExists("audit_log")) {
+    await supabase.from("audit_log").insert({
+      actor: userId,
+      action: studentId ? "student.updated" : "student.created",
+      entity: "students",
+      entity_id: savedStudent.id,
+      metadata: {
+        admission_no: savedStudent.admission_no,
+        display_name: [savedStudent.first_name, savedStudent.last_name].filter(Boolean).join(" "),
+      },
+    });
   }
 
-  await supabase.from("audit_log").insert({
-    actor: userId,
-    action: studentId ? "student.updated" : "student.created",
-    entity: "students",
-    entity_id: savedStudent.id,
-    metadata: {
-      admission_no: savedStudent.admission_no,
-      display_name: [savedStudent.first_name, savedStudent.last_name].filter(Boolean).join(" "),
-    },
-  });
-
+  emitAppSync(studentRegisterSyncKey);
   return savedStudent;
 }
 
 export async function deleteStudentRecord(studentId: string) {
+  if (!(await tableExists("students"))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
   const { error } = await supabase.from("students").delete().eq("id", studentId);
   if (error) throwDataError(error);
-  await supabase.from("audit_log").insert({
-    actor: userId,
-    action: "student.deleted",
-    entity: "students",
-    entity_id: studentId,
+  if (await tableExists("audit_log")) {
+    await supabase.from("audit_log").insert({
+      actor: userId,
+      action: "student.deleted",
+      entity: "students",
+      entity_id: studentId,
+    });
+  }
+
+  emitAppSync(studentRegisterSyncKey);
+}
+
+export type RecentNotification = {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  type: "success" | "info" | "warning";
+};
+
+const formatRelativeTime = (createdAt: string) => {
+  const diffMs = Date.now() - new Date(createdAt).getTime();
+  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+  if (diffMinutes < 60) return `${diffMinutes || 1}m`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d`;
+};
+
+const notificationTypeForAction = (action: string): RecentNotification["type"] => {
+  const normalized = action.toLowerCase();
+  if (normalized.includes("import") || normalized.includes("approve") || normalized.includes("success")) return "success";
+  if (normalized.includes("warn") || normalized.includes("review") || normalized.includes("flag")) return "warning";
+  return "info";
+};
+
+export async function fetchRecentNotifications(limit = 5): Promise<RecentNotification[]> {
+  if (!(await tableExists("audit_log"))) return [];
+
+  const { data, error } = await supabase
+    .from("audit_log")
+    .select("id, created_at, action, entity, entity_id, metadata, actor")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throwDataError(error);
+
+  return (data ?? []).map((entry, index) => {
+    const metadata = entry.metadata && typeof entry.metadata === "object" && !Array.isArray(entry.metadata)
+      ? (entry.metadata as Record<string, unknown>)
+      : {};
+    const batchName = typeof metadata.batchName === "string" ? metadata.batchName : null;
+    const fileName = typeof metadata.fileName === "string" ? metadata.fileName : null;
+    const rowKey = typeof metadata.rowKey === "string" ? metadata.rowKey : null;
+    const title = entry.action === "student.import.batch.completed"
+      ? "Import batch completed"
+      : entry.action === "student.imported"
+        ? "Student imported"
+        : entry.action.replace(/_/g, " ");
+    const desc = [
+      batchName,
+      fileName,
+      entry.entity ? `${entry.entity}` : null,
+      rowKey ? `row ${rowKey}` : null,
+    ].filter(Boolean).join(" · ") || entry.entity_id || entry.actor || `Audit event ${index + 1}`;
+
+    return {
+      id: entry.id,
+      title,
+      desc,
+      time: formatRelativeTime(entry.created_at),
+      type: notificationTypeForAction(entry.action),
+    } satisfies RecentNotification;
   });
 }

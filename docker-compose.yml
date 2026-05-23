@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: eduflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eduflow_universe
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    image: node:20-alpine
+    container_name: eduflow-app
+    working_dir: /workspace
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_APP_NAME: Eduflow Universe
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/eduflow_universe}
+      TZ: Asia/Kolkata
+    volumes:
+      - ./:/workspace
+      - node-modules:/workspace/node_modules
+    depends_on:
+      - postgres
+
+  supabase-local:
+    image: supabase/cli:latest
+    container_name: eduflow-supabase-local
+    profiles: ['supabase']
+    working_dir: /workspace
+    command: sh -c "supabase start || supabase init"
+    environment:
+      SUPABASE_DISABLE_TELEMETRY: '1'
+    volumes:
+      - ./:/workspace
+
+volumes:
+  postgres-data:
+  node-modules:

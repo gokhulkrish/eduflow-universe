@@ -11,7 +11,7 @@ export default function Staff() {
   return (
     <div>
       <PageHeader title="Staff Directory" subtitle={`${data.length} staff members on roster`} icon={<UserCog className="h-6 w-6" />} />
-      <DataTable rows={data} loading={loading} columns={[
+      <DataTable rows={data} loading={loading} pageSize={10} columns={[
         { key: "employee_no", header: "Emp #", className: "font-mono text-xs" },
         { key: "name", header: "Name", render: (s) => `${s.first_name} ${s.last_name ?? ""}`.trim() },
         { key: "department", header: "Department" },

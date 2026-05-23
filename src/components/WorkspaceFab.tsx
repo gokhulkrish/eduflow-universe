@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Plus, Building2, Sparkles, Activity, Maximize2, Minimize2, X } from "lucide-react";
+import { Plus, Activity, Maximize2, Minimize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -8,23 +7,12 @@ import { useActivityTrace } from "@/stores/activityTrace";
 import { toast } from "sonner";
 
 export function WorkspaceFab() {
-  const [open, setOpen] = useState(false);
+  const open = useShell((s) => s.fabOpen);
+  const setOpen = useShell((s) => s.setFabOpen);
   const { focus, toggleFocus } = useShell();
   const { setOpen: setTraceOpen, events } = useActivityTrace();
 
   const items = [
-    {
-      label: "Institute Identity",
-      meta: "Icon, nickname, preview",
-      icon: Building2,
-      onClick: () => { window.location.assign("/settings/institute"); },
-    },
-    {
-      label: "AI Assistant",
-      meta: "Smart imports & insights",
-      icon: Sparkles,
-      onClick: () => { window.location.assign("/ai"); },
-    },
     {
       label: "Activity Trace",
       meta: `${events.length} live events`,
@@ -67,7 +55,7 @@ export function WorkspaceFab() {
 
       <Button
         size="icon"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label="Workspace actions"
         className={cn(

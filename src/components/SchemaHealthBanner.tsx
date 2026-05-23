@@ -64,7 +64,7 @@ export function SchemaHealthBanner() {
             <Link to="/migration">Open migrations</Link>
           </Button>
           <Button asChild size="sm" variant="outline" className="border-amber-500/30 bg-transparent text-amber-950 hover:bg-amber-500/15 dark:text-amber-50">
-            <Link to="/settings/institute">Check project settings</Link>
+            <Link to="/settings/institute">Check GCT settings</Link>
           </Button>
         </div>
       </div>

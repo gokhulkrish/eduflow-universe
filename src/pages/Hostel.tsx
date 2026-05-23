@@ -7,11 +7,19 @@ import { Badge } from "@/components/ui/badge";
 type Room = { id: string; block: string; room_no: string; capacity: number; occupied: number; room_type: string };
 
 export default function Hostel() {
-  const { data, loading } = useDbList<Room>("hostel_rooms", { order: { column: "block", ascending: true } });
+  const { data, loading, error } = useDbList<Room>("hostel_rooms", { order: { column: "block", ascending: true } });
+  if (error) {
+    return (
+      <div>
+        <PageHeader title="Hostel Management" subtitle="Could not load data" icon={<Building2 className="h-6 w-6" />} />
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
+      </div>
+    );
+  }
   return (
     <div>
       <PageHeader title="Hostel Management" subtitle={`${data.length} rooms · ${data.reduce((s,r)=>s+r.capacity,0)} bed capacity`} icon={<Building2 className="h-6 w-6" />} />
-      <DataTable rows={data} loading={loading} columns={[
+      <DataTable rows={data} loading={loading} pageSize={10} columns={[
         { key: "block", header: "Block" },
         { key: "room_no", header: "Room", className: "font-mono" },
         { key: "room_type", header: "Type", render: r => <Badge variant="secondary">{r.room_type}</Badge> },

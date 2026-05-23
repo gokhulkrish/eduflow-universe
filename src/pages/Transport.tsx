@@ -11,7 +11,7 @@ export default function Transport() {
   return (
     <div>
       <PageHeader title="Transport Routes" subtitle={`${data.length} active routes`} icon={<Bus className="h-6 w-6" />} />
-      <DataTable rows={data} loading={loading} columns={[
+      <DataTable rows={data} loading={loading} pageSize={10} columns={[
         { key: "route_no", header: "Route #", className: "font-mono" },
         { key: "name", header: "Name" },
         { key: "vehicle_no", header: "Vehicle", className: "font-mono text-xs" },

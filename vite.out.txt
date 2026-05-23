@@ -1,0 +1,33 @@
+
+  [32m[1mVITE[22m v5.4.19[39m  [2mready in [0m[1m412[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m12:54:37 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:03:09 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ModuleTileCard.tsx, /src/index.css[22m
+[2m1:03:27 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:07:36 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:15:23 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:15:32 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:15:40 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:15:54 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/WorkspaceFab.tsx, /src/index.css[22m
+[2m1:16:02 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/WorkspaceFab.tsx, /src/index.css[22m
+[2m1:16:33 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/WorkspaceFab.tsx, /src/index.css[22m
+[2m1:22:39 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:28:52 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:43:05 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m1:58:06 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:58:12 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:58:19 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:58:25 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:58:31 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:58:37 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Attendance.tsx, /src/index.css[22m
+[2m1:59:13 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m1:59:19 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m2:00:45 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m2:00:51 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m2:07:01 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/Library.tsx, /src/pages/Hostel.tsx, /src/pages/Transport.tsx[22m
+[2m2:07:14 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m2:07:32 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
+[2m2:07:41 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Hostel.tsx, /src/index.css[22m
+[2m2:10:59 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /src/index.css[22m
