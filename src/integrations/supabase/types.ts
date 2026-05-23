@@ -231,6 +231,20 @@ export type Database = {
             foreignKeyName: "attendance_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -364,6 +378,20 @@ export type Database = {
             foreignKeyName: "certificate_requests_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificate_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "certificate_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -379,8 +407,8 @@ export type Database = {
       certificate_templates: {
         Row: {
           active: boolean
-          body: string
-          code: string
+          body: string | null
+          code: string | null
           created_at: string
           id: string
           institution_id: string | null
@@ -391,8 +419,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          body: string
-          code: string
+          body?: string | null
+          code?: string | null
           created_at?: string
           id?: string
           institution_id?: string | null
@@ -403,8 +431,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          body?: string
-          code?: string
+          body?: string | null
+          code?: string | null
           created_at?: string
           id?: string
           institution_id?: string | null
@@ -635,6 +663,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "enrollments_student_id_fkey"
@@ -891,6 +933,20 @@ export type Database = {
             foreignKeyName: "fee_invoices_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_invoices_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "fee_invoices_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -1113,6 +1169,20 @@ export type Database = {
             foreignKeyName: "hostel_allocations_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hostel_allocations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "hostel_allocations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -1123,30 +1193,44 @@ export type Database = {
           block: string
           capacity: number
           created_at: string
+          hostel_id: string | null
           id: string
           occupied: number
           room_no: string
+          room_number: string | null
           room_type: string | null
         }
         Insert: {
           block: string
           capacity?: number
           created_at?: string
+          hostel_id?: string | null
           id?: string
           occupied?: number
           room_no: string
+          room_number?: string | null
           room_type?: string | null
         }
         Update: {
           block?: string
           capacity?: number
           created_at?: string
+          hostel_id?: string | null
           id?: string
           occupied?: number
           room_no?: string
+          room_number?: string | null
           room_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hostel_rooms_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hostels: {
         Row: {
@@ -1471,6 +1555,20 @@ export type Database = {
             foreignKeyName: "library_loans_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_loans_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "library_loans_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -1483,6 +1581,7 @@ export type Database = {
           id: string
           is_read: boolean
           link: string | null
+          meta: Json
           title: string
           type: string | null
           user_id: string
@@ -1493,6 +1592,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           link?: string | null
+          meta?: Json
           title: string
           type?: string | null
           user_id: string
@@ -1503,6 +1603,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           link?: string | null
+          meta?: Json
           title?: string
           type?: string | null
           user_id?: string
@@ -1791,18 +1892,22 @@ export type Database = {
           community: string | null
           created_at: string
           created_by: string | null
+          display_name: string | null
           district: string | null
           dob: string | null
           email: string | null
           emis_id: string | null
+          enrollment_id: string | null
           father_name: string | null
           father_occupation: string | null
           first_graduate: boolean | null
           first_name: string
           gender: string | null
+          guardian_id: string | null
           guardian_phone: string | null
           house: string | null
           id: string
+          income_verification_status: string | null
           income_verified: string | null
           last_name: string | null
           meta: Json
@@ -1811,6 +1916,7 @@ export type Database = {
           nationality: string | null
           notes: string | null
           phone: string | null
+          scholarship_notes: string | null
           status: string
           umis_id: string | null
           updated_at: string
@@ -1826,18 +1932,22 @@ export type Database = {
           community?: string | null
           created_at?: string
           created_by?: string | null
+          display_name?: string | null
           district?: string | null
           dob?: string | null
           email?: string | null
           emis_id?: string | null
+          enrollment_id?: string | null
           father_name?: string | null
           father_occupation?: string | null
           first_graduate?: boolean | null
           first_name: string
           gender?: string | null
+          guardian_id?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string
+          income_verification_status?: string | null
           income_verified?: string | null
           last_name?: string | null
           meta?: Json
@@ -1846,6 +1956,7 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          scholarship_notes?: string | null
           status?: string
           umis_id?: string | null
           updated_at?: string
@@ -1861,18 +1972,22 @@ export type Database = {
           community?: string | null
           created_at?: string
           created_by?: string | null
+          display_name?: string | null
           district?: string | null
           dob?: string | null
           email?: string | null
           emis_id?: string | null
+          enrollment_id?: string | null
           father_name?: string | null
           father_occupation?: string | null
           first_graduate?: boolean | null
           first_name?: string
           gender?: string | null
+          guardian_id?: string | null
           guardian_phone?: string | null
           house?: string | null
           id?: string
+          income_verification_status?: string | null
           income_verified?: string | null
           last_name?: string | null
           meta?: Json
@@ -1881,6 +1996,7 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          scholarship_notes?: string | null
           status?: string
           umis_id?: string | null
           updated_at?: string
@@ -2209,6 +2325,20 @@ export type Database = {
             foreignKeyName: "transport_allocations_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_allocations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_register"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "transport_allocations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2223,6 +2353,7 @@ export type Database = {
           fare: number
           id: string
           name: string
+          route_name: string | null
           route_no: string
           vehicle_no: string | null
         }
@@ -2234,6 +2365,7 @@ export type Database = {
           fare?: number
           id?: string
           name: string
+          route_name?: string | null
           route_no: string
           vehicle_no?: string | null
         }
@@ -2245,6 +2377,7 @@ export type Database = {
           fare?: number
           id?: string
           name?: string
+          route_name?: string | null
           route_no?: string
           vehicle_no?: string | null
         }
@@ -2273,7 +2406,132 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      student_register: {
+        Row: {
+          address: string | null
+          admission_no: string | null
+          alternate_phone: string | null
+          annual_income: number | null
+          block: string | null
+          blood_group: string | null
+          community: string | null
+          created_at: string | null
+          created_by: string | null
+          display_name: string | null
+          district: string | null
+          dob: string | null
+          email: string | null
+          emis_id: string | null
+          enrollment_id: string | null
+          father_name: string | null
+          father_occupation: string | null
+          first_graduate: boolean | null
+          first_name: string | null
+          gender: string | null
+          guardian_id: string | null
+          guardian_phone: string | null
+          house: string | null
+          id: string | null
+          income_verification_status: string | null
+          income_verified: string | null
+          last_name: string | null
+          meta: Json | null
+          mother_name: string | null
+          mother_occupation: string | null
+          nationality: string | null
+          notes: string | null
+          phone: string | null
+          scholarship_notes: string | null
+          status: string | null
+          student_id: string | null
+          umis_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          admission_no?: string | null
+          alternate_phone?: string | null
+          annual_income?: number | null
+          block?: string | null
+          blood_group?: string | null
+          community?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          district?: string | null
+          dob?: string | null
+          email?: string | null
+          emis_id?: string | null
+          enrollment_id?: string | null
+          father_name?: string | null
+          father_occupation?: string | null
+          first_graduate?: boolean | null
+          first_name?: string | null
+          gender?: string | null
+          guardian_id?: string | null
+          guardian_phone?: string | null
+          house?: string | null
+          id?: string | null
+          income_verification_status?: string | null
+          income_verified?: string | null
+          last_name?: string | null
+          meta?: Json | null
+          mother_name?: string | null
+          mother_occupation?: string | null
+          nationality?: string | null
+          notes?: string | null
+          phone?: string | null
+          scholarship_notes?: string | null
+          status?: string | null
+          student_id?: string | null
+          umis_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          admission_no?: string | null
+          alternate_phone?: string | null
+          annual_income?: number | null
+          block?: string | null
+          blood_group?: string | null
+          community?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          district?: string | null
+          dob?: string | null
+          email?: string | null
+          emis_id?: string | null
+          enrollment_id?: string | null
+          father_name?: string | null
+          father_occupation?: string | null
+          first_graduate?: boolean | null
+          first_name?: string | null
+          gender?: string | null
+          guardian_id?: string | null
+          guardian_phone?: string | null
+          house?: string | null
+          id?: string | null
+          income_verification_status?: string | null
+          income_verified?: string | null
+          last_name?: string | null
+          meta?: Json | null
+          mother_name?: string | null
+          mother_occupation?: string | null
+          nationality?: string | null
+          notes?: string | null
+          phone?: string | null
+          scholarship_notes?: string | null
+          status?: string | null
+          student_id?: string | null
+          umis_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
