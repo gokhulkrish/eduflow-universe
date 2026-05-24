@@ -1,4 +1,6 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
+import { emitAppSync } from "@/lib/app-sync";
+import { supabase } from "@/integrations/supabase/client";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -31,7 +33,6 @@ const matchStrategies: ImportModuleMatchStrategy[] = [
 ];
 
 async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
-  const { supabase } = await import("@/integrations/supabase/client");
   const [booksRes, studentsRes] = await Promise.all([
     (supabase.from("library_books") as any).select("id, title, isbn, authors, available_quantity"),
     (supabase.from("students") as any).select("id, admission_no, first_name, last_name"),
@@ -46,8 +47,6 @@ async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
 }
 
 async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promise<ImportCommitResult> {
-  const { supabase } = await import("@/integrations/supabase/client");
-  const { emitAppSync } = await import("@/lib/app-sync");
   let inserted = 0, updated = 0, skipped = 0, failed = 0;
   const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];
   const errors: { rowNumber: number; message: string }[] = [];
@@ -119,7 +118,6 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 }
 
 async function rollbackRows(rollbackData: ImportRollbackEntry[]): Promise<{ success: boolean; restored: number }> {
-  const { supabase } = await import("@/integrations/supabase/client");
   let restored = 0, success = true;
   for (const entry of rollbackData) {
     try {

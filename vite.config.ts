@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    target: "esnext",
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -52,9 +54,6 @@ export default defineConfig(({ mode }) => ({
 
           const normalized = id.replace(/\\/g, "/");
           if (normalized.includes("/src/lib/import-engine/")) return "import-engine";
-          if (normalized.includes("/src/lib/")) return "lib";
-          if (normalized.includes("/src/components/")) return "components";
-          if (normalized.includes("/src/hooks/")) return "hooks";
           return undefined;
         },
       },

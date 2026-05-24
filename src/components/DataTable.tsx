@@ -15,7 +15,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, loading, em
     <Card className="glass p-4">
       {pageSize && <TablePagination {...pag} />}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="min-w-max w-full text-sm">
           <thead>
             <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
               {columns.map((c) => <th key={String(c.key)} className={`py-3 ${c.className ?? ""}`}>{c.header}</th>)}

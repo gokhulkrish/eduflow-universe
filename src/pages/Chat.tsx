@@ -43,11 +43,20 @@ export default function Chat() {
     <div>
       <PageHeader title="Chat Rooms" subtitle="Real-time messaging" icon={<MessagesSquare className="h-6 w-6" />} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-220px)]">
-        <Card className="md:col-span-1 overflow-hidden flex flex-col">
+      <div className="flex min-h-[calc(100dvh-220px)] flex-col gap-4 md:grid md:grid-cols-3">
+        <Card className="min-h-0 overflow-hidden flex flex-col md:col-span-1">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm">Threads</CardTitle>
-            <Button variant="outline" size="sm" className="rounded-lg h-7 w-7" onClick={() => { setNewTitle(""); setCreateOpen(true); }}><Plus className="h-3 w-3" /></Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg h-7 w-7"
+              onClick={() => { setNewTitle(""); setCreateOpen(true); }}
+              aria-label="Create new thread"
+              title="New thread"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-2">
             {(threads ?? []).map((t) => (
@@ -62,7 +71,7 @@ export default function Chat() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2 overflow-hidden flex flex-col">
+        <Card className="min-h-0 overflow-hidden flex flex-col md:col-span-2">
           {!activeThread ? (
             <CardContent className="flex-1 flex items-center justify-center text-sm text-muted-foreground">Select a thread</CardContent>
           ) : (
@@ -70,7 +79,7 @@ export default function Chat() {
               <CardHeader className="pb-2 border-b">
                 <CardTitle className="text-sm">{threads?.find((t) => t.id === activeThread)?.title}</CardTitle>
               </CardHeader>
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="min-h-0 flex-1 p-4">
                 <div className="space-y-3">
                   {(messages ?? []).map((m) => (
                     <div key={m.id} className="flex gap-2">
@@ -89,9 +98,16 @@ export default function Chat() {
                   <div ref={msgEnd} />
                 </div>
               </ScrollArea>
-              <div className="p-3 border-t flex gap-2">
+              <div className="flex gap-2 border-t p-3">
                 <Input value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="Type a message..." onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && msgText.trim() && sendMut.mutate()} />
-                <Button size="icon" className="rounded-xl shrink-0" onClick={() => sendMut.mutate()} disabled={!msgText.trim() || sendMut.isPending}>
+                <Button
+                  size="icon"
+                  className="rounded-xl shrink-0"
+                  onClick={() => sendMut.mutate()}
+                  disabled={!msgText.trim() || sendMut.isPending}
+                  aria-label="Send message"
+                  title="Send message"
+                >
                   {sendMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
               </div>

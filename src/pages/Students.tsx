@@ -277,7 +277,7 @@ export default function Students() {
 
       <Card className="mb-4 overflow-hidden border-border/60 bg-card/70 backdrop-blur">
         <Tabs defaultValue="home">
-          <TabsList className="h-10 w-full justify-start rounded-none border-b bg-transparent px-3">
+        <TabsList className="h-10 w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-3">
             {["home","data","review","admin"].map((t) => (
               <TabsTrigger key={t} value={t} className="rounded-md capitalize data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t}</TabsTrigger>
             ))}
@@ -376,14 +376,14 @@ export default function Students() {
       </Card>
 
       <Card className="glass p-4">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, admission no, email…"
-              className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
-          </div>
-          {selected.size > 0 && <Badge variant="secondary" className="bg-primary/15 text-primary">{selected.size} selected</Badge>}
-          <Button variant="outline" className="rounded-xl"><Filter className="mr-2 h-4 w-4" />Filters <ChevronDown className="ml-1 h-3 w-3" /></Button>
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, admission no, email…"
+                className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
+            </div>
+            {selected.size > 0 && <Badge variant="secondary" className="bg-primary/15 text-primary">{selected.size} selected</Badge>}
+          <Button variant="outline" className="w-full rounded-xl sm:w-auto"><Filter className="mr-2 h-4 w-4" />Filters <ChevronDown className="ml-1 h-3 w-3" /></Button>
         </div>
 
         {studentsQuery.isLoading && (
@@ -411,9 +411,9 @@ export default function Students() {
           </div>
         ) : null}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-border/60">
           <TablePagination {...pag} />
-          <table className="w-full text-sm">
+          <table className="min-w-max w-full text-sm">
             <thead className="">
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="w-8 py-3 pl-2"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
@@ -462,7 +462,14 @@ export default function Students() {
                     <Badge variant="secondary" className="capitalize">{s.status ?? "active"}</Badge>
                   </td>
                   <td className="py-3 pr-2 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/students/${s.id}`)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => navigate(`/students/${s.id}`)}
+                      aria-label={`Edit student ${s.name}`}
+                      title={`Edit ${s.name}`}
+                    >
                       <Edit3 className="h-3.5 w-3.5" />
                     </Button>
                   </td>

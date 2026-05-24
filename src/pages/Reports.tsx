@@ -84,7 +84,7 @@ export default function Reports() {
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
@@ -99,7 +99,8 @@ export default function Reports() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Cohort-wise Distribution</CardTitle></CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto rounded-lg border">
+              <Table className="min-w-max">
               <TableHeader className="">
                 <TableRow>
                   <TableHead className="text-xs">Cohort</TableHead>
@@ -132,6 +133,7 @@ export default function Reports() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -140,12 +142,13 @@ export default function Reports() {
         <TabsContent value="academic" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-sm">Subject Performance</CardTitle>
-                <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => exportCsv("subject-performance", subjPerf ?? [])} disabled={!subjPerf}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+                <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("subject-performance", subjPerf ?? [])} disabled={!subjPerf}><Download className="h-3 w-3 mr-1" /> CSV</Button>
               </CardHeader>
               <CardContent>
-                <Table>
+                <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
                 <TableHeader className="">
                   <TableRow>
                     <TableHead className="text-xs">Subject</TableHead>
@@ -168,13 +171,15 @@ export default function Reports() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader><CardTitle className="text-sm">Pass / Fail by Cohort</CardTitle></CardHeader>
               <CardContent>
-                <Table>
+                <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
                 <TableHeader className="">
                   <TableRow>
                     <TableHead className="text-xs">Cohort</TableHead>
@@ -202,14 +207,15 @@ export default function Reports() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-sm">Cohort Distribution</CardTitle>
-              <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => exportCsv("cohort-distribution", cohortDist ?? [])} disabled={!cohortDist}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("cohort-distribution", cohortDist ?? [])} disabled={!cohortDist}><Download className="h-3 w-3 mr-1" /> CSV</Button>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,7 +240,7 @@ export default function Reports() {
                           <ProgressBar value={g.passed} max={g.total} color={passPct >= 75 ? "bg-success" : passPct >= 50 ? "bg-warning" : "bg-destructive"} />
                         </div>
                         <Separator />
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="grid grid-cols-1 gap-2 text-center text-xs sm:grid-cols-3">
                           <div><p className="font-bold">{g.total}</p><p className="text-muted-foreground">Students</p></div>
                           <div><p className="font-bold text-success">{g.paid}</p><p className="text-muted-foreground">Paid</p></div>
                           <div><p className="font-bold text-destructive">{g.pending}</p><p className="text-muted-foreground">Dues</p></div>
@@ -251,12 +257,13 @@ export default function Reports() {
         {/* ══════ FINANCIAL ══════ */}
         <TabsContent value="financial" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-sm">Monthly Collection</CardTitle>
-              <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => exportCsv("monthly-collection", monthlyCol ?? [])} disabled={!monthlyCol}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("monthly-collection", monthlyCol ?? [])} disabled={!monthlyCol}><Download className="h-3 w-3 mr-1" /> CSV</Button>
             </CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto rounded-lg border">
+              <Table className="min-w-max">
               <TableHeader className="">
                 <TableRow>
                   <TableHead className="text-xs">Month</TableHead>
@@ -284,26 +291,28 @@ export default function Reports() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-sm">Defaulters</CardTitle>
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Select value={cohortFilter} onValueChange={setCohortFilter}>
-                    <SelectTrigger className="h-7 text-[10px] w-28"><SelectValue placeholder="All cohorts" /></SelectTrigger>
+                    <SelectTrigger className="h-7 w-full text-[10px] sm:w-28"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All cohorts</SelectItem>
                       {cohorts.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => exportCsv("defaulters", defaulters ?? [])} disabled={!defaulters}><Download className="h-3 w-3 mr-1" /></Button>
+                  <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("defaulters", defaulters ?? [])} disabled={!defaulters}><Download className="h-3 w-3 mr-1" /></Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
+                <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
                 <TableHeader className="">
                   <TableRow>
                     <TableHead className="text-xs">Student</TableHead>
@@ -324,6 +333,7 @@ export default function Reports() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
                 {(defaulters ?? []).length > 20 && <p className="text-xs text-muted-foreground mt-2">Showing top 20 of {defaulters?.length}</p>}
               </CardContent>
             </Card>
@@ -331,7 +341,8 @@ export default function Reports() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Concessions by Type</CardTitle></CardHeader>
               <CardContent>
-                <Table>
+                <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
                 <TableHeader className="">
                   <TableRow>
                     <TableHead className="text-xs">Type</TableHead>
@@ -350,6 +361,7 @@ export default function Reports() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -357,16 +369,16 @@ export default function Reports() {
 
         {/* ══════ ATTENDANCE ══════ */}
         <TabsContent value="attendance" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2 items-center">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Select value={cohortFilter} onValueChange={setCohortFilter}>
-                    <SelectTrigger className="h-8 text-xs w-32"><SelectValue placeholder="All cohorts" /></SelectTrigger>
+                    <SelectTrigger className="h-8 w-full text-xs sm:w-32"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                   <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
                   {cohorts.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" onClick={() => exportCsv("attendance-report", attendance ?? [])} disabled={!attendance}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              <Button variant="outline" size="sm" className="w-full rounded-lg h-8 text-xs sm:w-auto" onClick={() => exportCsv("attendance-report", attendance ?? [])} disabled={!attendance}><Download className="h-3 w-3 mr-1" /> CSV</Button>
             </div>
           </div>
 
@@ -398,7 +410,8 @@ export default function Reports() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Low Attendance Students ({cohortFilter || "all cohorts"})</CardTitle></CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto rounded-lg border">
+              <Table className="min-w-max">
               <TableHeader className="">
                 <TableRow>
                   <TableHead className="text-xs">Student</TableHead>
@@ -423,6 +436,7 @@ export default function Reports() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

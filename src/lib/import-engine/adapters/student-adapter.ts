@@ -1,4 +1,5 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
+import { supabase } from "@/integrations/supabase/client";
 import {
   loadExistingStudentsForImport,
   commitImportRows,
@@ -161,8 +162,6 @@ async function commitRows(
 async function rollbackRows(
   rollbackData: ImportRollbackEntry[],
 ): Promise<{ success: boolean; restored: number }> {
-  const { supabase } = await import("@/integrations/supabase/client");
-
   let restored = 0;
   let success = true;
 

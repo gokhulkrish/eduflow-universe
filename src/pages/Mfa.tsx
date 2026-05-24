@@ -42,7 +42,7 @@ export default function Mfa() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background mesh-bg p-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background mesh-bg p-4">
       <Card className="glass w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary shadow-glow">

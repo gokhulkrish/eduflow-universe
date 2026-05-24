@@ -110,7 +110,7 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-feature-settings: "cv11", "ss01"; }
+  body { @apply bg-background text-foreground antialiased overflow-x-hidden; font-feature-settings: "cv11", "ss01"; }
   html { scroll-behavior: smooth; }
 }
 
@@ -137,5 +137,33 @@
   }
   .hover-lift:hover {
     box-shadow: var(--shadow-elegant);
+  }
+
+  [data-mobile-shell="on"] .mobile-collision-surface {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  [data-mobile-shell="on"] .mobile-collision-surface [class*="grid-cols-"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-mobile-shell="on"] .mobile-collision-surface [class*="grid-cols-"] > * {
+    min-width: 0;
+  }
+
+  [data-mobile-shell="on"] .mobile-collision-surface :is(
+    .max-w-xs,
+    .max-w-sm,
+    .max-w-md,
+    .max-w-lg,
+    .max-w-xl,
+    .max-w-2xl,
+    .max-w-3xl,
+    .max-w-4xl,
+    .max-w-5xl,
+    .max-w-6xl
+  ) {
+    max-width: 100%;
   }
 }

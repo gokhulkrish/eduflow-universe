@@ -1,4 +1,6 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
+import { emitAppSync } from "@/lib/app-sync";
+import { supabase } from "@/integrations/supabase/client";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -40,7 +42,6 @@ const matchStrategies: ImportModuleMatchStrategy[] = [
 ];
 
 async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
-  const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await (supabase.from("students") as any)
     .select("id, admission_no, first_name, last_name");
   return (data || []).map((s: Record<string, unknown>) => ({
@@ -54,9 +55,6 @@ async function commitRows(
   rows: ImportPreviewRow[],
   batch: ImportBatch,
 ): Promise<ImportCommitResult> {
-  const { supabase } = await import("@/integrations/supabase/client");
-  const { emitAppSync } = await import("@/lib/app-sync");
-
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
@@ -174,8 +172,6 @@ async function commitRows(
 async function rollbackRows(
   rollbackData: ImportRollbackEntry[],
 ): Promise<{ success: boolean; restored: number }> {
-  const { supabase } = await import("@/integrations/supabase/client");
-
   let restored = 0;
   let success = true;
 

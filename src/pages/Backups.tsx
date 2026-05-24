@@ -35,7 +35,7 @@ export default function Backups() {
     <div>
       <PageHeader title="Backups" subtitle="Encrypted snapshots, schedule & restore" icon={<Database className="h-6 w-6" />} />
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="backups">Backups</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
         </TabsList>
@@ -45,32 +45,34 @@ export default function Backups() {
           <Card>
             <CardContent className="p-0">
               <TablePagination {...pag} />
-              <Table>
-                <TableHeader className="">
-                  <TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Size</TableHead><TableHead className="text-xs">Tables</TableHead><TableHead className="text-xs">Rows</TableHead><TableHead className="text-xs">Encrypted</TableHead><TableHead className="text-xs">Created</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-12">No backups created</TableCell></TableRow>}
-                  {pag.pageData.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell className="text-xs font-medium">{b.name}</TableCell>
-                      <TableCell className="text-xs">{b.size}</TableCell>
-                      <TableCell className="text-xs">{b.tables}</TableCell>
-                      <TableCell className="text-xs">{b.rows.toLocaleString()}</TableCell>
-                      <TableCell>{b.encrypted ? <Shield className="h-3 w-3 text-success" /> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
-                      <TableCell className="text-xs">{new Date(b.created_at).toLocaleString()}</TableCell>
-                      <TableCell><Badge className={`text-[9px] ${b.status === "completed" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{b.status}</Badge></TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() => toast.success("Download started")}><Download className="h-3 w-3 mr-1" /></Button>
-                          <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() => toast.success("Restore queued")}><RotateCcw className="h-3 w-3 mr-1" /></Button>
-                          <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { deleteBackup(b.id); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <Table className="min-w-max">
+                  <TableHeader className="">
+                    <TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Size</TableHead><TableHead className="text-xs">Tables</TableHead><TableHead className="text-xs">Rows</TableHead><TableHead className="text-xs">Encrypted</TableHead><TableHead className="text-xs">Created</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-12">No backups created</TableCell></TableRow>}
+                    {pag.pageData.map((b) => (
+                      <TableRow key={b.id}>
+                        <TableCell className="text-xs font-medium">{b.name}</TableCell>
+                        <TableCell className="text-xs">{b.size}</TableCell>
+                        <TableCell className="text-xs">{b.tables}</TableCell>
+                        <TableCell className="text-xs">{b.rows.toLocaleString()}</TableCell>
+                        <TableCell>{b.encrypted ? <Shield className="h-3 w-3 text-success" /> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                        <TableCell className="text-xs">{new Date(b.created_at).toLocaleString()}</TableCell>
+                        <TableCell><Badge className={`text-[9px] ${b.status === "completed" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{b.status}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() => toast.success("Download started")}><Download className="h-3 w-3 mr-1" /></Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() => toast.success("Restore queued")}><RotateCcw className="h-3 w-3 mr-1" /></Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { deleteBackup(b.id); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -79,10 +81,10 @@ export default function Backups() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Auto-Backup Schedule</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <Label className="text-xs">Frequency</Label>
                 <Select value={schedule} onValueChange={(v) => { setSchedule(v); setScheduleState(v); toast.success(`Schedule set to ${v}`); }}>
-                  <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="never">Never (manual only)</SelectItem>
                     <SelectItem value="daily">Daily</SelectItem>

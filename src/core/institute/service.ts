@@ -1,5 +1,6 @@
 import { pool } from '@/db/pool';
 import type { InstituteIdentity, HeaderConfig, ExperienceSettings } from './types';
+import { refreshMonitoringSnapshot } from '../../../core/monitoring/snapshot';
 
 export interface InstituteProfileRow {
   identity: InstituteIdentity;
@@ -69,6 +70,8 @@ export async function saveProfile(
       { identity: profile.identity, headerConfig: profile.headerConfig, settings: profile.settings },
     ],
   );
+
+  void refreshMonitoringSnapshot({ tenantId: institutionId }).catch(() => {});
 }
 
 // -- Header Resolution --

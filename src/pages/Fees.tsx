@@ -330,7 +330,7 @@ export default function Fees() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4 flex-wrap">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="invoices">Invoices ({invoices.length})</TabsTrigger>
           <TabsTrigger value="structures">Structures ({structures.length})</TabsTrigger>
           <TabsTrigger value="payments">Payments ({payments.length})</TabsTrigger>
@@ -352,7 +352,7 @@ export default function Fees() {
                   placeholder="Search invoices…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
               <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
-                <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
@@ -361,7 +361,7 @@ export default function Fees() {
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="rounded-xl bg-gradient-primary shadow-glow shrink-0" onClick={handleNewInvoice}>
+              <Button className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto sm:shrink-0" onClick={handleNewInvoice}>
                 <Plus className="mr-2 h-4 w-4" /> New Invoice
               </Button>
             </div>
@@ -377,7 +377,7 @@ export default function Fees() {
                   const pct = Number(inv.amount) > 0 ? (Number(inv.amount_paid) / Number(inv.amount)) * 100 : 0;
                   return (
                     <Card key={inv.id} className="border-border/60 bg-card/60 p-4 hover-lift">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-mono text-xs text-muted-foreground">{inv.invoice_no}</span>
@@ -402,7 +402,7 @@ export default function Fees() {
                           </div>
                           <Progress value={pct} className="mt-2 h-1.5" />
                         </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex flex-wrap gap-1 sm:justify-end">
                           <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs"
                             onClick={() => handleOpenPayment(inv)} disabled={getInvoiceStatus(inv) === "paid"}>
                             <DollarSign className="h-3 w-3 mr-1" /> Pay
@@ -444,7 +444,7 @@ export default function Fees() {
         {/* ══════ STRUCTURES ══════ */}
         <TabsContent value="structures">
           <Card className="glass p-4">
-            <div className="mb-4 flex justify-between items-center">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">Manage fee structures that define the amounts students are billed.</p>
               <Button onClick={handleNewStruct} className="rounded-xl bg-gradient-primary shadow-glow shrink-0">
                 <Plus className="mr-2 h-4 w-4" /> Add Structure
@@ -503,7 +503,7 @@ export default function Fees() {
                 {payments.filter((p) => Number(p.amount) > 0).map((p) => {
                   const inv = invoices.find((i) => i.id === p.invoice_id);
                   return (
-                    <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3">
+                    <div key={p.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:flex-row sm:items-center">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success/15">
                         <DollarSign className="h-4 w-4 text-success" />
                       </div>
@@ -541,7 +541,7 @@ export default function Fees() {
               <div className="space-y-3">
                 {defaulters.map((d) => (
                   <Card key={d.student_id} className="border-border/60 bg-card/60 p-4 hover-lift">
-                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Avatar className="h-7 w-7">
@@ -557,7 +557,7 @@ export default function Fees() {
                         <p className="text-xs text-muted-foreground">{d.admission_no} · Grade {d.grade} · {d.invoice_count} invoice(s)</p>
                         {d.last_payment_date && <p className="text-xs text-muted-foreground mt-1">Last payment: {new Date(d.last_payment_date).toLocaleDateString()}</p>}
                       </div>
-                      <div className="flex gap-1 shrink-0 items-start">
+                      <div className="flex flex-wrap gap-1 sm:justify-end sm:items-start">
                         <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs"
                           onClick={() => { setReminderStudent(d); setReminderChannel("email"); setReminderOpen(true); }}>
                           <Bell className="h-3 w-3 mr-1" /> Remind
@@ -584,7 +584,7 @@ export default function Fees() {
                 {concessions.map((c) => {
                   const inv = invoices.find((i) => i.id === c.invoice_id);
                   return (
-                    <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3">
+                    <div key={c.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:flex-row sm:items-center">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-info/15">
                         <Percent className="h-4 w-4 text-info" />
                       </div>
@@ -635,7 +635,7 @@ export default function Fees() {
               <div className="space-y-3">
                 {feeRecords.map((r) => (
                   <Card key={r.student_id} className="border-border/60 bg-card/60 p-4 hover-lift">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Avatar className="h-7 w-7">
@@ -649,7 +649,7 @@ export default function Fees() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.admission_no} · Grade {r.grade} · {r.invoice_count} invoice(s)</p>
-                        <div className="mt-2 grid grid-cols-4 gap-2 text-xs">
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                           <div><span className="text-muted-foreground">Billed:</span> ₹{r.total_billed.toLocaleString()}</div>
                           <div><span className="text-muted-foreground">Concessions:</span> ₹{r.total_concessions.toLocaleString()}</div>
                           <div><span className="text-muted-foreground">Paid:</span> ₹{r.total_paid.toLocaleString()}</div>
@@ -670,7 +670,7 @@ export default function Fees() {
           <Card className="glass p-4">
             <div className="mb-4 flex items-center gap-3">
               <Select value={ledgerStudentFilter} onValueChange={setLedgerStudentFilter}>
-                <SelectTrigger className="w-56"><SelectValue placeholder="All students" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="All students" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All students</SelectItem>
                   {students.slice(0, 50).map((s) => (
@@ -687,7 +687,7 @@ export default function Fees() {
             ) : (
               <div className="space-y-1 max-h-[600px] overflow-y-auto">
                 {ledger.map((e) => (
-                  <div key={e.id} className="flex items-center gap-3 rounded-lg border border-border/30 bg-card/40 p-2.5 text-xs">
+                    <div key={e.id} className="flex flex-col gap-2 rounded-lg border border-border/30 bg-card/40 p-2.5 text-xs sm:flex-row sm:items-center">
                     <div className={cn(
                       "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
                       e.type === "invoice" ? "bg-primary/15" :
@@ -732,7 +732,7 @@ export default function Fees() {
                 {reminders.map((r) => {
                   const student = students.find((s) => s.id === r.student_id);
                   return (
-                    <div key={r.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3">
+                    <div key={r.id} className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:flex-row sm:items-center">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-warning/15">
                         <Bell className="h-4 w-4 text-warning" />
                       </div>
@@ -765,7 +765,7 @@ export default function Fees() {
                   const methodEntries = Object.entries(c.method_breakdown);
                   return (
                     <Card key={c.period} className="border-border/60 bg-card/60 p-4 hover-lift">
-                      <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
                         <div>
                           <p className="font-medium">{c.period}</p>
                           <p className="text-xs text-muted-foreground">{c.transaction_count} transactions</p>

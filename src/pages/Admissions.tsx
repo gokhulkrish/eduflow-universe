@@ -163,17 +163,17 @@ export default function Admissions() {
           </div>
           <Badge variant="secondary">{pipelineProgress}% complete</Badge>
         </div>
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {STAGE_ORDER.map((stage, i) => {
             const count = summary[stage];
             const active = i <= STAGE_ORDER.indexOf(summary.offered > 0 ? "offered" : summary.shortlisted > 0 ? "shortlisted" : summary.verified > 0 ? "verified" : "new");
             return (
               <div key={stage} className="flex items-center gap-2">
-                <div className={`flex flex-col items-center rounded-xl border px-3 py-2 ${active ? "border-primary/40 bg-primary/10" : "border-border/60 bg-card/60"}`}>
+                <div className={`flex min-w-[5.5rem] flex-1 flex-col items-center rounded-xl border px-3 py-2 sm:min-w-[6.5rem] sm:flex-none ${active ? "border-primary/40 bg-primary/10" : "border-border/60 bg-card/60"}`}>
                   <span className={`text-xs font-bold ${active ? "text-primary" : "text-muted-foreground"}`}>{count}</span>
                   <span className="text-[10px] text-muted-foreground">{stageLabel(stage)}</span>
                 </div>
-                {i < STAGE_ORDER.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
+                {i < STAGE_ORDER.length - 1 && <ArrowRight className="hidden h-3 w-3 text-muted-foreground sm:block" />}
               </div>
             );
           })}
@@ -182,7 +182,7 @@ export default function Admissions() {
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4 flex-wrap">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="new">New ({summary.new})</TabsTrigger>
           <TabsTrigger value="screening">Screening ({summary.screening})</TabsTrigger>
@@ -243,7 +243,7 @@ export default function Admissions() {
                     />
                   </div>
                   <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as AdmissionStage | "all")}>
-                    <SelectTrigger className="w-40"><SelectValue placeholder="All stages" /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All stages" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
                       {ADMISSION_STAGES.map((s) => (
@@ -251,7 +251,7 @@ export default function Admissions() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" className="rounded-xl">
+                  <Button variant="outline" className="w-full rounded-xl sm:w-auto">
                     <Filter className="mr-2 h-4 w-4" /> Filters <ChevronDown className="ml-1 h-3 w-3" />
                   </Button>
                 </div>

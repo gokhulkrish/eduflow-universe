@@ -2,6 +2,9 @@ import type { ImportBatch, ImportMode } from "./types";
 import { makeBatchId, nowIso, normalizeText, normalizeImportDefaultType, cloneImportMatchConfig, normalizeImportMatchConfig, buildDefaultImportMatchConfig } from "./core";
 import { extractImportHeadersFromRows } from "./parser";
 import { buildDefaultImportMapping } from "./mapping";
+import { emitAppSync } from "@/lib/app-sync";
+
+export const importBatchSyncKey = "sms.import-batches.v1";
 
 export const APP_DB_NAME = "smsImportDB";
 export const APP_DB_VERSION = 1;
@@ -203,6 +206,8 @@ export async function deleteImportBatch(
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+
+  emitAppSync(importBatchSyncKey);
 }
 
 export async function saveCurrentImportBatch(
@@ -211,6 +216,7 @@ export async function saveCurrentImportBatch(
   if (!batch) return;
   batch.updatedAt = nowIso();
   await saveImportBatches([batch]);
+  emitAppSync(importBatchSyncKey);
 }
 
 export function setActiveImportBatch(

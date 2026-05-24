@@ -19,7 +19,7 @@ import {
   syncRegistryToSupabase,
 } from "@/lib/header-registry";
 import { importStorageKeys, loadCustomImportFields } from "@/lib/student-import";
-import { subscribeAppSync } from "@/lib/app-sync";
+import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 
 const CONFIG_KEY = `${instituteRegistryStorageKey}.config`;
 
@@ -96,6 +96,7 @@ export default function InstituteSettings() {
     }
     config._updatedAt = new Date().toISOString();
     writeConfig(config);
+    emitAppSync(CONFIG_KEY);
     invalidateRegistryCache();
   };
 

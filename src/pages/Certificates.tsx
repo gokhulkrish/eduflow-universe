@@ -148,7 +148,7 @@ export default function Certificates() {
       <PageHeader title="Certificates Engine" subtitle="Templates, requests, QR verification & bulk generation" icon={<Award className="h-6 w-6" />} />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="requests">Requests <span className="ml-1.5 text-xs text-muted-foreground">({pending.length})</span></TabsTrigger>
           <TabsTrigger value="qr-verify">QR Verify</TabsTrigger>
@@ -158,9 +158,9 @@ export default function Certificates() {
 
         {/* ══════ TEMPLATES ══════ */}
         <TabsContent value="templates">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">{templates?.length ?? 0} templates</p>
-            <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => openTpl()}>
+            <Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => openTpl()}>
               <Plus className="h-4 w-4 mr-1" /> New Template
             </Button>
           </div>
@@ -188,15 +188,15 @@ export default function Certificates() {
 
         {/* ══════ REQUESTS ══════ */}
         <TabsContent value="requests">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">{requests?.length ?? 0} requests</p>
-            <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setReqTplId(""); setReqStudentId(""); setReqPurpose(""); setReqOpen(true); }}>
+            <Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setReqTplId(""); setReqStudentId(""); setReqPurpose(""); setReqOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New Request
             </Button>
           </div>
-          <div className="rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <TablePagination {...pag1} />
-            <Table>
+            <Table className="min-w-max">
               <TableHeader className="">
                 <TableRow>
                   <TableHead className="text-xs">Student</TableHead>
@@ -243,12 +243,12 @@ export default function Certificates() {
 
         {/* ══════ QR VERIFY ══════ */}
         <TabsContent value="qr-verify">
-          <Card className="max-w-lg mx-auto">
+          <Card className="mx-auto max-w-lg">
             <CardHeader><CardTitle className="text-sm">Verify Certificate</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input placeholder="Enter QR token" value={qrToken} onChange={(e) => setQrToken(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleVerify()} />
-                <Button onClick={handleVerify} disabled={qrLoading} className="rounded-xl shrink-0">
+                <Button onClick={handleVerify} disabled={qrLoading} className="w-full rounded-xl sm:w-auto sm:shrink-0">
                   {qrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   Verify
                 </Button>
@@ -257,7 +257,7 @@ export default function Certificates() {
                 <div className="rounded-lg border border-success/30 bg-success/5 p-4 space-y-2">
                   <div className="flex items-center gap-2"><QrCode className="h-4 w-4 text-success" /><Badge className={`border ${getStatusColor(qrResult.status)}`}>{qrResult.status}</Badge></div>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                     <span className="text-muted-foreground">Student</span><span className="font-medium">{qrResult.student_name}</span>
                     <span className="text-muted-foreground">Admission No</span><span>{qrResult.admission_no}</span>
                     <span className="text-muted-foreground">Template</span><span>{qrResult.template_name} ({qrResult.template_code})</span>
@@ -275,9 +275,9 @@ export default function Certificates() {
 
         {/* ══════ ISSUANCE LOG ══════ */}
         <TabsContent value="issued">
-          <div className="rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <TablePagination {...pag2} />
-            <Table>
+            <Table className="min-w-max">
               <TableHeader className="">
                 <TableRow>
                   <TableHead className="text-xs">Student</TableHead>
@@ -366,7 +366,7 @@ export default function Certificates() {
         <DialogContent className="sm:max-w-md p-4">
           <DialogHeader><DialogTitle>{editTpl ? "Edit Template" : "New Template"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-xs">Code</Label>
                 <Input value={tplCode} onChange={(e) => setTplCode(e.target.value)} placeholder="e.g. BONAFIDE" />
@@ -397,7 +397,7 @@ export default function Certificates() {
 
       {/* ══════ REQUEST DIALOG ══════ */}
       <Dialog open={reqOpen} onOpenChange={setReqOpen}>
-        <DialogContent className="sm:max-w-sm">
+          <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Certificate Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>

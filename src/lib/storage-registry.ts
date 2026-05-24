@@ -6,6 +6,7 @@ import { MIGRATION_FLAGS_STORAGE_KEY } from "./featureFlags";
 import { MIGRATION_ROLLBACK_STORAGE_KEY } from "./rollbackRegistry";
 import { GROUP_MODEL_STORAGE_KEY } from "./group-model";
 import { RUNTIME_DIAGNOSTICS_STORAGE_KEY } from "./runtime-diagnostics";
+import { ERP_WORKSPACE_STORAGE_KEY } from "./erp-workspace";
 import {
   registryColumnSettingsStorageKey,
   registryFetchedHeaderMetaStorageKey,
@@ -72,6 +73,7 @@ export const STORAGE_OWNERSHIP_REGISTRY: StorageNamespaceDescriptor[] = [
     owner: "workspace",
     keys: [
       { key: GROUP_MODEL_STORAGE_KEY, label: "Group visibility", namespace: "workspace", owner: "workspace" },
+      { key: ERP_WORKSPACE_STORAGE_KEY, label: "ERP workspace", namespace: "workspace", owner: "workspace" },
     ],
   },
   {

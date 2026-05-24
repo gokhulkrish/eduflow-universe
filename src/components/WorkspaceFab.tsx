@@ -3,17 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useShell } from "@/stores/shell";
+import { useErpWorkspace } from "@/stores/erpWorkspace";
 import { useActivityTrace } from "@/stores/activityTrace";
 import { getFocusModeRuntime } from "@/lib/focus-mode";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export function WorkspaceFab() {
   const open = useShell((s) => s.fabOpen);
   const setOpen = useShell((s) => s.setFabOpen);
   const focusMode = useShell((s) => s.focusMode);
   const setFocusMode = useShell((s) => s.setFocusMode);
+  const erpState = useErpWorkspace((s) => s.state);
+  const setSidebarExpanded = useErpWorkspace((s) => s.setSidebarExpanded);
+  const pinModule = useErpWorkspace((s) => s.pinModule);
+  const unpinModule = useErpWorkspace((s) => s.unpinModule);
+  const openLastWorkspace = useErpWorkspace((s) => s.openLastWorkspace);
+  const returnToDashboard = useErpWorkspace((s) => s.returnToDashboard);
   const { setOpen: setTraceOpen, events } = useActivityTrace();
   const focusRuntime = getFocusModeRuntime(focusMode);
+  const navigate = useNavigate();
 
   const items = [
     {
@@ -36,12 +45,54 @@ export function WorkspaceFab() {
       },
       badge: focusRuntime.active ? focusRuntime.label : undefined,
     },
+    {
+      label: erpState.sidebarExpanded ? "Collapse sidebar" : "Expand sidebar",
+      meta: erpState.sidebarExpanded ? "Reduce workspace chrome" : "Restore workspace chrome",
+      icon: erpState.sidebarExpanded ? Minimize2 : Maximize2,
+      onClick: () => {
+        void setSidebarExpanded(!erpState.sidebarExpanded);
+        setOpen(false);
+      },
+    },
+    {
+      label: erpState.pinnedModules.includes(erpState.activeModule) ? "Unpin module" : "Pin module",
+      meta: erpState.activeModule ? `Current: ${erpState.activeModule}` : "Store the current ERP module",
+      icon: Plus,
+      onClick: () => {
+        if (!erpState.activeModule) return;
+        void (erpState.pinnedModules.includes(erpState.activeModule)
+          ? unpinModule(erpState.activeModule)
+          : pinModule(erpState.activeModule));
+        setOpen(false);
+      },
+    },
+    {
+      label: "Open last workspace",
+      meta: erpState.recentModules[0] ? `${erpState.recentModules[0]} was used most recently` : "Restore the last ERP entry",
+      icon: Activity,
+      onClick: async () => {
+        const url = await openLastWorkspace();
+        if (url) navigate(url);
+        setOpen(false);
+      },
+    },
+    {
+      label: "Return to dashboard",
+      meta: "Jump back to the command center",
+      icon: X,
+      onClick: async () => {
+        await returnToDashboard();
+        navigate("/");
+        setOpen(false);
+        toast.message("Returned to dashboard");
+      },
+    },
   ];
 
   return (
-      <div className="pointer-events-none fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
-        <div className="pointer-events-auto flex w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
+        <div className="pointer-events-auto flex w-[min(17rem,calc(100vw-1rem))] flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 sm:w-[min(18rem,calc(100vw-1.5rem))]">
           {items.map((it) => (
             <button
               key={it.label}
@@ -65,7 +116,7 @@ export function WorkspaceFab() {
 
       <Button
         size="icon"
-      onClick={() => setOpen(!open)}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label="Workspace actions"
         className={cn(

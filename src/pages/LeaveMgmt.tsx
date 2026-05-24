@@ -47,7 +47,7 @@ export default function LeaveMgmt() {
     <div>
       <PageHeader title="Leave Management" subtitle="Apply, approve, holiday calendar & usage reports" icon={<CalendarClock className="h-6 w-6" />} />
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="requests">Leave Requests</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="holidays">Holidays</TabsTrigger>
@@ -57,33 +57,35 @@ export default function LeaveMgmt() {
         <TabsContent value="requests">
           <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setEmp(""); setDept(""); setType(""); setStart(""); setEnd(""); setReason(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Apply Leave</Button></div>
           <TablePagination {...pag1} />
-          <Table>
-            <TableHeader className="">
-              <TableRow><TableHead className="text-xs">Employee</TableHead><TableHead className="text-xs">Dept</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Dates</TableHead><TableHead className="text-xs">Days</TableHead><TableHead className="text-xs">Reason</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">No leave requests</TableCell></TableRow>}
-              {pag1.pageData.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="text-xs">{l.employee}</TableCell>
-                  <TableCell className="text-xs">{l.department}</TableCell>
-                  <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{l.type}</Badge></TableCell>
-                  <TableCell className="text-xs">{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-xs">{getDays(l.start_date, l.end_date)}d</TableCell>
-                  <TableCell className="text-xs max-w-[120px] truncate">{l.reason}</TableCell>
-                  <TableCell>
-                    <Badge className={`text-[9px] ${l.status === "approved" ? "bg-success/15 text-success" : l.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>{l.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {l.status === "pending" && <div className="flex gap-1">
-                      <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 text-success p-0" onClick={() => { updateLeaveRequest(l.id, "approved"); refresh(); toast.success("Approved"); }}><Check className="h-3 w-3" /></Button>
-                      <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 text-destructive p-0" onClick={() => { updateLeaveRequest(l.id, "rejected"); refresh(); toast.success("Rejected"); }}><X className="h-3 w-3" /></Button>
-                    </div>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <Table className="min-w-max">
+              <TableHeader className="">
+                <TableRow><TableHead className="text-xs">Employee</TableHead><TableHead className="text-xs">Dept</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Dates</TableHead><TableHead className="text-xs">Days</TableHead><TableHead className="text-xs">Reason</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">No leave requests</TableCell></TableRow>}
+                {pag1.pageData.map((l) => (
+                  <TableRow key={l.id}>
+                    <TableCell className="text-xs">{l.employee}</TableCell>
+                    <TableCell className="text-xs">{l.department}</TableCell>
+                    <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{l.type}</Badge></TableCell>
+                    <TableCell className="text-xs">{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-xs">{getDays(l.start_date, l.end_date)}d</TableCell>
+                    <TableCell className="text-xs max-w-[120px] truncate">{l.reason}</TableCell>
+                    <TableCell>
+                      <Badge className={`text-[9px] ${l.status === "approved" ? "bg-success/15 text-success" : l.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>{l.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {l.status === "pending" && <div className="flex gap-1">
+                        <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 text-success p-0" onClick={() => { updateLeaveRequest(l.id, "approved"); refresh(); toast.success("Approved"); }}><Check className="h-3 w-3" /></Button>
+                        <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 text-destructive p-0" onClick={() => { updateLeaveRequest(l.id, "rejected"); refresh(); toast.success("Rejected"); }}><X className="h-3 w-3" /></Button>
+                      </div>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="calendar">
@@ -112,31 +114,33 @@ export default function LeaveMgmt() {
 
         <TabsContent value="holidays">
           <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setHolName(""); setHolDate(""); setHolType("public"); setHolOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Holiday</Button></div>
-            <TablePagination {...pag2} />
-          <Table>
-            <TableHeader className=""><TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {holidays.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">No holidays added</TableCell></TableRow>}
-              {pag2.pageData.map((h) => (
-                <TableRow key={h.id}>
-                  <TableCell className="text-xs font-medium">{h.name}</TableCell>
-                  <TableCell className="text-xs">{new Date(h.date).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{h.type}</Badge></TableCell>
-                  <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { deleteHoliday(h.id); refreshHolidays(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <TablePagination {...pag2} />
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <Table className="min-w-max">
+              <TableHeader className=""><TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {holidays.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">No holidays added</TableCell></TableRow>}
+                {pag2.pageData.map((h) => (
+                  <TableRow key={h.id}>
+                    <TableCell className="text-xs font-medium">{h.name}</TableCell>
+                    <TableCell className="text-xs">{new Date(h.date).toLocaleDateString()}</TableCell>
+                    <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{h.type}</Badge></TableCell>
+                    <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { deleteHoliday(h.id); refreshHolidays(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           </TabsContent>
 
         <TabsContent value="reports">
           <Card className="mb-4">
             <CardHeader><CardTitle className="text-sm">Leave Usage</CardTitle></CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center">
                 <Label className="text-xs">Filter by Department</Label>
                 <Select value={deptFilter} onValueChange={(v) => setDeptFilter(v)}>
-                  <SelectTrigger className="w-[180px] h-7"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectTrigger className="h-7 w-full sm:w-[180px]"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
                     {DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -169,9 +173,9 @@ export default function LeaveMgmt() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Apply Leave</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Employee Name</Label><Input value={emp} onChange={(e) => setEmp(e.target.value)} /></div><div><Label className="text-xs">Department</Label><Select value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Employee Name</Label><Input value={emp} onChange={(e) => setEmp(e.target.value)} /></div><div><Label className="text-xs">Department</Label><Select value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div></div>
             <div><Label className="text-xs">Leave Type</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t} value={t}>{t} ({getRemaining(emp || "x", type || t)} left)</SelectItem>)}</SelectContent></Select></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Start</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div><div><Label className="text-xs">End</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Start</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div><div><Label className="text-xs">End</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div></div>
             <div><Label className="text-xs">Reason</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={handleCreate} disabled={!emp || !type || !start || !end}>Apply</Button></DialogFooter>
@@ -183,7 +187,7 @@ export default function LeaveMgmt() {
           <DialogHeader><DialogTitle>Add Holiday</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label className="text-xs">Holiday Name</Label><Input value={holName} onChange={(e) => setHolName(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Date</Label><Input type="date" value={holDate} onChange={(e) => setHolDate(e.target.value)} /></div><div><Label className="text-xs">Type</Label><Select value={holType} onValueChange={setHolType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem></SelectContent></Select></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Date</Label><Input type="date" value={holDate} onChange={(e) => setHolDate(e.target.value)} /></div><div><Label className="text-xs">Type</Label><Select value={holType} onValueChange={setHolType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem></SelectContent></Select></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setHolOpen(false)}>Cancel</Button><Button disabled={!holName || !holDate} onClick={() => { addHoliday({ name: holName, date: new Date(holDate).toISOString(), type: holType }); refreshHolidays(); setHolOpen(false); toast.success("Holiday added"); }}>Add</Button></DialogFooter>
         </DialogContent>

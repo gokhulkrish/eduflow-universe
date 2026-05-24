@@ -131,7 +131,7 @@ export default function Timetable() {
         <>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="grid">Grid</TabsTrigger>
           <TabsTrigger value="conflicts" className="relative">Conflicts {conflicts.length > 0 && <Badge variant="destructive" className="ml-1.5 text-[10px] h-4 px-1">{conflicts.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="workload">Workload</TabsTrigger>
@@ -140,10 +140,10 @@ export default function Timetable() {
 
         {/* ══════ GRID ══════ */}
         <TabsContent value="grid">
-          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
-            <div className="flex gap-2 items-center">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Select value={cohortFilter} onValueChange={(v) => { setCohortFilter(v === "all" ? "" : v); }}>
-                <SelectTrigger className="h-8 text-xs w-48"><SelectValue placeholder="Select cohort" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-full text-xs sm:w-48"><SelectValue placeholder="Select cohort" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
                   {classOptions.map((c) => (
@@ -152,7 +152,7 @@ export default function Timetable() {
                 </SelectContent>
               </Select>
             </div>
-            <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => openEntry()} disabled={!cohortFilter}>
+            <Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => openEntry()} disabled={!cohortFilter}>
               <Plus className="h-4 w-4 mr-1" /> Add Entry
             </Button>
           </div>
@@ -236,41 +236,43 @@ export default function Timetable() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Teacher Workload</CardTitle></CardHeader>
             <CardContent>
-              <Table>
-              <TableHeader className="sticky top-[7.5rem] z-20 bg-background/95 backdrop-blur">
-                <TableRow>
-                  <TableHead className="text-xs">Teacher</TableHead>
-                  <TableHead className="text-xs text-right">Total</TableHead>
-                  {[1, 2, 3, 4, 5, 6].map((d) => <TableHead key={d} className="text-xs text-right">{DAY_NAMES[d]}</TableHead>)}
-                </TableRow>
-              </TableHeader>
-                <TableBody>
-                  {workload.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">No timetable data</TableCell></TableRow>}
-                  {workload.map((w) => (
-                    <TableRow key={w.teacher_id}>
-                      <TableCell className="text-sm font-medium">{w.teacher_name}</TableCell>
-                      <TableCell className="text-right text-sm font-semibold">{w.total_periods}</TableCell>
-                      {w.periods_per_day.slice(1, 7).map((p, i) => (
-                        <TableCell key={i} className={`text-right text-sm ${p > 6 ? "text-destructive font-semibold" : ""}`}>{p}</TableCell>
-                      ))}
+              <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
+                  <TableHeader className="sticky top-16 z-20 bg-background/95 backdrop-blur md:top-[7.5rem]">
+                    <TableRow>
+                      <TableHead className="text-xs">Teacher</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      {[1, 2, 3, 4, 5, 6].map((d) => <TableHead key={d} className="text-xs text-right">{DAY_NAMES[d]}</TableHead>)}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {workload.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">No timetable data</TableCell></TableRow>}
+                    {workload.map((w) => (
+                      <TableRow key={w.teacher_id}>
+                        <TableCell className="text-sm font-medium">{w.teacher_name}</TableCell>
+                        <TableCell className="text-right text-sm font-semibold">{w.total_periods}</TableCell>
+                        {w.periods_per_day.slice(1, 7).map((p, i) => (
+                          <TableCell key={i} className={`text-right text-sm ${p > 6 ? "text-destructive font-semibold" : ""}`}>{p}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* ══════ SUBSTITUTIONS ══════ */}
         <TabsContent value="substitutions">
-          <div className="flex justify-end mb-4">
-            <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setSubEntryId(""); setSubTeacherId(""); setSubDate(new Date().toISOString().slice(0, 10)); setSubReason(""); setSubOpen(true); }}>
+          <div className="mb-4 flex justify-end">
+            <Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setSubEntryId(""); setSubTeacherId(""); setSubDate(new Date().toISOString().slice(0, 10)); setSubReason(""); setSubOpen(true); }}>
               <RefreshCw className="h-4 w-4 mr-1" /> New Substitution
             </Button>
           </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader className="sticky top-[7.5rem] z-20 bg-background/95 backdrop-blur">
+          <div className="overflow-x-auto rounded-lg border">
+            <Table className="min-w-max">
+              <TableHeader className="sticky top-16 z-20 bg-background/95 backdrop-blur md:top-[7.5rem]">
                 <TableRow>
                   <TableHead className="text-xs">Date</TableHead>
                   <TableHead className="text-xs">Subject</TableHead>

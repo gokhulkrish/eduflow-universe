@@ -2213,3 +2213,47 @@ create policy "module_documentdms_delete" on public.module_documentdms for delet
 drop trigger if exists module_documentdms_set_updated_at on public.module_documentdms;
 create trigger module_documentdms_set_updated_at before update on public.module_documentdms for each row execute function public.set_updated_at();
 
+create table if not exists public.erp_workspace_state (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null,
+  user_id uuid,
+  active_module text not null,
+  active_workspace_key text not null,
+  active_tab text,
+  sidebar_expanded bool not null default true,
+  pinned_modules jsonb,
+  recent_modules jsonb,
+  last_opened_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (tenant_id, user_id)
+);
+
+create index if not exists erp_workspace_state_tenant_user_idx on public.erp_workspace_state (tenant_id, user_id);
+create index if not exists erp_workspace_state_active_module_idx on public.erp_workspace_state (active_module);
+alter table public.erp_workspace_state enable row level security;
+create policy "erp_workspace_state_select" on public.erp_workspace_state for select using (true);
+create policy "erp_workspace_state_insert" on public.erp_workspace_state for insert with check (true);
+create policy "erp_workspace_state_update" on public.erp_workspace_state for update using (true) with check (true);
+create policy "erp_workspace_state_delete" on public.erp_workspace_state for delete using (true);
+drop trigger if exists erp_workspace_state_set_updated_at on public.erp_workspace_state;
+create trigger erp_workspace_state_set_updated_at before update on public.erp_workspace_state for each row execute function public.set_updated_at();
+
+create table if not exists public.erp_workspace_events (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null,
+  user_id uuid,
+  module_key text not null,
+  workspace_key text,
+  event_type text not null,
+  meta jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists erp_workspace_events_tenant_idx on public.erp_workspace_events (tenant_id);
+create index if not exists erp_workspace_events_module_idx on public.erp_workspace_events (module_key);
+create index if not exists erp_workspace_events_created_at_idx on public.erp_workspace_events (created_at desc);
+alter table public.erp_workspace_events enable row level security;
+create policy "erp_workspace_events_select" on public.erp_workspace_events for select using (true);
+create policy "erp_workspace_events_insert" on public.erp_workspace_events for insert with check (true);
+create policy "erp_workspace_events_update" on public.erp_workspace_events for update using (true) with check (true);
+create policy "erp_workspace_events_delete" on public.erp_workspace_events for delete using (true);

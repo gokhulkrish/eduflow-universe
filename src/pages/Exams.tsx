@@ -477,7 +477,7 @@ export default function Exams() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4 flex-wrap h-auto min-h-10 w-full">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="schedules" className="text-xs sm:text-sm px-2 sm:px-3">Exam Schedules ({schedules.length})</TabsTrigger>
           <TabsTrigger value="question-bank" className="text-xs sm:text-sm px-2 sm:px-3">Question Bank ({questions.length})</TabsTrigger>
           <TabsTrigger value="mark-entry" className="text-xs sm:text-sm px-2 sm:px-3">Mark Entry</TabsTrigger>
@@ -495,7 +495,7 @@ export default function Exams() {
                   placeholder="Search exams…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
               <Select value={cohortFilter} onValueChange={setCohortFilter}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All cohorts" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
                   {cohortOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
@@ -577,20 +577,20 @@ export default function Exams() {
                   placeholder="Search questions…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
               <Select value={qSubjectFilter} onValueChange={setQSubjectFilter}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All subjects" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All subjects" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All subjects</SelectItem>
                   {subjects.map((sub) => <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={qDiffFilter} onValueChange={(v) => setQDiffFilter(v as Difficulty | "all")}>
-                <SelectTrigger className="w-32"><SelectValue placeholder="Difficulty" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Difficulty" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   {DIFFICULTIES.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button className="rounded-xl bg-gradient-primary shadow-glow shrink-0" onClick={handleNewQuestion}>
+              <Button className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto sm:shrink-0" onClick={handleNewQuestion}>
                 <Plus className="mr-2 h-4 w-4" /> Add Question
               </Button>
             </div>
@@ -605,7 +605,7 @@ export default function Exams() {
                 <div className="space-y-3">
                   {pagQuestions.pageData.map((q) => (
                   <Card key={q.id} className="border-border/60 bg-card/60 p-4 hover-lift">
-                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge variant="secondary" className="text-[10px]">{questionTypeLabel(q.question_type)}</Badge>
@@ -632,7 +632,7 @@ export default function Exams() {
                         )}
                         {q.topic && <p className="mt-2 text-xs text-muted-foreground">Topic: {q.topic}</p>}
                       </div>
-                      <div className="flex gap-1 shrink-0">
+                        <div className="flex flex-wrap gap-1 sm:justify-end">
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0"
                           onClick={() => handleEditQuestion(q)}><Edit3 className="h-3.5 w-3.5" /></Button>
                         <AlertDialog>
@@ -857,7 +857,7 @@ export default function Exams() {
                   const sorted = [...marks].sort((a, b) => (b.marks_obtained ?? 0) - (a.marks_obtained ?? 0));
                   return (
                   <Card key={exam.id} className="glass p-5">
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
                       <div>
                         <h3 className="font-display text-base font-semibold">{exam.title}</h3>
                         <p className="text-xs text-muted-foreground">{exam.subject} · {exam.grade}-{exam.section}</p>
@@ -871,7 +871,7 @@ export default function Exams() {
                         <Badge variant="secondary" className="bg-success/15 text-success">{stats.passRate}% pass</Badge>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="grid grid-cols-1 gap-2 mb-3 sm:grid-cols-3">
                       <Card className="bg-card/60 p-2 text-center"><p className="text-lg font-bold text-primary">{stats.total}</p><p className="text-[10px] text-muted-foreground">Students</p></Card>
                       <Card className="bg-card/60 p-2 text-center"><p className="text-lg font-bold text-success">{stats.passed}</p><p className="text-[10px] text-muted-foreground">Passed</p></Card>
                       <Card className="bg-card/60 p-2 text-center"><p className="text-lg font-bold text-destructive">{stats.failed}</p><p className="text-[10px] text-muted-foreground">Failed</p></Card>
@@ -953,7 +953,7 @@ export default function Exams() {
                         <p className="text-sm text-muted-foreground text-center py-4">No approved marks found.</p>
                       ) : studentGpas.map((r) => (
                         <div key={r.student.id}
-                          className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3">
+                        className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/60 p-3 sm:flex-row sm:items-center">
                           <Avatar className="h-8 w-8 shrink-0">
                             <AvatarFallback className="bg-gradient-primary text-xs text-primary-foreground">
                               {(r.student.first_name?.[0] ?? "?").toUpperCase()}
@@ -989,7 +989,7 @@ export default function Exams() {
           <Card className="glass p-5">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <Select value={transcriptStudentFilter} onValueChange={setTranscriptStudentFilter}>
-                <SelectTrigger className="w-56"><SelectValue placeholder="All students" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="All students" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All students</SelectItem>
                   {students.slice(0, 50).map((s) => (
@@ -998,14 +998,14 @@ export default function Exams() {
                 </SelectContent>
               </Select>
               <Select value={transcriptYearFilter} onValueChange={setTranscriptYearFilter}>
-                <SelectTrigger className="w-36"><SelectValue placeholder="Academic year" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Academic year" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All years</SelectItem>
                   <SelectItem value="2025-26">2025-26</SelectItem>
                   <SelectItem value="2026-27">2026-27</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="rounded-xl bg-gradient-primary shadow-glow ml-auto shrink-0"
+              <Button className="w-full rounded-xl bg-gradient-primary shadow-glow sm:ml-auto sm:w-auto sm:shrink-0"
                 onClick={() => {
                   const completed = schedules.filter((s) => s.status === "completed");
                   if (completed.length === 0) {
@@ -1033,7 +1033,7 @@ export default function Exams() {
                   const student = students.find((s) => s.id === t.student_id);
                   return (
                     <Card key={t.id} className="border-border/60 bg-card/60 p-4 hover-lift">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <GraduationCap className="h-4 w-4 text-muted-foreground" />
@@ -1050,7 +1050,7 @@ export default function Exams() {
                           </p>
                           {t.issued_at && <p className="text-xs text-muted-foreground mt-1">Issued: {new Date(t.issued_at).toLocaleDateString()}</p>}
                         </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex flex-wrap gap-1 sm:justify-end">
                           <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs"
                             onClick={() => generateTranscriptPDF(t)}
                             disabled={pdfLoading === t.id}>

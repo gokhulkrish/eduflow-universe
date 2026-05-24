@@ -1,5 +1,6 @@
 import { pool } from '@/db/pool';
 import type { RegisteredAction, WorkspacePreset, WorkspaceAction, ReportSnapshot } from './types';
+import { createWorkspaceMessage, recordWorkspaceAuditEvent, upsertWorkspaceSubscription } from '../workspace-messaging';
 
 // -- Selection Helpers --
 
@@ -114,10 +115,11 @@ function mapPresetRow(row: any): WorkspacePreset {
 export async function logWorkspaceAction(
   action: Omit<WorkspaceAction, 'id'>,
 ): Promise<void> {
-  await pool.query(
+  const inserted = await pool.query(
     `insert into public.registered_workspace_actions
       (institution_id, user_id, action, row_ids, meta)
-     values ($1,$2,$3,$4,$5)`,
+     values ($1,$2,$3,$4,$5)
+     returning id`,
     [
       action.institutionId,
       action.userId ?? null,
@@ -126,6 +128,73 @@ export async function logWorkspaceAction(
       action.meta ?? null,
     ],
   );
+
+  const actionRowId = inserted.rows[0]?.id as string | undefined;
+  const meta = (action.meta ?? {}) as Record<string, unknown>;
+
+  if (action.action === 'subscription') {
+    const scope = typeof meta.scope === 'string' ? meta.scope.trim() : '';
+    if (scope) {
+      try {
+        await upsertWorkspaceSubscription({
+          tenantId: action.institutionId,
+          userId: (typeof meta.userId === 'string' && meta.userId.trim()) || action.userId || null,
+          scope,
+          targetKey: typeof meta.targetKey === 'string' ? meta.targetKey : null,
+          enabled: typeof meta.enabled === 'boolean' ? meta.enabled : true,
+          delivery: typeof meta.delivery === 'string' ? meta.delivery : 'in_app',
+          meta,
+        });
+      } catch (error) {
+        console.warn('[workspace-subscription] failed to persist subscription trail:', error);
+      }
+    }
+  }
+
+  const noteChannel = getActionChannel(action.action);
+  if (!noteChannel) return;
+
+  const title = getActionTitle(action.action, meta);
+  const body = getActionBody(action.action, meta, title);
+  if (!body) return;
+
+  try {
+    const message = await createWorkspaceMessage({
+      tenantId: action.institutionId,
+      channel: noteChannel,
+      title,
+      body,
+      sourceModule: asText(meta.sourceModule) ?? 'registered-students',
+      sourceWorkspace: asText(meta.sourceWorkspace) ?? 'registered-students',
+      rowIds: action.rowIds?.length ? action.rowIds : undefined,
+      createdBy: action.userId ?? undefined,
+      meta: {
+        ...meta,
+        action: action.action,
+        sourceModule: asText(meta.sourceModule) ?? 'registered-students',
+        sourceWorkspace: asText(meta.sourceWorkspace) ?? 'registered-students',
+      },
+    });
+
+    await recordWorkspaceAuditEvent({
+      tenantId: action.institutionId,
+      userId: action.userId ?? undefined,
+      action: action.action,
+      subjectType: 'registered_workspace_action',
+      subjectId: actionRowId ?? message.id,
+      messageId: message.id,
+      meta: {
+        ...meta,
+        rowIds: action.rowIds ?? [],
+        action: action.action,
+        noteChannel,
+        sourceModule: asText(meta.sourceModule) ?? 'registered-students',
+        sourceWorkspace: asText(meta.sourceWorkspace) ?? 'registered-students',
+      },
+    });
+  } catch (error) {
+    console.warn('[workspace-message] failed to persist workspace message trail:', error);
+  }
 }
 
 // -- Report Snapshots --
@@ -163,4 +232,57 @@ export async function listReportSnapshots(
 
 export async function deleteReportSnapshot(id: string): Promise<void> {
   await pool.query('delete from public.registered_report_snapshots where id = $1', [id]);
+}
+
+const ACTION_CHANNELS: Partial<Record<RegisteredAction, 'notice' | 'internal_note' | 'counselor_note' | 'principal_note' | 'parent_request' | 'subscription'>> = {
+  internal_note: 'internal_note',
+  counselor_note: 'counselor_note',
+  principal_note: 'principal_note',
+  parent_request_log: 'parent_request',
+  subscription: 'subscription',
+};
+
+function getActionChannel(action: RegisteredAction) {
+  return ACTION_CHANNELS[action] ?? null;
+}
+
+function asText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getActionTitle(action: RegisteredAction, meta: Record<string, unknown>): string {
+  const custom = asText(meta.title);
+  if (custom) return custom;
+
+  switch (action) {
+    case 'internal_note':
+      return 'Internal Note';
+    case 'counselor_note':
+      return 'Counselor Note';
+    case 'principal_note':
+      return 'Principal Review Note';
+    case 'parent_request_log':
+      return 'Parent Request Log';
+    case 'subscription':
+      return 'Subscription Update';
+    default:
+      return action.replace(/_/g, ' ');
+  }
+}
+
+function getActionBody(action: RegisteredAction, meta: Record<string, unknown>, title: string): string {
+  const candidates = [
+    asText(meta.body),
+    asText(meta.note),
+    asText(meta.message),
+    asText(meta.detail),
+    asText(meta.content),
+    title,
+  ];
+  if (action === 'subscription' && !candidates[0]) {
+    const scope = asText(meta.scope);
+    const targetKey = asText(meta.targetKey);
+    return [scope, targetKey].filter(Boolean).join(' · ') || title;
+  }
+  return candidates.find(Boolean) ?? title;
 }

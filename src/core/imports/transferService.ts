@@ -1,6 +1,7 @@
 import { pool } from '@/db/pool';
 import { logAudit } from '@/core/audit/log';
 import type { ImportContext, ImportEntityConfig } from './types';
+import { refreshMonitoringSnapshot } from '../../../core/monitoring/snapshot';
 
 export interface TransferResult {
   ok: boolean;
@@ -114,6 +115,8 @@ export async function transferImportBatch<TNormalized>(
       meta: { inserted, updated, skipped, errorCount: errors.length },
     });
 
+    void refreshMonitoringSnapshot({ tenantId: institutionId }).catch(() => {});
+
     return { ok: true, inserted, updated, skipped, errors };
   } catch (err: any) {
     await client.query('rollback').catch(() => {});
@@ -132,6 +135,8 @@ export async function transferImportBatch<TNormalized>(
       meta: { error: err.message },
     });
 
+    void refreshMonitoringSnapshot({ tenantId: institutionId }).catch(() => {});
+
     throw err;
   } finally {
     client.release();
@@ -149,4 +154,6 @@ export async function revertImportBatch(
        and status in ('failed', 'completed')`,
     [batchId, institutionId],
   );
+
+  void refreshMonitoringSnapshot({ tenantId: institutionId }).catch(() => {});
 }

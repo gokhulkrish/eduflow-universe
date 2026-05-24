@@ -153,6 +153,12 @@ export const MIGRATION_PATCH_FLAGS: MigrationFlagDefinition[] = [
     description: "Monitoring overview SQL view for global dashboard.",
     defaultEnabled: true,
   },
+  {
+    key: "patch-022-decommission-readiness",
+    label: "Patch 022: Decommission readiness",
+    description: "Parity matrix, cutover controls, and retirement gating.",
+    defaultEnabled: true,
+  },
 ];
 
 const isBrowser = () => typeof window !== "undefined";

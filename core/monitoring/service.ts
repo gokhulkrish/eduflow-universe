@@ -43,7 +43,7 @@ export async function getMonitoringOverview(filters?: MonitoringFilter): Promise
 
   if (error) {
     console.error("[monitoring] query failed:", error);
-    return { rows: [], total: 0 };
+    throw error;
   }
   return { rows: (data ?? []) as unknown as MonitoringOverviewRow[], total: count ?? 0 };
 }

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +25,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { loadAccessibleModuleKeys } from "@/lib/module-access";
 import { APP_ACCESS_RULES } from "@/lib/global-access-registry";
 import { canOpenCommandCenter } from "@/lib/command-center-access";
+import { subscribeAppSync } from "@/lib/app-sync";
+import { MONITORING_REFRESH_SYNC_KEY, canUseMonitoringApi, resolveMonitoringContext } from "@/lib/monitoring-refresh";
+import type { DashboardMetric } from "../../core/monitoring/snapshot";
 
 const COLORS = ["hsl(245 80% 60%)", "hsl(270 90% 70%)", "hsl(200 95% 60%)", "hsl(152 70% 50%)"];
+const MONITORING_SNAPSHOT_ENDPOINT = "/api/monitoring/snapshot";
+const MONITORING_HEALTH_ENDPOINT = "/api/monitoring/health";
 
 type LandingProfile = {
   title: string;
@@ -141,8 +146,27 @@ function StatCard({ icon: Icon, label, value, delta, positive = true, suffix = "
   );
 }
 
+function formatRelativeMonitoringTime(value?: string) {
+  if (!value) return "No recent student activity";
+
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "No recent student activity";
+
+  const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (diffMinutes <= 1) return "Updated just now";
+  if (diffMinutes < 60) return `Updated ${diffMinutes} min ago`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `Updated ${diffHours} hr ago`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return diffDays < 7 ? `Updated ${diffDays} day${diffDays === 1 ? "" : "s"} ago` : `Updated ${new Date(timestamp).toLocaleDateString()}`;
+}
+
 export default function Dashboard() {
   const { roles, loading: authLoading } = useAuth();
+  const [monitoringMetrics, setMonitoringMetrics] = useState<Record<string, DashboardMetric>>({});
+  const [monitoringHealth, setMonitoringHealth] = useState<"good" | "warning" | "critical" | null>(null);
   const { data: accessibleKeys, isLoading } = useQuery({
     queryKey: ["accessible-module-keys", "dashboard"],
     queryFn: () => loadAccessibleModuleKeys(),
@@ -177,6 +201,75 @@ export default function Dashboard() {
     const matchedRule = APP_ACCESS_RULES.find((rule) => rule.path === landingTarget) ?? null;
     return resolveLandingProfile(landingTarget, matchedRule?.key ?? null);
   }, [landingTarget]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const syncMonitoring = async () => {
+      if (!canUseMonitoringApi()) return;
+
+      try {
+        const context = await resolveMonitoringContext();
+        if (!context) return;
+
+        const params = new URLSearchParams({ tenantId: context.tenantId });
+        if (context.academicYearId) params.set("academicYearId", context.academicYearId);
+
+        const [snapshotResponse, healthResponse] = await Promise.all([
+          fetch(`${MONITORING_SNAPSHOT_ENDPOINT}?${params.toString()}`),
+          fetch(`${MONITORING_HEALTH_ENDPOINT}?tenantId=${encodeURIComponent(context.tenantId)}`),
+        ]);
+
+        if (snapshotResponse.ok) {
+          const payload = await snapshotResponse.json();
+          const snapshotRows = Array.isArray(payload.rows) ? payload.rows : [];
+          const nextMetrics = snapshotRows.reduce((acc: Record<string, DashboardMetric>, row: any) => {
+            if (row && typeof row === "object" && row.snapshot_key && row.snapshot_value && typeof row.snapshot_value === "object") {
+              acc[String(row.snapshot_key)] = row.snapshot_value as DashboardMetric;
+            }
+            return acc;
+          }, {});
+          if (alive) setMonitoringMetrics(nextMetrics);
+        }
+
+        if (healthResponse.ok) {
+          const payload = await healthResponse.json();
+          if (alive) setMonitoringHealth(payload?.row?.health_status ?? null);
+        }
+      } catch {
+        // Fall back to the static dashboard data when monitoring storage is unavailable.
+      }
+    };
+
+    void syncMonitoring();
+
+    const unsubscribe = subscribeAppSync([MONITORING_REFRESH_SYNC_KEY], () => {
+      void syncMonitoring();
+    });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const monitoringStudentCount = monitoringMetrics["student-count"]?.value ?? dashboardHero.heroStats[0].value;
+  const monitoringBatchCount = monitoringMetrics["import-batches"]?.value ?? dashboardHero.heroStats[1].value;
+  const monitoringWorkflowCount = monitoringMetrics["workflow-activity"]?.value ?? dashboardHero.heroStats[2].value;
+  const monitoringAcademicYear = monitoringMetrics["academic-year-focus"]?.value ?? dashboardHero.academicYear;
+  const monitoringSourceCoverage = monitoringMetrics["source-coverage"]?.value ?? dashboardHero.sourceCoverage;
+  const monitoringDistrict = monitoringMetrics["district-status"]?.value ?? dashboardHero.district;
+  const monitoringLastActivity = monitoringMetrics["last-student-activity"]?.value;
+  const monitoringLastActivityLabel = formatRelativeMonitoringTime(typeof monitoringLastActivity === "string" ? monitoringLastActivity : undefined);
+  const monitoringHealthLabel =
+    monitoringHealth === "critical"
+      ? "Monitoring critical"
+      : monitoringHealth === "warning"
+        ? "Monitoring watch"
+        : monitoringHealth === "good"
+          ? "All systems operational"
+          : "Monitoring idle";
+  const monitoringHealthTone = monitoringHealth === "critical" ? "bg-destructive/15 text-destructive" : monitoringHealth === "warning" ? "bg-warning/15 text-warning" : "bg-success/15 text-success";
 
   if (isLoading || authLoading) {
     return (
@@ -273,8 +366,11 @@ export default function Dashboard() {
         icon={<LayoutDashboard className="h-6 w-6" />}
         actions={
           <>
-            <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-success" /> All systems operational
+            <Badge
+              variant="secondary"
+              className={`gap-1.5 px-3 py-1.5 ${monitoringHealthTone}`}
+            >
+              <span className="h-2 w-2 animate-pulse rounded-full bg-current" /> {monitoringHealthLabel}
             </Badge>
             <Button className="bg-gradient-primary shadow-glow hover:opacity-90">
               <Sparkles className="mr-2 h-4 w-4" /> AI Insights
@@ -304,10 +400,10 @@ export default function Dashboard() {
             </div>
             <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { l: "Academic Year", v: dashboardHero.academicYear },
-                { l: "Source Coverage", v: dashboardHero.sourceCoverage },
-                { l: "District / Block", v: dashboardHero.district },
-                { l: "Last Activity", v: dashboardHero.lastUpdated },
+                { l: "Academic Year", v: monitoringAcademicYear },
+                { l: "Source Coverage", v: typeof monitoringSourceCoverage === "number" ? `${monitoringSourceCoverage}%` : monitoringSourceCoverage },
+                { l: "District / Block", v: monitoringDistrict },
+                { l: "Last Activity", v: monitoringLastActivityLabel },
               ].map((c) => (
                 <div key={c.l} className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 backdrop-blur">
                   <p className="text-[10px] uppercase tracking-wider text-primary-foreground/70">{c.l}</p>
@@ -316,18 +412,22 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-          <div className="grid gap-3 self-start">
-            {dashboardHero.heroStats.map((s, i) => (
-              <div
-                key={s.label}
-                className={`rounded-2xl border px-4 py-3 backdrop-blur ${i === 0 ? "border-white/30 bg-white/20" : "border-white/15 bg-white/10"}`}
-              >
-                <p className="text-[10px] uppercase tracking-wider text-primary-foreground/70">{s.label}</p>
-                <p className="mt-1 font-display text-2xl font-bold">{s.value}</p>
-                <p className="text-[11px] text-primary-foreground/75">{s.meta}</p>
-              </div>
-            ))}
-          </div>
+            <div className="grid gap-3 self-start">
+              {[
+                { label: "Registry Volume", value: monitoringStudentCount, meta: "students across engineering programs" },
+                { label: "Import Operations", value: monitoringBatchCount, meta: "batches in the last 30 days" },
+                { label: "Workflow Activity", value: monitoringWorkflowCount, meta: "active workflow sessions" },
+              ].map((s, i) => (
+                <div
+                  key={s.label}
+                  className={`rounded-2xl border px-4 py-3 backdrop-blur ${i === 0 ? "border-white/30 bg-white/20" : "border-white/15 bg-white/10"}`}
+                >
+                  <p className="text-[10px] uppercase tracking-wider text-primary-foreground/70">{s.label}</p>
+                  <p className="mt-1 font-display text-2xl font-bold">{String(s.value)}</p>
+                  <p className="text-[11px] text-primary-foreground/75">{s.meta}</p>
+                </div>
+              ))}
+            </div>
         </div>
       </Card>
 

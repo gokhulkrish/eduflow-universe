@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpCircle,
@@ -6,6 +6,7 @@ import {
   Layers3,
   RefreshCw,
   RotateCcw,
+  Save,
   ShieldAlert,
   Workflow,
 } from "lucide-react";
@@ -15,9 +16,16 @@ import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { MIGRATION_PATCH_FLAGS, setMigrationFlag, toggleMigrationFlag } from "@/lib/featureFlags";
+import {
+  type CutoverState,
+  type CutoverSnapshot,
+  type ParityMatrixSummary,
+  type ParityRecord,
+} from "@/lib/migration-controls";
 import { buildMigrationRegistrySnapshot, getMigrationModulesByDomain } from "@/lib/migration-registry";
 import { clearRollback, resetRollbackRegistry, triggerRollback } from "@/lib/rollbackRegistry";
 import { getMigrationRuntimeSnapshot, subscribeMigrationRuntime } from "@/lib/migrationRuntime";
@@ -47,16 +55,49 @@ import {
   subscribeStorageNormalization,
 } from "@/lib/storage-normalization";
 
+const MIGRATION_TENANT_STORAGE_KEY = "sms.migration.tenant-id.v1";
+
+type MigrationParityApiResponse = {
+  rows: ParityRecord[];
+  summary: ParityMatrixSummary;
+  audit: {
+    entries: number;
+    lastAuditAt: string | null;
+  };
+};
+
+type MigrationCutoverApiResponse = CutoverSnapshot & {
+  parity: MigrationParityApiResponse;
+};
+
 function statusClasses(kind: "compatible" | "bridge-required" | "deferred") {
   if (kind === "compatible") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
   if (kind === "bridge-required") return "bg-amber-500/15 text-amber-700 dark:text-amber-300";
   return "bg-slate-500/15 text-slate-700 dark:text-slate-300";
 }
 
+function parityStatusClasses(status: ParityRecord["status"]) {
+  if (status === "verified") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
+  if (status === "retired") return "bg-slate-500/15 text-slate-700 dark:text-slate-300";
+  if (status === "matched") return "bg-blue-500/15 text-blue-700 dark:text-blue-300";
+  if (status === "partial") return "bg-amber-500/15 text-amber-700 dark:text-amber-300";
+  return "bg-red-500/15 text-red-700 dark:text-red-300";
+}
+
+function readinessClasses(value: boolean) {
+  return value ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-red-500/15 text-red-700 dark:text-red-300";
+}
+
 function sourceLabel(source: string) {
   if (source === "environment") return "env";
   if (source === "storage") return "saved";
   return "default";
+}
+
+function readInitialTenantId() {
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams(window.location.search);
+  return params.get("tenantId") ?? window.localStorage.getItem(MIGRATION_TENANT_STORAGE_KEY) ?? "";
 }
 
 export default function Migration() {
@@ -66,6 +107,13 @@ export default function Migration() {
   const [storageNormalization, setStorageNormalization] = useState(() => buildStorageNormalizationSnapshot());
   const [hardening, setHardening] = useState(() => getRuntimeHardeningSnapshot());
   const [orchestrationSignal, setOrchestrationSignal] = useState<{ scope: string; reason: string; signal: string } | null>(null);
+  const [migrationTenantId, setMigrationTenantId] = useState(readInitialTenantId);
+  const [migrationParity, setMigrationParity] = useState<MigrationParityApiResponse | null>(null);
+  const [migrationCutover, setMigrationCutover] = useState<MigrationCutoverApiResponse | null>(null);
+  const [cutoverDraft, setCutoverDraft] = useState<CutoverState | null>(null);
+  const [migrationControlsLoading, setMigrationControlsLoading] = useState(false);
+  const [migrationControlsSaving, setMigrationControlsSaving] = useState(false);
+  const [migrationControlsError, setMigrationControlsError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribeRuntime = subscribeMigrationRuntime(() => setRevision((value) => value + 1));
@@ -88,6 +136,55 @@ export default function Migration() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(MIGRATION_TENANT_STORAGE_KEY, migrationTenantId);
+  }, [migrationTenantId]);
+
+  const loadMigrationControls = useCallback(async (tenantId: string) => {
+    if (!tenantId) {
+      setMigrationParity(null);
+      setMigrationCutover(null);
+      setCutoverDraft(null);
+      setMigrationControlsError(null);
+      return;
+    }
+
+    setMigrationControlsLoading(true);
+    setMigrationControlsError(null);
+
+    try {
+      const [parityResponse, cutoverResponse] = await Promise.all([
+        fetch(`/api/migration/parity?tenantId=${encodeURIComponent(tenantId)}`),
+        fetch(`/api/migration/cutover?tenantId=${encodeURIComponent(tenantId)}`),
+      ]);
+
+      const parityPayload = (await parityResponse.json()) as Partial<MigrationParityApiResponse> & { error?: string };
+      if (!parityResponse.ok) {
+        throw new Error(parityPayload.error ?? "Unable to load parity matrix");
+      }
+
+      const cutoverPayload = (await cutoverResponse.json()) as Partial<MigrationCutoverApiResponse> & { error?: string };
+      if (!cutoverResponse.ok) {
+        throw new Error(cutoverPayload.error ?? "Unable to load cutover controls");
+      }
+
+      setMigrationParity(parityPayload as MigrationParityApiResponse);
+      setMigrationCutover(cutoverPayload as MigrationCutoverApiResponse);
+      setCutoverDraft((cutoverPayload as MigrationCutoverApiResponse).state);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to load migration controls";
+      setMigrationControlsError(message);
+      toast.error(message);
+    } finally {
+      setMigrationControlsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadMigrationControls(migrationTenantId);
+  }, [loadMigrationControls, migrationTenantId]);
+
   const registry = buildMigrationRegistrySnapshot();
   const runtime = getMigrationRuntimeSnapshot();
   const domainGroups = getMigrationModulesByDomain();
@@ -98,6 +195,13 @@ export default function Migration() {
   const certification = buildMigrationCertificationReport();
   const topGaps = registry.gapAnalysis.slice(0, 6);
   const topClusters = registry.capabilityClusters.slice(0, 6);
+  const parityRows = migrationParity?.rows ?? [];
+  const paritySummary = migrationParity?.summary ?? null;
+  const parityAudit = migrationParity?.audit ?? null;
+  const cutoverState = migrationCutover?.state ?? cutoverDraft;
+  const cutoverSummary = migrationCutover?.summary ?? paritySummary;
+  const cutoverChecklist = migrationCutover?.checklist ?? [];
+  const cutoverCanPromote = migrationCutover?.canPromote ?? false;
 
   const handleToggle = (key: string, label: string) => {
     toggleMigrationFlag(key);
@@ -168,6 +272,51 @@ export default function Migration() {
     setHardening(getRuntimeHardeningSnapshot());
     toast.success("Hardening suite snapshot cleared");
     setRevision((value) => value + 1);
+  };
+
+  const handleSaveCutoverControls = async () => {
+    if (!migrationTenantId) {
+      toast.error("tenantId is required to save cutover controls");
+      return;
+    }
+    if (!cutoverDraft) {
+      toast.error("Load a cutover snapshot first");
+      return;
+    }
+
+    setMigrationControlsSaving(true);
+    try {
+      const response = await fetch("/api/migration/cutover", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantId: migrationTenantId,
+          dualRunEnabled: cutoverDraft.dualRunEnabled,
+          newSystemPrimary: cutoverDraft.newSystemPrimary,
+          legacyFallbackEnabled: cutoverDraft.legacyFallbackEnabled,
+          migrationFrozen: cutoverDraft.migrationFrozen,
+        }),
+      });
+
+      const payload = (await response.json()) as Partial<MigrationCutoverApiResponse> & { error?: string; reasons?: string[] };
+      if (!response.ok) {
+        const details = payload.reasons?.length ? `: ${payload.reasons.join(" · ")}` : "";
+        throw new Error(`${payload.error ?? "Unable to save cutover controls"}${details}`);
+      }
+
+      const snapshot = payload as MigrationCutoverApiResponse;
+      setMigrationCutover(snapshot);
+      setMigrationParity(snapshot.parity);
+      setCutoverDraft(snapshot.state);
+      toast.success("Cutover controls saved");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save cutover controls";
+      toast.error(message);
+    } finally {
+      setMigrationControlsSaving(false);
+    }
   };
 
   return (
@@ -819,8 +968,8 @@ export default function Migration() {
           <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Recent sources</p>
             <div className="mt-3 space-y-2">
-              {resilience.recentSources.length ? resilience.recentSources.map((source) => (
-                <div key={source} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+              {resilience.recentSources.length ? resilience.recentSources.map((source, index) => (
+                <div key={`${source}-${index}`} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
                   {source}
                 </div>
               )) : (
@@ -1011,6 +1160,227 @@ export default function Migration() {
             </div>
           </div>
         </div>
+
+        <Card className="glass mt-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-display text-lg font-semibold">Decommission Readiness</h3>
+              <p className="text-xs text-muted-foreground">
+                Persisted parity evidence, dual-run controls, and the final cutover gate for a tenant-specific migration.
+              </p>
+            </div>
+            <Badge
+              variant="secondary"
+              className={
+                cutoverCanPromote
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+              }
+            >
+              {cutoverCanPromote ? "ready for cutover" : "watch"}
+            </Badge>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="w-full max-w-sm">
+              <p className="mb-1 text-[11px] uppercase tracking-wider text-muted-foreground">Tenant ID</p>
+              <Input
+                value={migrationTenantId}
+                onChange={(event) => setMigrationTenantId(event.target.value)}
+                placeholder="tenant UUID"
+                spellCheck={false}
+              />
+            </div>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => void loadMigrationControls(migrationTenantId)}
+              disabled={!migrationTenantId || migrationControlsLoading}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {migrationControlsLoading ? "Loading..." : "Load snapshot"}
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => void loadMigrationControls(migrationTenantId)}
+              disabled={!migrationTenantId || migrationControlsLoading}
+            >
+              <Database className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
+              onClick={() => void handleSaveCutoverControls()}
+              disabled={!migrationTenantId || migrationControlsSaving || !cutoverDraft}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {migrationControlsSaving ? "Saving..." : "Save controls"}
+            </Button>
+          </div>
+
+          {migrationControlsError ? (
+            <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+              {migrationControlsError}
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            {[
+              { label: "Tracked features", value: cutoverSummary?.totalFeatures ?? 0 },
+              { label: "Completed features", value: cutoverSummary?.completedFeatures ?? 0 },
+              { label: "Parity blockers", value: cutoverSummary?.blockerCount ?? 0 },
+              { label: "Audit entries", value: parityAudit?.entries ?? 0 },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+                <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Parity matrix</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {paritySummary
+                      ? `${Math.round(paritySummary.completionRate * 100)}% complete · ${paritySummary.evidenceCovered}/${paritySummary.completedFeatures} completed features carry evidence.`
+                      : "Load a tenant snapshot to review parity coverage."}
+                  </p>
+                </div>
+                <Badge variant="outline">{parityRows.length} rows</Badge>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
+                <div className="grid grid-cols-[1.2fr_.8fr_.8fr_.7fr_.9fr] border-b border-border/60 bg-muted/40 px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <span>Feature</span>
+                  <span>Legacy</span>
+                  <span>New</span>
+                  <span>Status</span>
+                  <span>Evidence</span>
+                </div>
+                <div className="max-h-[26rem] divide-y divide-border/60 overflow-auto">
+                  {parityRows.length ? (
+                    parityRows.map((row) => (
+                      <div key={row.featureKey} className="grid grid-cols-[1.2fr_.8fr_.8fr_.7fr_.9fr] items-start gap-2 px-4 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{row.featureKey}</p>
+                          {row.notes ? <p className="mt-1 truncate text-[11px] text-muted-foreground">{row.notes}</p> : null}
+                        </div>
+                        <span className="truncate text-[11px] text-muted-foreground">{row.legacyModule || "n/a"}</span>
+                        <span className="truncate text-[11px] text-muted-foreground">{row.newModule || "n/a"}</span>
+                        <Badge className={parityStatusClasses(row.status)}>{row.status}</Badge>
+                        <span className="truncate text-[11px] text-muted-foreground">{row.evidence || "none"}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-sm text-muted-foreground">
+                      No parity records have been written for this tenant yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span>Last checked: {paritySummary?.lastCheckedAt ? new Date(paritySummary.lastCheckedAt).toLocaleString() : "n/a"}</span>
+                <span>Last audit: {parityAudit?.lastAuditAt ? new Date(parityAudit.lastAuditAt).toLocaleString() : "n/a"}</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Cutover controls</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Keep rollback active until every tracked feature is verified and the freeze is approved.
+                  </p>
+                </div>
+                <Badge variant="outline">{cutoverState?.updatedAt ? new Date(cutoverState.updatedAt).toLocaleDateString() : "pending"}</Badge>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {[
+                  {
+                    key: "dualRunEnabled" as const,
+                    label: "Dual-run enabled",
+                    detail: "Read-only comparison and fallback coordination stay active.",
+                  },
+                  {
+                    key: "newSystemPrimary" as const,
+                    label: "New system primary",
+                    detail: "Writes should prefer the new system only after parity is proven.",
+                  },
+                  {
+                    key: "legacyFallbackEnabled" as const,
+                    label: "Legacy fallback enabled",
+                    detail: "Retain the rollback path until the freeze window is complete.",
+                  },
+                  {
+                    key: "migrationFrozen" as const,
+                    label: "Migration frozen",
+                    detail: "No further migration changes should be accepted.",
+                  },
+                ].map((item) => (
+                  <div key={item.key} className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">{item.label}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                      </div>
+                      <Switch
+                        checked={Boolean(cutoverDraft?.[item.key])}
+                        onCheckedChange={(checked) => setCutoverDraft((current) => (current ? { ...current, [item.key]: checked } : current))}
+                        disabled={!cutoverDraft}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-border/60 bg-background/60 p-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Gate checks</p>
+                <div className="mt-3 space-y-2">
+                  {cutoverChecklist.length ? (
+                    cutoverChecklist.map((item) => (
+                      <div key={item.key} className="rounded-xl border border-border/50 bg-card/70 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{item.label}</p>
+                          <Badge className={readinessClasses(item.passed)}>{item.passed ? "pass" : "block"}</Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Load a snapshot to see the final gate checks.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-3 text-xs text-warning-foreground">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                  <p>
+                    Never set the new system primary until the matrix is fully verified, fallback is active, and the migration freeze is approved.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+                {migrationCutover?.blockers?.length ? (
+                  migrationCutover.blockers.map((blocker) => (
+                    <div key={blocker} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                      {blocker}
+                    </div>
+                  ))
+                ) : (
+                  <p>No cutover blockers recorded for the current snapshot.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
       </Card>
     </div>
   );

@@ -58,6 +58,7 @@
 | `monitoring-dashboard` | legacy monolith | ✅ LIVE | `api/monitoring` | `monitoring_overview` view | Unified student/attendance/exam/scoring projection. |
 | `scoring-engine` | legacy monolith | ✅ LIVE | `core/scoring/subjectiveToStandard.ts` | `audit_log` (scoring events) | Keyword-rubric scoring with 4 dimensions and composite index. |
 | `comms-engine` | localStorage only | ⚡ BRIDGE | `core/comms/service.ts` | `message_templates`, `message_campaigns`, `message_logs` | Template CRUD, campaign scheduling, `{{variable}}` expansion. |
+| `workspace-message-trail` | legacy note + audit trails | ⚡ BRIDGE | `src/core/workspace-messaging/service.ts` + `app/api/messages/route.ts` + `app/api/subscriptions/route.ts` + `app/api/audit-trail/route.ts` | `workspace_messages`, `workspace_subscriptions`, `workspace_audit_trail` | Distinct channels for notices, internal/counselor/principal notes, parent request logs, subscriptions, and audit links. |
 | `audit-service` | scattered writes | ✅ LIVE | `core/audit/service.ts` | `audit_log` | Centralized writeAuditEntry() with before/after snapshots. |
 | `import-batch-server` | IndexedDB only | ⚡ BRIDGE | `supabase/migrations/20260524170000_*` | `import_batches`, `import_files`, `import_rows`, `import_row_errors` | Server-side batch storage with RLS, complements client engine. |
 | `remark-templates` | inline only | ✅ LIVE | `core/academics/remarks.ts` | `remarks_templates` | Score-range-based template matching with {{variable}} expansion. |

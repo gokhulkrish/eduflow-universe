@@ -101,7 +101,7 @@ export default function PromotionEngine() {
     <div>
       <PageHeader title="Cohort Progression Engine" subtitle="Rules, eligibility preview, and bulk promotion" icon={<GraduationCap className="h-6 w-6" />} />
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="rules">Rules</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="sections">Sections</TabsTrigger>
@@ -141,23 +141,25 @@ export default function PromotionEngine() {
             <CardHeader><CardTitle className="text-sm">Eligibility Preview</CardTitle></CardHeader>
             <CardContent>
               <TablePagination {...pag1} />
-              <Table>
-              <TableHeader>
-                <TableRow><TableHead className="text-xs">Student</TableHead><TableHead className="text-xs">Grade</TableHead><TableHead className="text-xs">Attendance</TableHead><TableHead className="text-xs">GPA</TableHead><TableHead className="text-xs">Eligible</TableHead></TableRow>
-              </TableHeader>
-                <TableBody>
-                  {preview.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">Select a rule and click Preview</TableCell></TableRow>}
-                  {pag1.pageData.map((s: any) => (
-                    <TableRow key={s.student_id}>
-                      <TableCell className="text-xs">{s.display_name}</TableCell>
-                      <TableCell className="text-xs">{s.grade}-{s.section}</TableCell>
-                      <TableCell className="text-xs">{s.attendance_percent}%</TableCell>
-                      <TableCell className="text-xs">{s.gpa}</TableCell>
-                      <TableCell>{s.eligible ? <CheckCircle2 className="h-4 w-4 text-success" /> : <XCircle className="h-4 w-4 text-destructive" />}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <Table className="min-w-max">
+                <TableHeader>
+                  <TableRow><TableHead className="text-xs">Student</TableHead><TableHead className="text-xs">Grade</TableHead><TableHead className="text-xs">Attendance</TableHead><TableHead className="text-xs">GPA</TableHead><TableHead className="text-xs">Eligible</TableHead></TableRow>
+                </TableHeader>
+                  <TableBody>
+                    {preview.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">Select a rule and click Preview</TableCell></TableRow>}
+                    {pag1.pageData.map((s: any) => (
+                      <TableRow key={s.student_id}>
+                        <TableCell className="text-xs">{s.display_name}</TableCell>
+                        <TableCell className="text-xs">{s.grade}-{s.section}</TableCell>
+                        <TableCell className="text-xs">{s.attendance_percent}%</TableCell>
+                        <TableCell className="text-xs">{s.gpa}</TableCell>
+                        <TableCell>{s.eligible ? <CheckCircle2 className="h-4 w-4 text-success" /> : <XCircle className="h-4 w-4 text-destructive" />}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -166,7 +168,7 @@ export default function PromotionEngine() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Section Reallocation</CardTitle></CardHeader>
             <CardContent>
-              <div className="flex gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-4">
                 {DEFAULT_SECTIONS.map((s) => (
                   <Button key={s} variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => {
                     const dummy = Array.from({ length: 40 }, (_, i) => `Student ${i + 1}`);
@@ -193,8 +195,8 @@ export default function PromotionEngine() {
             <CardHeader><CardTitle className="text-sm">Roll Number Reset</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">Generate new roll numbers for promoted students with a custom prefix.</p>
-              <div className="flex gap-2">
-                <Input placeholder="Prefix (e.g. 2026-A)" className="max-w-[200px] h-8 text-xs" id="roll-prefix" />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input placeholder="Prefix (e.g. 2026-A)" className="h-8 w-full max-w-none text-xs sm:max-w-[200px]" id="roll-prefix" />
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-[10px]" onClick={() => {
                   const prefix = (document.getElementById("roll-prefix") as HTMLInputElement)?.value || "STU";
                   const generated = generateRollNumbers(40, prefix);
@@ -215,24 +217,26 @@ export default function PromotionEngine() {
           {runsLoading ? <p className="text-sm text-muted-foreground">Loading...</p> : (
           <>
           <TablePagination {...pag2} />
-          <Table>
-            <TableHeader>
-              <TableRow><TableHead className="text-xs">Rule</TableHead><TableHead className="text-xs">Promoted</TableHead><TableHead className="text-xs">Failed</TableHead><TableHead className="text-xs">Total</TableHead><TableHead className="text-xs">Run At</TableHead><TableHead className="text-xs">Status</TableHead></TableRow>
-            </TableHeader>
-            <TableBody>
-              {runs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No runs yet</TableCell></TableRow>}
-              {pag2.pageData.map((rn: any) => (
-                <TableRow key={rn.id}>
-                  <TableCell className="text-xs">{rn.name}</TableCell>
-                  <TableCell className="text-xs text-success">{rn.promoted}</TableCell>
-                  <TableCell className="text-xs text-destructive">{rn.failed}</TableCell>
-                  <TableCell className="text-xs">{rn.total}</TableCell>
-                  <TableCell className="text-xs">{new Date(rn.run_at).toLocaleString()}</TableCell>
-                  <TableCell><Badge className="text-[9px] bg-success/15 text-success">{rn.status}</Badge></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <Table className="min-w-max">
+              <TableHeader>
+                <TableRow><TableHead className="text-xs">Rule</TableHead><TableHead className="text-xs">Promoted</TableHead><TableHead className="text-xs">Failed</TableHead><TableHead className="text-xs">Total</TableHead><TableHead className="text-xs">Run At</TableHead><TableHead className="text-xs">Status</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {runs.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No runs yet</TableCell></TableRow>}
+                {pag2.pageData.map((rn: any) => (
+                  <TableRow key={rn.id}>
+                    <TableCell className="text-xs">{rn.name}</TableCell>
+                    <TableCell className="text-xs text-success">{rn.promoted}</TableCell>
+                    <TableCell className="text-xs text-destructive">{rn.failed}</TableCell>
+                    <TableCell className="text-xs">{rn.total}</TableCell>
+                    <TableCell className="text-xs">{new Date(rn.run_at).toLocaleString()}</TableCell>
+                    <TableCell><Badge className="text-[9px] bg-success/15 text-success">{rn.status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           </>
           )}
         </TabsContent>

@@ -15,6 +15,10 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LEGACY_ROUTE_ALIASES } from "@/lib/legacy-adapter";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeAppSync } from "@/lib/app-sync";
+import { importStorageKeys } from "@/lib/student-import";
+import { instituteRegistryStorageKey, registryStorageKey } from "@/lib/header-registry";
+import { studentRegisterSyncKey } from "@/lib/student-records";
+import { requestMonitoringRefresh } from "@/lib/monitoring-refresh";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Students = lazy(() => import("./pages/Students"));
@@ -150,6 +154,50 @@ function CapabilityAccessSync() {
   return null;
 }
 
+function MonitoringRefreshBridge() {
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const queueRefresh = () => {
+      if (typeof window === "undefined") return;
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        void requestMonitoringRefresh().catch(() => {});
+      }, 250);
+    };
+
+    void requestMonitoringRefresh().catch(() => {});
+
+    const unsubscribe = subscribeAppSync(
+      [
+        studentRegisterSyncKey,
+        registryStorageKey,
+        instituteRegistryStorageKey,
+        `${instituteRegistryStorageKey}.config`,
+        importStorageKeys.customFields,
+        importStorageKeys.profiles,
+        "sms.attendance.v1",
+        "sms.import-batches.v1",
+        "eduflow_announcements",
+        "eduflow_polls",
+      ],
+      () => {
+        if (cancelled) return;
+        queueRefresh();
+      },
+    );
+
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, []);
+
+  return null;
+}
+
 const App = () => {
   useEffect(() => { initRegistryStorage(); }, []);
   return (
@@ -160,6 +208,7 @@ const App = () => {
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <CapabilityAccessSync />
+            <MonitoringRefreshBridge />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/mfa" element={<Mfa />} />

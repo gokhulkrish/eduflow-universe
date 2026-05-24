@@ -1,6 +1,7 @@
 import { pool } from '@/db/pool';
 import { renderTemplate } from './templateEngine';
 import { resolveAudience, type AudienceQuery } from './audience';
+import { refreshMonitoringSnapshot } from '../../../core/monitoring/snapshot';
 
 export type Channel = 'sms' | 'email' | 'push' | 'notice';
 
@@ -41,6 +42,8 @@ export async function sendMessage(input: SendMessageInput): Promise<void> {
      values ($1,$2,$3,$4,$5,$6)`,
     [input.tenantId, tmpl.id, input.channel, input.to, JSON.stringify(payload), 'sent'],
   );
+
+  void refreshMonitoringSnapshot({ tenantId: input.tenantId }).catch(() => {});
 }
 
 export async function queueCampaign(input: QueueCampaignInput): Promise<string> {
@@ -70,6 +73,8 @@ export async function queueCampaign(input: QueueCampaignInput): Promise<string> 
       [input.tenantId, campaignId, tmpl.id, tmpl.channel, toAddress, JSON.stringify(recipient), input.scheduledAt ?? null],
     );
   }
+
+  void refreshMonitoringSnapshot({ tenantId: input.tenantId }).catch(() => {});
 
   return campaignId;
 }

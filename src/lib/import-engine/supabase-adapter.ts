@@ -4,6 +4,7 @@ import type {
   ImportPreviewRow,
   ImportRollbackEntry,
 } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 import {
   commitImportRows,
   loadExistingStudentsForImport,
@@ -95,8 +96,6 @@ export function createSupabaseRollbackFn() {
   return async (
     rollbackData: ImportRollbackEntry[],
   ): Promise<{ success: boolean; restored: number }> => {
-    const { supabase } = await import("@/integrations/supabase/client");
-
     let restored = 0;
     let success = true;
 

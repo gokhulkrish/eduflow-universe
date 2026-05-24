@@ -10,7 +10,9 @@ import { CommandPalette } from "./CommandPalette";
 import { SupabaseSchemaGate } from "./SupabaseSchemaGate";
 import { RouteAccessGate } from "./RouteAccessGate";
 import { useShell } from "@/stores/shell";
+import { useErpWorkspace } from "@/stores/erpWorkspace";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { getShellRuntimeSnapshot, subscribeShellRuntime } from "@/lib/shell-runtime";
 import { getFocusRuntimeSnapshot } from "@/lib/focus-runtime";
@@ -18,6 +20,10 @@ import { getFocusRuntimeSnapshot } from "@/lib/focus-runtime";
 export function AppLayout() {
   const focusMode = useShell((s) => s.focusMode);
   const layoutMode = useShell((s) => s.layoutMode);
+  const sidebarExpanded = useErpWorkspace((s) => s.state.sidebarExpanded);
+  const setSidebarExpanded = useErpWorkspace((s) => s.setSidebarExpanded);
+  const hydrateErpWorkspace = useErpWorkspace((s) => s.hydrate);
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const focusRuntime = getFocusRuntimeSnapshot(focusMode);
   const focus = focusMode !== "off";
@@ -37,9 +43,13 @@ export function AppLayout() {
     return subscribeShellRuntime(hydrate);
   }, []);
 
+  useEffect(() => {
+    void hydrateErpWorkspace();
+  }, [hydrateErpWorkspace, user?.id]);
+
   return (
     <SupabaseSchemaGate>
-      <SidebarProvider>
+      <SidebarProvider open={sidebarExpanded} onOpenChange={(open) => { void setSidebarExpanded(open); }}>
       <div
         data-app-shell="root"
         data-shell-mode={layoutMode}
@@ -49,12 +59,12 @@ export function AppLayout() {
         data-focus-noise={focusRuntime.noiseState}
         data-focus-workspace={focusRuntime.density}
         data-focus-context={focusRuntime.contextCompression ? "compressed" : "open"}
-        className="flex min-h-screen w-full bg-background mesh-bg"
+        className="flex min-h-[100dvh] w-full bg-background mesh-bg"
       >
         {!focus && <AppSidebar />}
         <div className="flex min-w-0 flex-1 flex-col">
           {!focus && <Topbar />}
-          <main className={cn("flex-1 animate-fade-in", mainPadding)}>
+          <main className={cn("mobile-collision-surface flex-1 animate-fade-in", mainPadding)}>
             <SchemaHealthBanner />
             <RouteAccessGate>
               <Outlet />

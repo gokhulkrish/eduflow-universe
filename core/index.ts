@@ -19,5 +19,19 @@ export type { RemarkTemplate } from "./academics/remarks";
 export { getMonitoringOverview, subscribeMonitoringOverview } from "./monitoring/service";
 export type { MonitoringOverviewRow, MonitoringFilter } from "./monitoring/service";
 
+export {
+  evaluateHealth,
+  readDashboardSnapshots,
+  readLatestHealthSnapshot,
+  refreshMonitoringSnapshot,
+} from "./monitoring/snapshot";
+export type {
+  DashboardMetric,
+  MonitoringSnapshot,
+  RefreshMonitoringInput,
+  MonitoringHealthPolicy,
+  MonitoringRefreshResult,
+} from "./monitoring/snapshot";
+
 export { getTemplates, createTemplate, expandTemplate } from "./comms/service";
 export type { MessageTemplate, MessageType } from "./comms/service";

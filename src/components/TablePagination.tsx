@@ -40,13 +40,13 @@ export function TablePagination({ page, totalPages, total, from, to, setPage, ne
   if (totalPages <= 1 && total <= pageSize) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur">
+    <div className="flex flex-col gap-2 border-b border-border/40 bg-background/90 px-3 py-2 backdrop-blur sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-muted-foreground whitespace-nowrap">Rows per page:</span>
         <select
           value={pageSize}
           onChange={(e) => setPageSize?.(Number(e.target.value))}
-          className="h-7 rounded-md border border-border/40 bg-background px-1.5 text-xs font-medium outline-none focus:ring-1 focus:ring-primary/30"
+          className="h-7 w-full max-w-[7rem] rounded-md border border-border/40 bg-background px-1.5 text-xs font-medium outline-none focus:ring-1 focus:ring-primary/30 sm:w-auto"
         >
           {pageSizeOptions.map((s) => (
             <option key={s} value={s}>
@@ -56,12 +56,12 @@ export function TablePagination({ page, totalPages, total, from, to, setPage, ne
         </select>
       </div>
 
-      <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+      <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap sm:text-center">
         {from}–{to}
         <span className="max-sm:hidden"> of {total.toLocaleString()}</span>
       </span>
 
-      <div className="flex items-center gap-0.5">
+      <div className="flex flex-wrap items-center gap-0.5 sm:justify-end">
         <button onClick={prev} disabled={page === 0}
           className="inline-flex h-7 w-7 items-center justify-center rounded text-sm text-muted-foreground hover:bg-accent disabled:opacity-30 transition-colors"
           aria-label="Previous page"

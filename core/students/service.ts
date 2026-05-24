@@ -4,6 +4,7 @@ import { saveStudentRecord, deleteStudentRecord, studentRegisterSyncKey } from "
 import { emitAppSync } from "../../src/lib/app-sync";
 import { isFeatureEnabled } from "../../src/lib/featureToggles";
 import { writeAuditEntry } from "../audit/service";
+import { refreshMonitoringSnapshot } from "../monitoring/snapshot";
 
 export const createStudentSchema = z.object({
   firstName: z.string().min(2).max(60),
@@ -81,10 +82,19 @@ export async function createStudent(input: CreateStudentInput) {
       source: "native",
     });
 
+    const tenantId = String((saved as any)?.institution_id ?? "");
+    if (tenantId) {
+      void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+    }
+
     return saved;
   }
 
   const saved = await saveStudentRecord(parsed as Record<string, string>);
+  const tenantId = String((saved as any)?.institution_id ?? "");
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
   return saved;
 }
 
@@ -112,10 +122,20 @@ export async function updateStudent(studentId: string, input: Partial<CreateStud
       source: "native",
     });
 
+    const tenantId = String((saved as any)?.institution_id ?? "");
+    if (tenantId) {
+      void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+    }
+
     return saved;
   }
 
-  return saveStudentRecord(values);
+  const saved = await saveStudentRecord(values);
+  const tenantId = String((saved as any)?.institution_id ?? "");
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
+  return saved;
 }
 
 export async function deactivateStudent(studentId: string, reason?: string) {
@@ -151,6 +171,10 @@ export async function deactivateStudent(studentId: string, reason?: string) {
   });
 
   emitAppSync(studentRegisterSyncKey);
+  const tenantId = String((before as any)?.institution_id ?? "");
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
 }
 
 export async function deleteStudentPermanently(studentId: string) {

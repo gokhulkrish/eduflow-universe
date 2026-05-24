@@ -1,24 +1,13 @@
 import * as React from "react";
-
-const MOBILE_BREAKPOINT = 768;
-
-const getCurrentIsMobile = () => {
-  if (typeof window === "undefined") return false;
-  return window.innerWidth < MOBILE_BREAKPOINT;
-};
+import { getMobileShellSnapshot, subscribeMobileShellRuntime } from "@/lib/mobile-shell";
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean>(getCurrentIsMobile());
+  // Keep every consumer aligned with the bootstrapped mobile-shell runtime.
+  const snapshot = React.useSyncExternalStore(
+    subscribeMobileShellRuntime,
+    getMobileShellSnapshot,
+    getMobileShellSnapshot,
+  );
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(getCurrentIsMobile());
-    };
-    mql.addEventListener("change", onChange);
-    setIsMobile(getCurrentIsMobile());
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return isMobile;
+  return snapshot.isMobile;
 }

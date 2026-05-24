@@ -77,7 +77,7 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
   if (bypass) return <>{children}</>;
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
         <Card className="w-full max-w-xl border-border/60 bg-card p-6 shadow-elegant">
           <div className="flex items-center gap-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -89,7 +89,7 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
   }
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
         <Card className="w-full max-w-2xl border-red-500/30 bg-red-500/10 p-6 text-red-950 shadow-elegant dark:text-red-50">
           <div className="flex items-start gap-4">
             <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-500/15">
@@ -134,7 +134,7 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
   const canShowMigration = !accessLoading && (accessibleKeys?.has(resolveAccessKeyForPathname("/migration") ?? "") ?? false);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
       <Card className="w-full max-w-2xl border-amber-500/30 bg-amber-500/10 p-6 text-amber-950 shadow-elegant dark:text-amber-50">
         <div className="flex items-start gap-4">
           <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/15">

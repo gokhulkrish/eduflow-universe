@@ -94,7 +94,7 @@ export default function StudentInformation() {
     <div>
       <PageHeader title="Student Information" subtitle="Validation, registration, academics, approvals & more" icon={<Users className="h-6 w-6" />} />
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="mb-4 flex flex-wrap">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="validation">Validation</TabsTrigger>
           <TabsTrigger value="registered">Registered</TabsTrigger>
           <TabsTrigger value="academic">Academic</TabsTrigger>
@@ -105,8 +105,9 @@ export default function StudentInformation() {
 
         {/* Tab 1: Uploaded Data Validation */}
         <TabsContent value="validation">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setVName(""); setVCohort(""); setVField(""); setVIssue(""); setVOpen(true); }}><Upload className="h-4 w-4 mr-1" /> Add Issue</Button></div>
-          <Table>
+          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setVName(""); setVCohort(""); setVField(""); setVIssue(""); setVOpen(true); }}><Upload className="h-4 w-4 mr-1" /> Add Issue</Button></div>
+          <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-max">
             <TableHeader className=""><TableRow><TableHead className="text-xs">Student</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Field</TableHead><TableHead className="text-xs">Issue</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {vItems.map((v) => (
@@ -122,12 +123,14 @@ export default function StudentInformation() {
               {vItems.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No validation issues</TableCell></TableRow>}
             </TableBody>
           </Table>
+          </div>
         </TabsContent>
 
         {/* Tab 2: Registered Student Info */}
         <TabsContent value="registered">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setRName(""); setRCohort(""); setRSec(""); setRReg(""); setROpen(true); }}><Plus className="h-4 w-4 mr-1" /> Register</Button></div>
-          <Table>
+          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setRName(""); setRCohort(""); setRSec(""); setRReg(""); setROpen(true); }}><Plus className="h-4 w-4 mr-1" /> Register</Button></div>
+          <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-max">
             <TableHeader className=""><TableRow><TableHead className="text-xs">Reg No</TableHead><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Section</TableHead><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
             <TableBody>
               {rItems.map((r) => (
@@ -143,12 +146,14 @@ export default function StudentInformation() {
               {rItems.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No registered students</TableCell></TableRow>}
             </TableBody>
           </Table>
+          </div>
         </TabsContent>
 
         {/* Tab 3: Academic Status */}
         <TabsContent value="academic">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setAName(""); setACohort(""); setAOverall(""); setAAtt(""); setAGpa(""); setAOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Record</Button></div>
-          <Table>
+          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setAName(""); setACohort(""); setAOverall(""); setAAtt(""); setAGpa(""); setAOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Record</Button></div>
+          <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-max">
             <TableHeader className=""><TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Overall</TableHead><TableHead className="text-xs">Attendance</TableHead><TableHead className="text-xs">GPA</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
             <TableBody>
               {aItems.map((a) => (
@@ -164,12 +169,14 @@ export default function StudentInformation() {
               {aItems.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No academic records</TableCell></TableRow>}
             </TableBody>
           </Table>
+          </div>
         </TabsContent>
 
         {/* Tab 4: Approval Status */}
         <TabsContent value="approval">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setApName(""); setApType(""); setApStatus("pending"); setApOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New Request</Button></div>
-          <Table>
+          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setApName(""); setApType(""); setApStatus("pending"); setApOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New Request</Button></div>
+          <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-max">
             <TableHeader className=""><TableRow><TableHead className="text-xs">Student</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Submitted</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {apItems.map((a) => (
@@ -184,16 +191,18 @@ export default function StudentInformation() {
               {apItems.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">No approval requests</TableCell></TableRow>}
             </TableBody>
           </Table>
+          </div>
         </TabsContent>
 
         {/* Tab 5: Save as Draft */}
         <TabsContent value="draft">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setDName(""); setDCohort(""); setDFields(""); setDOpen(true); }}><FileText className="h-4 w-4 mr-1" /> New Draft</Button></div>
-          <div className="grid gap-4 sm:grid-cols-4 mb-6">
+          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setDName(""); setDCohort(""); setDFields(""); setDOpen(true); }}><FileText className="h-4 w-4 mr-1" /> New Draft</Button></div>
+          <div className="grid gap-4 sm:grid-cols-2 mb-6">
             <Card className="p-4"><p className="text-[10px] text-muted-foreground">Total Drafts</p><p className="text-2xl font-bold">{dItems.length}</p></Card>
             <Card className="p-4"><p className="text-[10px] text-muted-foreground">Pending Submit</p><p className="text-2xl font-bold">{dItems.filter((d) => !d.fields.includes("submitted")).length}</p></Card>
           </div>
-          <Table>
+          <div className="overflow-x-auto rounded-lg border">
+          <Table className="min-w-max">
             <TableHeader className=""><TableRow><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Fields</TableHead><TableHead className="text-xs">Saved</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {dItems.map((d) => (
@@ -208,6 +217,7 @@ export default function StudentInformation() {
               {dItems.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">No drafts</TableCell></TableRow>}
             </TableBody>
           </Table>
+          </div>
         </TabsContent>
 
         {/* Tab 6: Status Update */}
@@ -215,12 +225,13 @@ export default function StudentInformation() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Bulk Status Update</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <div><Label className="text-xs">Search Student</Label><Input value={suQuery} onChange={(e) => setSuQuery(e.target.value)} placeholder="Name or Reg No" /></div>
                 <div><Label className="text-xs">New Status</Label><Select value={suNewStatus} onValueChange={setSuNewStatus}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{stList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
                 <div className="flex items-end"><Button className="rounded-xl" disabled={!suQuery || !suNewStatus} onClick={() => { const all = rl().filter((r) => r.name.toLowerCase().includes(suQuery.toLowerCase()) || r.reg_no.toLowerCase().includes(suQuery.toLowerCase())); if (all.length === 0) { toast.error("No matches"); return; } const updated = rl().map((r) => all.find((m) => m.id === r.id) ? { ...r, status: suNewStatus } : r); rs(updated); refreshSu(); toast.success(`${all.length} updated to ${suNewStatus}`); }}><RefreshCw className="h-4 w-4 mr-1" /> Update</Button></div>
               </div>
-              <Table>
+              <div className="overflow-x-auto rounded-lg border">
+              <Table className="min-w-max">
                 <TableHeader className=""><TableRow><TableHead className="text-xs">Reg No</TableHead><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Current Status</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {suItems.filter((r) => !suQuery || r.name.toLowerCase().includes(suQuery.toLowerCase()) || r.reg_no.toLowerCase().includes(suQuery.toLowerCase())).map((r) => (
@@ -234,6 +245,7 @@ export default function StudentInformation() {
                   {suItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">No students registered</TableCell></TableRow>}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -17,6 +17,7 @@ const setViewport = (width: number, height: number) => {
 describe("mobile shell", () => {
   afterEach(() => {
     clearMobileShellRuntime();
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 0 });
     document.documentElement.className = "";
     document.documentElement.removeAttribute("data-mobile-shell");
     document.documentElement.removeAttribute("data-mobile-touch");
@@ -56,5 +57,15 @@ describe("mobile shell", () => {
     refreshMobileShellViewport();
     expect(getMobileShellSnapshot().isMobile).toBe(false);
   });
-});
 
+  it("treats touch tablets under 1024px as mobile", () => {
+    setViewport(900, 1200);
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 5 });
+
+    const snapshot = bootstrapMobileShellRuntime();
+
+    expect(snapshot.isMobile).toBe(true);
+    expect(snapshot.touchCapable).toBe(true);
+    expect(document.documentElement.dataset.mobileViewport).toBe("compact");
+  });
+});

@@ -1,3 +1,4 @@
+import "../../src/lib/runtime-storage";
 import { supabase } from "../../src/integrations/supabase/client";
 import { tableExists } from "../../src/lib/supabase-health";
 import { writeAuditEntry } from "../audit/service";
@@ -37,6 +38,78 @@ export interface PromotionRun {
   created_at?: string;
 }
 
+const LOCAL_RULES_KEY = "sms.promotion.rules.v1";
+const LOCAL_RUNS_KEY = "sms.promotion.runs.v1";
+
+const isBrowser = typeof window !== "undefined";
+const isNextBrowser = isBrowser && Boolean(document.querySelector("script#__NEXT_DATA__"));
+const useLocalPromotionStore = isBrowser && !isNextBrowser;
+
+function readLocalJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = globalThis.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalJson(key: string, value: unknown) {
+  try {
+    globalThis.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Local fallback should never block the UI.
+  }
+}
+
+function getLocalPromotionRules(): PromotionRule[] {
+  return readLocalJson<PromotionRule[]>(LOCAL_RULES_KEY, []);
+}
+
+function saveLocalPromotionRules(rules: PromotionRule[]) {
+  writeLocalJson(LOCAL_RULES_KEY, rules);
+}
+
+function getLocalPromotionRuns(): PromotionRun[] {
+  return readLocalJson<PromotionRun[]>(LOCAL_RUNS_KEY, []);
+}
+
+function saveLocalPromotionRuns(runs: PromotionRun[]) {
+  writeLocalJson(LOCAL_RUNS_KEY, runs);
+}
+
+function upsertLocalPromotionRule(rule: PromotionRule): PromotionRule {
+  const rules = getLocalPromotionRules();
+  const now = new Date().toISOString();
+  const next: PromotionRule = {
+    ...rule,
+    id: rule.id ?? crypto.randomUUID(),
+    created_at: rule.created_at ?? now,
+    updated_at: now,
+  };
+  const index = rules.findIndex((item) => item.id === next.id);
+  if (index >= 0) rules[index] = next;
+  else rules.unshift(next);
+  saveLocalPromotionRules(rules);
+  return next;
+}
+
+function removeLocalPromotionRule(id: string) {
+  saveLocalPromotionRules(getLocalPromotionRules().filter((rule) => rule.id !== id));
+}
+
+function appendLocalPromotionRun(run: PromotionRun): PromotionRun {
+  const runs = getLocalPromotionRuns();
+  const next: PromotionRun = {
+    ...run,
+    id: run.id ?? crypto.randomUUID(),
+    created_at: run.created_at ?? run.started_at,
+  };
+  runs.unshift(next);
+  saveLocalPromotionRuns(runs);
+  return next;
+}
+
 export function ruleToCriteria(r: PromotionRule): PromotionCriteria {
   return typeof r.criteria === "object" && r.criteria !== null ? r.criteria : {
     from_grade: "",
@@ -74,6 +147,7 @@ export interface StudentEligibility {
 }
 
 export async function getPromotionRules(): Promise<PromotionRule[]> {
+  if (useLocalPromotionStore) return getLocalPromotionRules();
   if (!(await tableExists("promotion_rules"))) return [];
   const { data, error } = await supabase.from("promotion_rules").select("*").order("name");
   if (error) throw error;
@@ -85,6 +159,7 @@ export async function getPromotionRules(): Promise<PromotionRule[]> {
 }
 
 export async function savePromotionRule(rule: PromotionRule): Promise<PromotionRule> {
+  if (useLocalPromotionStore) return upsertLocalPromotionRule(rule);
   if (!(await tableExists("promotion_rules"))) throw new Error("Run promotion migrations first");
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
@@ -118,11 +193,16 @@ export async function savePromotionRule(rule: PromotionRule): Promise<PromotionR
 }
 
 export async function deletePromotionRule(id: string): Promise<void> {
+  if (useLocalPromotionStore) {
+    removeLocalPromotionRule(id);
+    return;
+  }
   if (!(await tableExists("promotion_rules"))) return;
   await supabase.from("promotion_rules").delete().eq("id", id);
 }
 
 export async function getPromotionRuns(): Promise<PromotionRun[]> {
+  if (useLocalPromotionStore) return getLocalPromotionRuns();
   if (!(await tableExists("promotion_runs"))) return [];
   const { data, error } = await supabase.from("promotion_runs").select("*").order("started_at", { ascending: false });
   if (error) throw error;
@@ -220,6 +300,18 @@ export async function executePromotion(rule: PromotionRule, eligible: StudentEli
     started_at: now,
     completed_at: now,
   };
+
+  if (useLocalPromotionStore) {
+    const localRun = appendLocalPromotionRun(run as PromotionRun);
+    await writeAuditEntry({
+      actorId: userId,
+      action: "promotion.executed",
+      entity: "promotion_rules",
+      entityId: rule.id ?? "",
+      metadata: { rule: rule.name, promoted, failed, total: toPromote.length, localFallback: true },
+    });
+    return localRun;
+  }
 
   if (await tableExists("promotion_runs")) {
     const { data, error } = await supabase.from("promotion_runs").insert(run as any).select().single();

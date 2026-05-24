@@ -30,3 +30,11 @@ export {
   legacyRemarkTemplates,
 } from "../../../legacy/compat/scoringEngine";
 export type { LegacyExamType, LegacyMarkEntry } from "../../../legacy/compat/scoringEngine";
+
+export {
+  getMessagesLegacyCompatible,
+} from "./communications";
+export type {
+  LegacyMessageFilter,
+  LegacyMessageSummary,
+} from "./communications";

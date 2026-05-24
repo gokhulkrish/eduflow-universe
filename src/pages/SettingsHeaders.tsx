@@ -346,7 +346,7 @@ export default function SettingsHeaders() {
       />
 
       <Tabs defaultValue="overview">
-        <TabsList className="mb-4 flex flex-wrap">
+        <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="explorer">Explorer</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
@@ -359,7 +359,7 @@ export default function SettingsHeaders() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             <Card className="glass p-4">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Core sections</p>
               <p className="mt-2 font-display text-3xl font-bold">{activeCoreSections.length}</p>
@@ -589,7 +589,7 @@ export default function SettingsHeaders() {
                 {customFields.length ? (
                   customFields.map((field) => (
                     <div key={field.id} className="rounded-2xl border border-border/60 bg-card/60 p-4">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium">{field.label}</p>
@@ -598,10 +598,24 @@ export default function SettingsHeaders() {
                           <p className="mt-1 text-xs text-muted-foreground">{field.key} · v{field.version}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleEditCustomField(field)}>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg"
+                            onClick={() => handleEditCustomField(field)}
+                            aria-label={`Edit custom field ${field.label}`}
+                            title={`Edit ${field.label}`}
+                          >
                             <PencilLine className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-warning hover:text-warning" onClick={() => handleDeleteCustomField(field.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg text-warning hover:text-warning"
+                            onClick={() => handleDeleteCustomField(field.id)}
+                            aria-label={`Delete custom field ${field.label}`}
+                            title={`Delete ${field.label}`}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -664,10 +678,26 @@ export default function SettingsHeaders() {
                   <Switch checked={section.enabled} onCheckedChange={(checked) => updateSection(section.key, { enabled: checked })} />
                   {section.source === "core" ? (
                     <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => moveSection(section.key, -1)} disabled={section.order === 0}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={() => moveSection(section.key, -1)}
+                        disabled={section.order === 0}
+                        aria-label={`Move ${section.title} up`}
+                        title={`Move ${section.title} up`}
+                      >
                         <ArrowUp className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" onClick={() => moveSection(section.key, 1)} disabled={section.order >= activeCoreSections.length - 1}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={() => moveSection(section.key, 1)}
+                        disabled={section.order >= activeCoreSections.length - 1}
+                        aria-label={`Move ${section.title} down`}
+                        title={`Move ${section.title} down`}
+                      >
                         <ArrowDown className="h-4 w-4" />
                       </Button>
                     </div>

@@ -1,5 +1,6 @@
 import { supabase } from "../../src/integrations/supabase/client";
 import { tableExists } from "../../src/lib/supabase-health";
+import { refreshMonitoringSnapshot } from "../monitoring/snapshot";
 
 export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "od" | "excused" | "holiday" | "leave" | "unknown";
 
@@ -40,6 +41,11 @@ export async function markAttendance(
       } as any);
     if (error) throw error;
   }
+
+  const tenantId = await resolveStudentTenantId(studentId);
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
 }
 
 export async function bulkUploadAttendance(
@@ -62,6 +68,11 @@ export async function bulkUploadAttendance(
   );
 
   if (error) throw error;
+
+  const tenantId = await resolveBulkTenantId(records);
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
 }
 
 export async function overrideAttendance(
@@ -96,6 +107,11 @@ export async function overrideAttendance(
       reason,
     },
   } as any);
+
+  const tenantId = await resolveStudentTenantId(String(before.student_id ?? ""));
+  if (tenantId) {
+    void refreshMonitoringSnapshot({ tenantId }).catch(() => {});
+  }
 }
 
 export async function getAttendanceByDate(date: string, grade?: string, section?: string) {
@@ -113,4 +129,19 @@ export async function getAttendanceByDate(date: string, grade?: string, section?
   const { data, error } = await query.eq("date", date);
   if (error) throw error;
   return data ?? [];
+}
+
+async function resolveStudentTenantId(studentId: string): Promise<string | null> {
+  if (!studentId || !(await tableExists("students"))) return null;
+  const { data, error } = await supabase.from("students").select("institution_id").eq("id", studentId).maybeSingle();
+  if (error || !data?.institution_id) return null;
+  return data.institution_id;
+}
+
+async function resolveBulkTenantId(records: { studentId: string }[]): Promise<string | null> {
+  for (const record of records) {
+    const tenantId = await resolveStudentTenantId(record.studentId);
+    if (tenantId) return tenantId;
+  }
+  return null;
 }

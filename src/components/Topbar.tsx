@@ -68,7 +68,14 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => openTrace(true)} className="relative rounded-xl" title="Activity Trace">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => openTrace(true)}
+          className="relative rounded-xl"
+          aria-label="Open activity trace"
+          title="Activity Trace"
+        >
           <Activity className="h-4 w-4" />
           {traceCount > 0 && (
             <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{traceCount}</span>
@@ -76,7 +83,13 @@ export function Topbar() {
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative rounded-xl" title={`Focus mode: ${focusRuntime.label}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative rounded-xl"
+              aria-label={`Focus mode: ${focusRuntime.label}`}
+              title={`Focus mode: ${focusRuntime.label}`}
+            >
               {focusRuntime.active ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
           </DropdownMenuTrigger>
@@ -108,13 +121,26 @@ export function Topbar() {
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="rounded-xl"
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
+        >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative rounded-xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative rounded-xl"
+              aria-label="Open notifications"
+              title="Notifications"
+            >
               <Bell className="h-4 w-4" />
               <span className="absolute right-2 top-2 h-2 w-2 animate-pulse-glow rounded-full bg-primary" />
             </Button>

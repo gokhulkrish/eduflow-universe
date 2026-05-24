@@ -57,7 +57,7 @@ import { StickyActionBar } from "@/components/StickyActionBar";
 import ImportBatchDetailDialog from "@/components/ImportBatchDetailDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { subscribeAppSync } from "@/lib/app-sync";
+import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import {
   buildAutoMappingReport,
   buildImportPreview,
@@ -92,6 +92,7 @@ import {
 } from "@/lib/header-registry";
 import {
   createImportBatch,
+  importBatchSyncKey,
   saveImportBatches,
   loadImportBatchesFromDB,
   deleteImportBatch as deleteBatchFromDB,
@@ -928,6 +929,7 @@ export default function Import() {
       current.skippedCount = result.skipped;
       current.completedAt = new Date().toISOString();
       await saveImportBatches([current]);
+      emitAppSync(importBatchSyncKey);
       setSavedBatches((prev) => prev.map((b) => (b.batchId === current.batchId ? current : b)));
 
       setStep(6);
@@ -957,6 +959,7 @@ export default function Import() {
       current.status = "rolled_back";
       current.updatedAt = new Date().toISOString();
       await saveImportBatches([current]);
+      emitAppSync(importBatchSyncKey);
       setSavedBatches((prev) => prev.map((b) => (b.batchId === current.batchId ? current : b)));
       setCommitResult(null);
       const refreshed = await mod.adapter.loadExistingRecords();

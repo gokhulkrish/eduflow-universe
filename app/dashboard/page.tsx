@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Activity,
   AlertTriangle,
@@ -22,6 +23,9 @@ import { ModuleCardShell } from '../../components/modules/shared';
 import { designSystem, joinClasses } from '../../styles/design-system';
 import { primaryModuleDomains, primaryModules, type ModuleDefinition } from '../../lib/module-registry';
 import { subscribeToModuleCounts, type ModuleCountSnapshot } from '../../lib/realtime';
+import { buildErpWorkspaceUrl, resolveErpModuleRoute } from '@/lib/erp-workspace';
+import { useErpWorkspace } from '@/stores/erpWorkspace';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type SnapshotMap = Record<string, ModuleCountSnapshot>;
 type TrendMap = Record<string, number[]>;
@@ -104,11 +108,26 @@ export default function DashboardPage() {
   const [snapshots, setSnapshots] = useState<SnapshotMap>(() => buildSnapshotMap(primaryModules));
   const [trendMap, setTrendMap] = useState<TrendMap>(() => buildTrendMap(primaryModules));
   const [activeModule, setActiveModule] = useState<string>(primaryModules[0]?.key || 'home');
+  const router = useRouter();
+  const erpState = useErpWorkspace((state) => state.state);
+  const hydrateErpWorkspace = useErpWorkspace((state) => state.hydrate);
+  const switchErpModule = useErpWorkspace((state) => state.switchModule);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const tick = window.setInterval(() => setClock(nowInIstLabel(new Date())), 1000);
     return () => window.clearInterval(tick);
   }, []);
+
+  useEffect(() => {
+    void hydrateErpWorkspace();
+  }, [hydrateErpWorkspace]);
+
+  useEffect(() => {
+    if (erpState.activeModule) {
+      setActiveModule(erpState.activeModule);
+    }
+  }, [erpState.activeModule]);
 
   useEffect(() => {
     const subscriptions = primaryModules.map(module =>
@@ -155,6 +174,28 @@ export default function DashboardPage() {
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  async function launchModule(module: ModuleDefinition) {
+    const workspaceKey =
+      erpState.activeModule === module.key
+        ? erpState.activeWorkspaceKey
+        : module.workspaceKey || module.submodules[0] || 'overview';
+    const tabKey = erpState.activeModule === module.key ? erpState.activeTab : undefined;
+    const url = await switchErpModule(module.key, workspaceKey, tabKey, 'dashboard-launch');
+    const target = buildErpWorkspaceUrl(module.key, workspaceKey) ?? resolveErpModuleRoute(module.key);
+    setActiveModule(module.key);
+    const destination = url ?? target;
+    if (destination) {
+      router.push(destination);
+      toast.message(`Opening ${module.label}`, {
+        description: `${workspaceKey} workspace restored from the ERP state cache.`,
+      });
+    } else {
+      toast.message(`Stored ${module.label}`, {
+        description: 'This module does not yet have a route target, so the shell state was updated in place.',
+      });
+    }
+  }
+
   function notify(action: string, module: ModuleDefinition) {
     toast.message(`${action} ${module.label}`, {
       description: `Keeping ${module.label} in the live dashboard loop.`,
@@ -162,8 +203,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className={joinClasses(designSystem.classNames.shell.page, 'min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-975 dark:text-slate-50')}>
-      <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-5 px-4 py-4 lg:px-6">
+    <main
+      data-mobile-shell={isMobile ? 'on' : 'off'}
+      className={joinClasses(designSystem.classNames.shell.page, 'mobile-collision-surface min-h-[100dvh] bg-slate-50 text-slate-950 dark:bg-slate-975 dark:text-slate-50')}
+    >
+      <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1800px] flex-col gap-5 px-4 py-4 lg:px-6">
         <header className={joinClasses(designSystem.classNames.shell.panelStrong, 'flex flex-col gap-4 p-4 lg:p-5')}>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0 space-y-2">
@@ -294,7 +338,7 @@ export default function DashboardPage() {
                           count={snapshot?.count ?? 0}
                           trend={trend}
                           onAdd={current => notify('Add', current)}
-                          onView={current => focusModule(current)}
+                          onOpen={current => void launchModule(current)}
                           onAlert={current => notify('Alert for', current)}
                         />
                       </div>

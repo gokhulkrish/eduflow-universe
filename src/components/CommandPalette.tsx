@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Command } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { performGlobalSearch } from "@/lib/global-search";
 
 export function CommandPalette() {
@@ -37,7 +37,8 @@ export function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-xl top-[15%] translate-y-0">
+      <DialogContent className="top-4 w-[calc(100vw-1rem)] max-w-xl translate-y-0 sm:top-[15%] sm:w-full">
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

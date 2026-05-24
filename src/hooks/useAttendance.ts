@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { tableExists } from "@/lib/supabase-health";
+import { emitAppSync } from "@/lib/app-sync";
+
+const attendanceSyncKey = "sms.attendance.v1";
 
 export function useAttendanceByDate(date: string, grade?: string, section?: string) {
   return useQuery({
@@ -40,6 +43,9 @@ export function useMarkAttendance() {
       );
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["attendance"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["attendance"] });
+      emitAppSync(attendanceSyncKey);
+    },
   });
 }

@@ -117,7 +117,9 @@ const SidebarProvider = React.forwardRef<
               ...style,
             } as React.CSSProperties
           }
-          className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)}
+          // Keep the default `group` name so the descendant `group-data-*` utilities
+          // below actually receive the sidebar state/variant selectors.
+          className={cn("group flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)}
           ref={ref}
           {...props}
         >
@@ -160,6 +162,7 @@ const Sidebar = React.forwardRef<
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
+          accessibleTitle="Sidebar navigation"
           data-sidebar="sidebar"
           data-mobile="true"
           className="w-[--sidebar-width] max-h-[100dvh] overflow-hidden bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
