@@ -1,0 +1,496 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/lib/import-engine/adapters/assignments-adapter.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/lib/import-engine/adapters</a> assignments-adapter.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">32.23% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>39/121</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/3</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">32.23% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>39/121</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
+&nbsp;
+const fieldGroups: ImportModuleFieldGroup[] = [
+  {
+    title: "Assignment Info",
+    fields: [
+      { key: "title", label: "Assignment Title", aliases: ["title", "assignment_title", "assignment name", "task"], required: true },
+      { key: "subject", label: "Subject", aliases: ["subject", "subject_name", "sub"] },
+      { key: "maxMarks", label: "Max Marks", aliases: ["max_marks", "maximum marks", "total marks"], required: true },
+      { key: "dueDate", label: "Due Date", aliases: ["due_date", "due date", "deadline", "submission date"] },
+      { key: "description", label: "Description", aliases: ["description", "desc", "instructions"] },
+    ],
+  },
+  {
+    title: "Student Submission",
+    fields: [
+      { key: "admissionNo", label: "Student Admission No", aliases: ["admission_no", "admission number", "student_id", "reg_no", "roll_no"], required: true },
+      { key: "fullName", label: "Student Name", aliases: ["name", "student_name", "full_name"] },
+      { key: "grade", label: "Grade / Class", aliases: ["grade", "class", "standard"] },
+      { key: "section", label: "Section", aliases: ["section", "division"] },
+    ],
+  },
+  {
+    title: "Grading",
+    fields: [
+      { key: "marks", label: "Marks Obtained", aliases: ["marks", "score", "obtained", "grade"] },
+      { key: "feedback", label: "Feedback", aliases: ["feedback", "comments", "remarks"] },
+      { key: "status", label: "Status", aliases: ["status", "submission_status"] },
+    ],
+  },
+];
+&nbsp;
+const matchStrategies: ImportModuleMatchStrategy[] = [
+  { id: "admission_only", label: "Admission Number Only", fields: ["admissionNo"] },
+  { id: "name_only", label: "Student Name Only", fields: ["fullName"] },
+  { id: "admission_or_name", label: "Admission No OR Name", fields: ["admissionNo", "fullName"] },
+];
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async function loadExistingRecords(): Promise&lt;Record&lt;string, unknown&gt;[]&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >  const { supabase } = await import("@/integrations/supabase/client");</span>
+<span class="cstat-no" title="statement not covered" >  const { data } = await (supabase.from("students") as any).select("id, admission_no, first_name, last_name");</span>
+<span class="cstat-no" title="statement not covered" >  return (data || []).map((s: Record&lt;string, unknown&gt;) =&gt; ({</span>
+<span class="cstat-no" title="statement not covered" >    studentId: s.id, admissionNo: s.admission_no, fullName: [s.first_name, s.last_name].filter(Boolean).join(" "),</span>
+<span class="cstat-no" title="statement not covered" >  }));</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promise&lt;ImportCommitResult&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >  const { supabase } = await import("@/integrations/supabase/client");</span>
+<span class="cstat-no" title="statement not covered" >  const { emitAppSync } = await import("@/lib/app-sync");</span>
+<span class="cstat-no" title="statement not covered" >  let inserted = 0, updated = 0, skipped = 0, failed = 0;</span>
+<span class="cstat-no" title="statement not covered" >  const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];</span>
+<span class="cstat-no" title="statement not covered" >  const errors: { rowNumber: number; message: string }[] = [];</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  for (const row of rows) {</span>
+<span class="cstat-no" title="statement not covered" >    if (row.action === "skip") { skipped++; continue; }</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";</span>
+<span class="cstat-no" title="statement not covered" >      const { data: student } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();</span>
+<span class="cstat-no" title="statement not covered" >      if (!student) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` }); continue; }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      const title = row.mapped.title || row.sourceRow.title || "";</span>
+<span class="cstat-no" title="statement not covered" >      const subject = row.mapped.subject || row.sourceRow.subject || "";</span>
+<span class="cstat-no" title="statement not covered" >      const maxMarks = parseFloat(row.mapped.maxMarks || "0");</span>
+<span class="cstat-no" title="statement not covered" >      const dueDate = row.mapped.dueDate || null;</span>
+<span class="cstat-no" title="statement not covered" >      const description = row.mapped.description || null;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (!title) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: "Assignment title is required" }); continue; }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      let assignmentId: string | null = null;</span>
+<span class="cstat-no" title="statement not covered" >      const { data: assignments } = await supabase.from("assignments").select("id").eq("title", title).limit(1);</span>
+<span class="cstat-no" title="statement not covered" >      if (assignments &amp;&amp; assignments.length &gt; 0) assignmentId = assignments[0].id;</span>
+<span class="cstat-no" title="statement not covered" >      if (!assignmentId) {</span>
+<span class="cstat-no" title="statement not covered" >        const { data: newAssignment } = await (supabase.from("assignments") as any).insert({</span>
+<span class="cstat-no" title="statement not covered" >          title, description, due_date: dueDate, max_marks: maxMarks || 100, subject_id: null, class_id: null, status: "active", attachments: null,</span>
+<span class="cstat-no" title="statement not covered" >        }).select().single();</span>
+<span class="cstat-no" title="statement not covered" >        if (newAssignment) assignmentId = newAssignment.id;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      const marks = row.mapped.marks ? parseFloat(row.mapped.marks) : null;</span>
+<span class="cstat-no" title="statement not covered" >      const feedback = row.mapped.feedback || null;</span>
+<span class="cstat-no" title="statement not covered" >      const subStatus = row.mapped.status || "submitted";</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (row.action === "insert") {</span>
+<span class="cstat-no" title="statement not covered" >        const { data: result, error } = await (supabase.from("submissions") as any).insert({</span>
+<span class="cstat-no" title="statement not covered" >          assignment_id: assignmentId, student_id: student.id,</span>
+<span class="cstat-no" title="statement not covered" >          content: null, file_url: null, status: subStatus, marks, feedback,</span>
+<span class="cstat-no" title="statement not covered" >        }).select().single();</span>
+<span class="cstat-no" title="statement not covered" >        if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }</span>
+<span class="cstat-no" title="statement not covered" >        else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }</span>
+<span class="cstat-no" title="statement not covered" >      } else if (row.action === "update") {</span>
+<span class="cstat-no" title="statement not covered" >        const { data: existingSub } = await supabase.from("submissions").select("id").eq("assignment_id", assignmentId).eq("student_id", student.id).maybeSingle();</span>
+<span class="cstat-no" title="statement not covered" >        if (existingSub) {</span>
+<span class="cstat-no" title="statement not covered" >          const { error } = await (supabase.from("submissions") as any).update({ marks, feedback, status: subStatus }).eq("id", existingSub.id);</span>
+<span class="cstat-no" title="statement not covered" >          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }</span>
+<span class="cstat-no" title="statement not covered" >          else { updated++; rowResults.push({ rowKey: row.rowKey, id: existingSub.id, action: "updated" }); }</span>
+<span class="cstat-no" title="statement not covered" >        } else {</span>
+<span class="cstat-no" title="statement not covered" >          const { data: result, error } = await (supabase.from("submissions") as any).insert({</span>
+<span class="cstat-no" title="statement not covered" >            assignment_id: assignmentId, student_id: student.id, status: subStatus, marks, feedback,</span>
+<span class="cstat-no" title="statement not covered" >          }).select().single();</span>
+<span class="cstat-no" title="statement not covered" >          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }</span>
+<span class="cstat-no" title="statement not covered" >          else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    } catch (err) {</span>
+<span class="cstat-no" title="statement not covered" >      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  emitAppSync("sms.assignments.v1");</span>
+<span class="cstat-no" title="statement not covered" >  return { inserted, updated, skipped, failed, errors, rowResults };</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async function rollbackRows(rollbackData: ImportRollbackEntry[]): Promise&lt;{ success: boolean; restored: number }&gt; {</span></span>
+<span class="cstat-no" title="statement not covered" >  const { supabase } = await import("@/integrations/supabase/client");</span>
+<span class="cstat-no" title="statement not covered" >  let restored = 0, success = true;</span>
+<span class="cstat-no" title="statement not covered" >  for (const entry of rollbackData) {</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      if (entry.changeType === "inserted") {</span>
+<span class="cstat-no" title="statement not covered" >        const { error } = await supabase.from("submissions").delete().eq("id", entry.studentKey);</span>
+<span class="cstat-no" title="statement not covered" >        if (!error) restored++;</span>
+<span class="cstat-no" title="statement not covered" >        else { const { error: e2 } = await supabase.from("assignments").delete().eq("id", entry.studentKey); if (!e2) restored++; else throw e2; }</span>
+<span class="cstat-no" title="statement not covered" >      } else if (entry.changeType === "updated") {</span>
+<span class="cstat-no" title="statement not covered" >        const { error } = await supabase.from("submissions").update(entry.previousState as any).eq("id", entry.studentKey);</span>
+<span class="cstat-no" title="statement not covered" >        if (!error) restored++;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    } catch { success = false; }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  return { success, restored };</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+export const assignmentsModule: ImportModule = {
+  id: "assignments",
+  name: "Assignments",
+  description: "Import assignment submissions, grades, and feedback by student",
+  icon: "FileCheck",
+  fieldGroups, matchStrategies,
+  adapter: { loadExistingRecords, commitRows, rollbackRows },
+};
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-05-24T08:13:26.952Z
+            </div>
+        <script src="../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../sorter.js"></script>
+        <script src="../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

@@ -4,13 +4,15 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+const hmrHost = process.env.VITE_HMR_HOST?.trim();
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: 3000,
     hmr: {
       protocol: "ws",
-      host: process.env.VITE_HMR_HOST || "localhost",
+      ...(hmrHost ? { host: hmrHost } : {}),
       port: process.env.VITE_HMR_PORT ? parseInt(process.env.VITE_HMR_PORT) : 3000,
       overlay: false,
     },
@@ -25,15 +27,35 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          query: ["@tanstack/react-query"],
-          ui: [
-            "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover",
-            "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip",
-            "@radix-ui/react-toast", "@radix-ui/react-switch",
-          ],
-          charts: ["recharts"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react-router-dom") || id.includes("/react-dom") || id.includes("/react/")) return "vendor";
+            if (id.includes("@tanstack/react-query")) return "query";
+            if (id.includes("recharts")) return "charts";
+            if (
+              id.includes("@radix-ui/react-dialog") ||
+              id.includes("@radix-ui/react-dropdown-menu") ||
+              id.includes("@radix-ui/react-popover") ||
+              id.includes("@radix-ui/react-select") ||
+              id.includes("@radix-ui/react-tabs") ||
+              id.includes("@radix-ui/react-tooltip") ||
+              id.includes("@radix-ui/react-toast") ||
+              id.includes("@radix-ui/react-switch")
+            ) {
+              return "ui";
+            }
+            if (id.includes("@supabase/supabase-js")) return "supabase";
+            if (id.includes("jspdf")) return "jspdf";
+            if (id.includes("html2canvas")) return "html2canvas";
+            if (id.includes("xlsx")) return "xlsx";
+          }
+
+          const normalized = id.replace(/\\/g, "/");
+          if (normalized.includes("/src/lib/import-engine/")) return "import-engine";
+          if (normalized.includes("/src/lib/")) return "lib";
+          if (normalized.includes("/src/components/")) return "components";
+          if (normalized.includes("/src/hooks/")) return "hooks";
+          return undefined;
         },
       },
     },

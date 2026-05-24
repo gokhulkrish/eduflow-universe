@@ -10,7 +10,7 @@ import {
 
 describe("state normalization", () => {
   it("normalizes shell state with safe defaults", () => {
-    const state = normalizeShellState({ focus: "true", theme: "dark", layoutMode: "mobile" });
+    const state = normalizeShellState({ focus: "true" as any, theme: "dark", layoutMode: "mobile" });
     expect(state.focus).toBe(true);
     expect(state.theme).toBe("dark");
     expect(state.layoutMode).toBe("mobile");
@@ -18,10 +18,10 @@ describe("state normalization", () => {
   });
 
   it("normalizes workspace, registry, panel, settings, and context shapes", () => {
-    expect(normalizeWorkspaceState({ workspaceKey: 12, searchQuery: false }).workspaceKey).toBe("12");
-    expect(normalizeRegistryState({ filters: ["one", 2, null] }).filters).toEqual(["one", "2"]);
-    expect(normalizePanelVisibilityState({ openPanels: ["left", "right"], modalOpen: "yes" }).modalOpen).toBe(true);
-    expect(normalizeSettingsState({ activeSectionKey: null }).activeSectionKey).toBe("general");
+    expect(normalizeWorkspaceState({ workspaceKey: 12 as any, searchQuery: false as any }).workspaceKey).toBe("12");
+    expect(normalizeRegistryState({ filters: ["one", 2 as any, null as any] }).filters).toEqual(["one", "2"]);
+    expect(normalizePanelVisibilityState({ openPanels: ["left", "right"], modalOpen: "yes" as any }).modalOpen).toBe(true);
+    expect(normalizeSettingsState({ activeSectionKey: null as any }).activeSectionKey).toBe("general");
     expect(normalizeContextState({ contextKey: "", routeKey: "/settings" }).routeKey).toBe("/settings");
   });
 });

@@ -1,0 +1,268 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/lib/placement.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/lib</a> placement.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/61</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/61</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import "@/lib/runtime-storage";</span></span></span>
+<span class="cstat-no" title="statement not covered" >import { emitAppSync } from "@/lib/app-sync";</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export type Company = { id: string; name: string; industry: string; website: string; contacts: string; past_drives: number; offers_made: number; created_at: string; };</span>
+<span class="cstat-no" title="statement not covered" >export type JobPosting = { id: string; title: string; company: string; company_id: string; location: string; description: string; requirements: string; salary: string; vacancy: number; deadline: string; status: string; created_at: string; };</span>
+<span class="cstat-no" title="statement not covered" >export type PlacementRegistration = { id: string; job_id: string; student: string; registered_at: string; status: string; };</span>
+<span class="cstat-no" title="statement not covered" >export type InterviewStage = { id: string; reg_id: string; stage: string; status: string; feedback: string; conducted_at: string; };</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export const companiesKey = "eduflow_companies";</span>
+<span class="cstat-no" title="statement not covered" >export const jobsKey = "eduflow_jobs";</span>
+<span class="cstat-no" title="statement not covered" >export const placementRegistrationsKey = "eduflow_placement_regs";</span>
+<span class="cstat-no" title="statement not covered" >export const interviewStagesKey = "eduflow_interviews";</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >function ls&lt;T&gt;(k: string, def: T): T { try { return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(def)); } catch { return def; } }</span>
+<span class="cstat-no" title="statement not covered" >function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emitAppSync(k); }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export function getCompanies(): Company[] { return ls(companiesKey, []); }</span>
+<span class="cstat-no" title="statement not covered" >export function createCompany(c: Omit&lt;Company, "id" | "created_at"&gt;): Company {</span>
+<span class="cstat-no" title="statement not covered" >  const items = getCompanies(); const n = { ...c, id: crypto.randomUUID(), created_at: new Date().toISOString() };</span>
+<span class="cstat-no" title="statement not covered" >  items.unshift(n); ss(companiesKey, items); return n;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function updateCompany(id: string, p: Partial&lt;Company&gt;) { const items = getCompanies(); const i = items.findIndex((x) =&gt; x.id === id); if (i &gt;= 0) { items[i] = { ...items[i], ...p }; ss(companiesKey, items); } }</span>
+<span class="cstat-no" title="statement not covered" >export function deleteCompany(id: string) { ss(companiesKey, getCompanies().filter((x) =&gt; x.id !== id)); }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export function getJobs(): JobPosting[] { return ls(jobsKey, []); }</span>
+<span class="cstat-no" title="statement not covered" >export function createJob(j: Omit&lt;JobPosting, "id" | "created_at"&gt;): JobPosting {</span>
+<span class="cstat-no" title="statement not covered" >  const items = getJobs(); const n = { ...j, id: crypto.randomUUID(), created_at: new Date().toISOString() };</span>
+<span class="cstat-no" title="statement not covered" >  items.unshift(n); ss(jobsKey, items); return n;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function updateJob(id: string, p: Partial&lt;JobPosting&gt;) { const items = getJobs(); const i = items.findIndex((x) =&gt; x.id === id); if (i &gt;= 0) { items[i] = { ...items[i], ...p }; ss(jobsKey, items); } }</span>
+<span class="cstat-no" title="statement not covered" >export function deleteJob(id: string) { ss(jobsKey, getJobs().filter((x) =&gt; x.id !== id)); }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export function getRegistrations(jobId?: string): PlacementRegistration[] {</span>
+<span class="cstat-no" title="statement not covered" >  const all = ls(placementRegistrationsKey, [] as PlacementRegistration[]); return jobId ? all.filter((r) =&gt; r.job_id === jobId) : all;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function registerStudent(jobId: string, student: string): PlacementRegistration {</span>
+<span class="cstat-no" title="statement not covered" >  const items = ls(placementRegistrationsKey, [] as PlacementRegistration[]); const n = { id: crypto.randomUUID(), job_id: jobId, student, registered_at: new Date().toISOString(), status: "registered" };</span>
+<span class="cstat-no" title="statement not covered" >  items.push(n); ss(placementRegistrationsKey, items); return n;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function updateRegistration(id: string, status: string) {</span>
+<span class="cstat-no" title="statement not covered" >  const items = ls(placementRegistrationsKey, [] as PlacementRegistration[]); const i = items.findIndex((r) =&gt; r.id === id); if (i &gt;= 0) { items[i].status = status; ss(placementRegistrationsKey, items); }</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export function getInterviews(regId?: string): InterviewStage[] {</span>
+<span class="cstat-no" title="statement not covered" >  const all = ls(interviewStagesKey, [] as InterviewStage[]); return regId ? all.filter((x) =&gt; x.reg_id === regId) : all;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function addInterviewStage(regId: string, stage: string): InterviewStage {</span>
+<span class="cstat-no" title="statement not covered" >  const items = ls(interviewStagesKey, [] as InterviewStage[]); const n = { id: crypto.randomUUID(), reg_id: regId, stage, status: "pending", feedback: "", conducted_at: "" };</span>
+<span class="cstat-no" title="statement not covered" >  items.push(n); ss(interviewStagesKey, items); return n;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >export function updateInterviewStage(id: string, p: Partial&lt;InterviewStage&gt;) {</span>
+<span class="cstat-no" title="statement not covered" >  const items = ls(interviewStagesKey, [] as InterviewStage[]); const i = items.findIndex((x) =&gt; x.id === id); if (i &gt;= 0) { items[i] = { ...items[i], ...p }; ss(interviewStagesKey, items); }</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export function getPlacementAnalytics() {</span>
+<span class="cstat-no" title="statement not covered" >  const jobs = getJobs(); const regs = getRegistrations(); const companies = getCompanies();</span>
+<span class="cstat-no" title="statement not covered" >  const openJobs = jobs.filter((j) =&gt; j.status === "open");</span>
+<span class="cstat-no" title="statement not covered" >  const totalVacancies = openJobs.reduce((s, j) =&gt; s + (j.vacancy || 1), 0);</span>
+<span class="cstat-no" title="statement not covered" >  const placed = regs.filter((r) =&gt; r.status === "placed");</span>
+<span class="cstat-no" title="statement not covered" >  return { totalJobs: jobs.length, openJobs: openJobs.length, totalVacancies, totalRegistrations: regs.length, placed: placed.length, companies: companies.length, avgSalary: jobs.filter((j) =&gt; j.salary).reduce((s, j) =&gt; s + (Number(j.salary.replace(/[^0-9.]/g, "")) || 0), 0) / Math.max(1, jobs.filter((j) =&gt; j.salary).length) };</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-05-24T08:13:26.952Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

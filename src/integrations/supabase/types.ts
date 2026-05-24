@@ -4051,8 +4051,439 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_imports: {
+        Row: {
+          created_at: string
+          file_count: number
+          id: string
+          imported_by: string
+          row_count: number
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_count?: number
+          id?: string
+          imported_by: string
+          row_count?: number
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_count?: number
+          id?: string
+          imported_by?: string
+          row_count?: number
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      import_files: {
+        Row: {
+          batch_id: string
+          created_at: string
+          file_name: string
+          id: string
+          row_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          file_name: string
+          id?: string
+          row_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          row_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_files_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_imports"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      import_rows: {
+        Row: {
+          created_at: string
+          file_id: string
+          id: string
+          raw_data: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_id: string
+          id?: string
+          raw_data: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_id?: string
+          id?: string
+          raw_data?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "import_files"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      import_row_errors: {
+        Row: {
+          created_at: string
+          error_message: string
+          field: string
+          id: string
+          row_id: string
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          field: string
+          id?: string
+          row_id: string
+          severity?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          field?: string
+          id?: string
+          row_id?: string
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_row_errors_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "import_rows"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      message_templates: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          institution_id: string
+          name: string
+          type: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          institution_id: string
+          name: string
+          type: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          institution_id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
+      message_campaigns: {
+        Row: {
+          created_at: string
+          id: string
+          institution_id: string
+          scheduled_at: string | null
+          sent_count: number
+          status: string
+          template_id: string
+          total_recipients: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          institution_id: string
+          scheduled_at?: string | null
+          sent_count?: number
+          status?: string
+          template_id: string
+          total_recipients?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          institution_id?: string
+          scheduled_at?: string | null
+          sent_count?: number
+          status?: string
+          template_id?: string
+          total_recipients?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      message_logs: {
+        Row: {
+          campaign_id: string | null
+          channel: string
+          created_at: string
+          id: string
+          recipient: string
+          sent_at: string | null
+          status: string
+          template_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          channel: string
+          created_at?: string
+          id?: string
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          template_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "message_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      promotion_rules: {
+        Row: {
+          created_at: string
+          criteria: Json
+          grade: string
+          id: string
+          institution_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criteria: Json
+          grade: string
+          id?: string
+          institution_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criteria?: Json
+          grade?: string
+          id?: string
+          institution_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promotion_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          initiated_by: string
+          promoted_count: number
+          rule_id: string
+          started_at: string
+          status: string
+          total_eligible: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          initiated_by: string
+          promoted_count?: number
+          rule_id: string
+          started_at?: string
+          status?: string
+          total_eligible?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          promoted_count?: number
+          rule_id?: string
+          started_at?: string
+          status?: string
+          total_eligible?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_runs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "promotion_rules"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      promotion_results: {
+        Row: {
+          created_at: string
+          id: string
+          new_grade: string
+          new_section: string | null
+          promotion_run_id: string
+          reason: string | null
+          status: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_grade: string
+          new_section?: string | null
+          promotion_run_id: string
+          reason?: string | null
+          status?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_grade?: string
+          new_section?: string | null
+          promotion_run_id?: string
+          reason?: string | null
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_results_promotion_run_id_fkey"
+            columns: ["promotion_run_id"]
+            isOneToOne: false
+            referencedRelation: "promotion_runs"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      remarks_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          institution_id: string
+          max_score: number
+          min_score: number
+          template: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          institution_id: string
+          max_score: number
+          min_score: number
+          template: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          institution_id?: string
+          max_score?: number
+          min_score?: number
+          template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
+      monitoring_overview: {
+        Row: {
+          admission_no: string | null
+          attendance_percent: number | null
+          display_name: string | null
+          enrollment_status: string | null
+          exam_percent: number | null
+          grade_label: string | null
+          section_label: string | null
+          student_id: string
+          subjective_score: number | null
+        }
+        Relationships: []
+      }
       fee_collection_summary: {
         Row: {
           academic_year_id: string | null

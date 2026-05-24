@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
@@ -168,6 +169,19 @@ export type ImportProfile = {
 };
 
 export type ImportTargetBinding = ImportTargetFieldKey | `custom:${string}` | "ignore";
+
+export type ImportMappingConflict = {
+  target: ImportTargetBinding;
+  keptHeader: string;
+  droppedHeaders: string[];
+  score: number;
+  reason: string;
+};
+
+export type ImportAutoMappingReport = {
+  mapping: Record<string, ImportTargetBinding>;
+  conflicts: ImportMappingConflict[];
+};
 
 const getCustomFieldBindingKey = (id: string): `custom:${string}` => `custom:${id}`;
 
@@ -452,39 +466,122 @@ const getFieldScore = (header: string, field: ImportFieldCandidate) => {
   return best;
 };
 
-const matchHeadersToFields = (headers: string[], customFields: ImportCustomFieldDefinition[] = []) => {
+const getBestCandidateForHeader = (
+  header: string,
+  candidates: ImportFieldCandidate[],
+  minimumScore: number,
+) => {
+  let bestField: ImportTargetBinding | null = null;
+  let bestScore = 0;
+
+  for (const field of candidates) {
+    const score = getFieldScore(header, field);
+    if (score > bestScore) {
+      bestScore = score;
+      bestField = field.key;
+    }
+  }
+
+  return {
+    header,
+    target: bestField && bestScore >= minimumScore ? bestField : ("ignore" as ImportTargetBinding),
+    score: bestScore,
+  };
+};
+
+const buildImportFieldCandidates = (customFields: ImportCustomFieldDefinition[] = []) => [
+  ...importTargetFields.map((field) => ({
+    key: field.key,
+    label: field.label,
+    aliases: field.aliases,
+  })),
+  ...customFields.map((field) => ({
+    key: getCustomFieldBindingKey(field.id),
+    label: field.label || field.key,
+    aliases: [field.key, field.label, ...field.aliases].filter(Boolean),
+  })),
+];
+
+const matchHeadersToFields = (
+  headers: string[],
+  customFields: ImportCustomFieldDefinition[] = [],
+  minimumScore = 0.62,
+) => {
   const mapping: Record<string, ImportTargetBinding> = {};
-  const usedFields = new Set<string>();
-  const candidates: ImportFieldCandidate[] = [
-    ...importTargetFields.map((field) => ({
-      key: field.key,
-      label: field.label,
-      aliases: field.aliases,
-    })),
-    ...customFields.map((field) => ({
-      key: getCustomFieldBindingKey(field.id),
-      label: field.label || field.key,
-      aliases: [field.key, field.label, ...field.aliases].filter(Boolean),
-    })),
-  ];
+  const candidates = buildImportFieldCandidates(customFields);
 
   for (const header of headers) {
-    let bestField: ImportTargetBinding | null = null;
-    let bestScore = 0;
-    for (const field of candidates) {
-      if (usedFields.has(field.key)) continue;
-      const score = getFieldScore(header, field);
-      if (score > bestScore) {
-        bestScore = score;
-        bestField = field.key;
-      }
-    }
-    mapping[header] = bestField && bestScore >= 0.62 ? bestField : "ignore";
-    if (bestField && bestScore >= 0.62) usedFields.add(bestField);
+    const best = getBestCandidateForHeader(header, candidates, minimumScore);
+    mapping[header] = best.target;
   }
 
   return mapping;
 };
+
+export function buildAutoMappingReport(
+  headers: string[],
+  customFields: ImportCustomFieldDefinition[] = [],
+  options: {
+    preferredBindings?: Record<string, ImportTargetBinding>;
+    minimumScore?: number;
+  } = {},
+): ImportAutoMappingReport {
+  const preferredBindings = options.preferredBindings ?? {};
+  const minimumScore = options.minimumScore ?? 0.62;
+  const candidates = buildImportFieldCandidates(customFields);
+  const entries = headers.map((header) => getBestCandidateForHeader(header, candidates, minimumScore));
+  const mapping: Record<string, ImportTargetBinding> = {};
+  const order = new Map(headers.map((header, index) => [header, index]));
+  const preferredHeaders = new Set(Object.keys(preferredBindings));
+
+  for (const entry of entries) {
+    mapping[entry.header] = entry.target;
+  }
+
+  for (const [header, target] of Object.entries(preferredBindings)) {
+    if (headers.includes(header) && target) {
+      mapping[header] = target;
+    }
+  }
+
+  const conflicts: ImportMappingConflict[] = [];
+  const byTarget = new Map<ImportTargetBinding, typeof entries>();
+  for (const entry of entries) {
+    const target = mapping[entry.header];
+    if (!target || target === "ignore") continue;
+    const next = byTarget.get(target) ?? [];
+    next.push(entry);
+    byTarget.set(target, next);
+  }
+
+  for (const [target, grouped] of byTarget.entries()) {
+    if (grouped.length < 2) continue;
+
+    const sorted = [...grouped].sort((left, right) => {
+      const leftPreferred = preferredHeaders.has(left.header) ? 1 : 0;
+      const rightPreferred = preferredHeaders.has(right.header) ? 1 : 0;
+      if (leftPreferred !== rightPreferred) return rightPreferred - leftPreferred;
+      if (right.score !== left.score) return right.score - left.score;
+      return (order.get(left.header) ?? 0) - (order.get(right.header) ?? 0);
+    });
+
+    const [winner, ...losers] = sorted;
+    mapping[winner.header] = target;
+    for (const loser of losers) {
+      mapping[loser.header] = "ignore";
+    }
+
+    conflicts.push({
+      target,
+      keptHeader: winner.header,
+      droppedHeaders: losers.map((entry) => entry.header),
+      score: winner.score,
+      reason: `Resolved duplicate mapping for "${String(target)}" by keeping "${winner.header}".`,
+    });
+  }
+
+  return { mapping, conflicts };
+}
 
 const countBy = <T,>(items: T[], keyFn: (item: T) => string) => {
   const counts = new Map<string, number>();
@@ -575,7 +672,7 @@ export function deleteImportProfile(id: string) {
 }
 
 export function buildAutoMapping(headers: string[], customFields: ImportCustomFieldDefinition[] = []) {
-  return matchHeadersToFields(headers, customFields);
+  return buildAutoMappingReport(headers, customFields).mapping;
 }
 
 export async function parseImportFile(file: File): Promise<ParsedImportFile> {

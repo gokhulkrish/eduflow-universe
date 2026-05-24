@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
 import { Swords, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";

@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type Transaction = { id: string; date: string; description: string; category: string; type: "income" | "expense"; amount: number; reference: string; };

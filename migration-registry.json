@@ -19,42 +19,42 @@
     {
       "key": "patch-003-runtime-shell-compatibility",
       "label": "Patch 003: Runtime shell compatibility",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-004-state-normalization",
       "label": "Patch 004: State normalization",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-005-workspace-actions",
       "label": "Patch 005: Workspace actions",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-006-settings-orchestration",
       "label": "Patch 006: Settings orchestration",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-007-registry-core",
       "label": "Patch 007: Registry core",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-008-registry-explorer",
       "label": "Patch 008: Registry explorer",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-009-student-workspace",
       "label": "Patch 009: Student workspace",
-      "defaultEnabled": false
+      "defaultEnabled": true
     },
     {
       "key": "patch-010-erp-context",
       "label": "Patch 010: ERP context",
-      "defaultEnabled": false
+      "defaultEnabled": true
     }
   ]
 }

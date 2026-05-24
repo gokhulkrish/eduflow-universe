@@ -1,6 +1,9 @@
+import "@/lib/runtime-storage";
 import type { Json } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import { studentSections, type SectionDef } from "@/lib/student-records";
 import { emitAppSync } from "@/lib/app-sync";
+import { tableExists } from "@/lib/supabase-health";
 import {
   deleteCustomImportField,
   deleteImportProfile,
@@ -15,6 +18,13 @@ import {
 } from "@/lib/student-import";
 
 export const registryStorageKey = "sms.header-registry.settings.v1";
+export const instituteRegistryStorageKey = "sms.header-registry.institute.v1";
+export const registryFieldOverridesStorageKey = "sms.header-registry.overrides.v1";
+export const registrySnapshotStorageKey = "sms.header-registry.snapshot.v1";
+export const registryFetchedHeadersStorageKey = "sms.header-registry.fetched-headers.v1";
+export const registryFetchedHeaderMetaStorageKey = "sms.header-registry.fetched-meta.v1";
+export const registryColumnSettingsStorageKey = "sms.header-registry.column-settings.v1";
+export const registryFilterPresetsStorageKey = "sms.header-registry.filter-presets.v1";
 
 export const customHeadersSectionKey = "custom-headers";
 
@@ -458,9 +468,6 @@ export type HeaderRegistryFieldCache = {
 
 const REGISTRY_CACHE_TTL = 30_000;
 let _registryCache: { timestamp: number; cache: HeaderRegistryFieldCache } | null = null;
-
-/** Institute config storage key for registry-persisted rows. */
-export const instituteRegistryStorageKey = "sms.header-registry.institute.v1";
 
 // ── 5. Source Precedence ────────────────────────────────────────────
 
@@ -1009,7 +1016,7 @@ export function bindHeaderTabs(container: HTMLElement): () => void {
 
 // ── 7. Field Overrides (persist modifications to base fields) ───────
 
-const fieldOverridesStorageKey = "sms.header-registry.overrides.v1";
+const fieldOverridesStorageKey = registryFieldOverridesStorageKey;
 
 function loadFieldOverrides(): Record<string, Partial<HeaderRegistryField>> {
   return readStoredJson<Record<string, Partial<HeaderRegistryField>>>(
@@ -1134,8 +1141,6 @@ export async function mergeHeaderFieldAliases(id: string, aliases: string[]): Pr
 }
 
 // ── Bulk Persistence (snapshot save/restore) ─────────────────────────
-
-const registrySnapshotStorageKey = "sms.header-registry.snapshot.v1";
 
 /** Save the full computed registry as a single snapshot to localStorage. */
 export async function saveHeaderFieldsToDB(
@@ -1325,8 +1330,8 @@ export type FetchedHeader = {
   matchCount: number;
 };
 
-const fetchedHeadersStorageKey = "sms.header-registry.fetched-headers.v1";
-const fetchedHeaderMetaStorageKey = "sms.header-registry.fetched-meta.v1";
+const fetchedHeadersStorageKey = registryFetchedHeadersStorageKey;
+const fetchedHeaderMetaStorageKey = registryFetchedHeaderMetaStorageKey;
 
 export function loadFetchedHeaders(): FetchedHeader[] {
   return readStoredJson<FetchedHeader[]>(
@@ -1418,7 +1423,7 @@ export type ColumnSetting = {
   order: number;
 };
 
-const columnSettingsStorageKey = "sms.header-registry.column-settings.v1";
+const columnSettingsStorageKey = registryColumnSettingsStorageKey;
 
 export function loadColumnSettings(tableKey: string): Record<string, ColumnSetting> {
   const all = readStoredJson<Record<string, Record<string, ColumnSetting>>>(
@@ -1464,7 +1469,7 @@ export type FilterPreset = {
   updatedAt: string;
 };
 
-const filterPresetsStorageKey = "sms.header-registry.filter-presets.v1";
+const filterPresetsStorageKey = registryFilterPresetsStorageKey;
 
 export function loadFilterPresets(): FilterPreset[] {
   return readStoredJson<FilterPreset[]>(
@@ -1545,8 +1550,6 @@ export function getRegistryStorageKeys(): string[] {
 // ═════════════════════════════════════════════════════════════════════════
 
 async function getDefaultInstitutionId(): Promise<string> {
-  const { supabase } = await import("@/integrations/supabase/client");
-  const { tableExists } = await import("@/lib/supabase-health");
   if (!(await tableExists("institutions"))) throw new Error("Missing institutions table");
   const { data, error } = await supabase.from("institutions").select("id").order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (error) throw error;
@@ -1606,7 +1609,6 @@ export function writeRegistrySyncPayload(payload: RegistrySyncPayload): void {
 
 /** Sync the full registry state to the `institutions.meta` JSON column. */
 export async function syncRegistryToSupabase(): Promise<void> {
-  const { supabase } = await import("@/integrations/supabase/client");
   const institutionId = await getDefaultInstitutionId();
   const payload = readRegistrySyncPayload();
   const { data: existing } = await supabase.from("institutions").select("meta").eq("id", institutionId).maybeSingle();
@@ -1618,7 +1620,6 @@ export async function syncRegistryToSupabase(): Promise<void> {
 
 /** Load the registry state from Supabase into localStorage. */
 export async function loadRegistryFromSupabase(): Promise<void> {
-  const { supabase } = await import("@/integrations/supabase/client");
   const institutionId = await getDefaultInstitutionId();
   const { data, error } = await supabase.from("institutions").select("meta").eq("id", institutionId).maybeSingle();
   if (error) throw error;

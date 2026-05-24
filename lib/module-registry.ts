@@ -194,7 +194,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "partial-saved-students",
     "label": "Partial Saved Students",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "section",
     "sectionId": "addStudentSection",
     "tabKey": "",
@@ -218,7 +218,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "admissions",
     "label": "Admissions",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",

@@ -1,0 +1,310 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/ProcurementAssets.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> ProcurementAssets.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>43/43</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">87.5% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>28/32</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">69.23% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>9/13</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>43/43</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import "@/lib/runtime-storage";
+import { useEffect, useState } from "react";
+import { Package, Plus, Trash2, Search } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
+&nbsp;
+type Procurement = { id: string; requestTitle: string; vendorName: string; assetTag: string; departmentName: string; procurementStatus: string; };
+const PROC_KEY = "eduflow_procurement";
+function ls(): Procurement[] { try { return JSON.parse(localStorage.getItem(PROC_KEY) ?? "[]"); } <span class="branch-0 cbranch-no" title="branch not covered" >catch { return []; } }</span>
+function ss(v: Procurement[]) { localStorage.setItem(PROC_KEY, JSON.stringify(v)); emitAppSync(PROC_KEY); }
+&nbsp;
+export default function ProcurementAssets() {
+  const [items, setItems] = useState(ls()); const [search, setSearch] = useState(""); const refresh = () =&gt; setItems(ls());
+  const [open, setOpen] = useState(false); const [title, setTitle] = useState(""); const [vendor, setVendor] = useState(""); const [tag, setTag] = useState(""); const [dept, setDept] = useState(""); const [status, setStatus] = useState("");
+  const filtered = items.filter((p) =&gt; !search || p.requestTitle.toLowerCase().includes(search.toLowerCase()) || p.vendorName?.toLowerCase().includes(search.toLowerCase()) || p.assetTag?.toLowerCase().includes(search.toLowerCase()));
+  const pag = usePagination({ data: filtered, pageSize: 10 });
+&nbsp;
+  useEffect(() =&gt; subscribeAppSync([PROC_KEY], refresh), []);
+&nbsp;
+  return (
+    &lt;div&gt;
+      &lt;PageHeader title="Procurement &amp; Assets" subtitle="Purchase requests, vendor management &amp; asset tracking" icon={&lt;Package className="h-6 w-6" /&gt;} /&gt;
+      &lt;div className="grid gap-4 sm:grid-cols-4 mb-6"&gt;
+        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Total Requests&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{items.length}&lt;/p&gt;&lt;/Card&gt;
+        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Approved / Ordered&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{items.filter((p) =&gt; p.procurementStatus === "Approved" || p.procurementStatus === "Ordered").length}&lt;/p&gt;&lt;/Card&gt;
+        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Received&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{items.filter((p) =&gt; p.procurementStatus === "Received" || p.procurementStatus === "Issued").length}&lt;/p&gt;&lt;/Card&gt;
+        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Pending / Requested&lt;/p&gt;&lt;p className="text-2xl font-bold text-destructive"&gt;{items.filter((p) =&gt; p.procurementStatus === "Requested" || p.procurementStatus === "Quoted").length}&lt;/p&gt;&lt;/Card&gt;
+      &lt;/div&gt;
+      &lt;div className="flex gap-3 mb-4"&gt;
+        &lt;Input value={search} onChange={(e) =&gt; setSearch(e.target.value)} placeholder="Search requests..." className="flex-1 h-9 text-xs" /&gt;
+        &lt;Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() =&gt; { setTitle(""); setVendor(""); setTag(""); setDept(""); setStatus(""); setOpen(true); }}&gt;&lt;Plus className="h-4 w-4 mr-1" /&gt; Add Request&lt;/Button&gt;
+      &lt;/div&gt;
+      &lt;TablePagination {...pag} /&gt;
+      &lt;Table&gt;
+        &lt;TableHeader&gt;&lt;TableRow&gt;&lt;TableHead className="text-xs"&gt;Request / Asset&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Vendor&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Asset Tag&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Department&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Status&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Actions&lt;/TableHead&gt;&lt;/TableRow&gt;&lt;/TableHeader&gt;
+        &lt;TableBody&gt;
+          {pag.pageData.map((p) =&gt; (
+            &lt;TableRow key={p.id}&gt;
+              &lt;TableCell className="text-xs font-medium"&gt;{p.requestTitle}&lt;/TableCell&gt;
+              &lt;TableCell className="text-xs"&gt;{p.vendorName || "—"}&lt;/TableCell&gt;
+              &lt;TableCell&gt;&lt;Badge className="text-[9px] bg-muted text-muted-foreground"&gt;{p.assetTag || "—"}&lt;/Badge&gt;&lt;/TableCell&gt;
+              &lt;TableCell className="text-xs"&gt;{p.departmentName || "—"}&lt;/TableCell&gt;
+              &lt;TableCell&gt;&lt;Badge className={`text-[9px] ${p.procurementStatus === "Received" || p.procurementStatus === <span class="branch-0 cbranch-no" title="branch not covered" >"Issued" ? "bg-success/15 text-success" : p</span>.procurementStatus === "Approved" || p.procurementStatus === "Ordered" ? "bg-info/15 text-info" : p.procurementStatus === <span class="branch-0 cbranch-no" title="branch not covered" >"Quoted" ? "bg-warning/15 text-warning" : "</span>bg-muted text-muted-foreground"}`}&gt;{p.procurementStatus || "Requested"}&lt;/Badge&gt;&lt;/TableCell&gt;
+              &lt;TableCell&gt;&lt;Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() =&gt; { ss(ls().filter((x) =&gt; x.id !== p.id)); refresh(); toast.success("Deleted"); }}&gt;&lt;Trash2 className="h-3 w-3" /&gt;&lt;/Button&gt;&lt;/TableCell&gt;
+            &lt;/TableRow&gt;
+          ))}
+          {filtered.length === 0 &amp;&amp; &lt;TableRow&gt;&lt;TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8"&gt;{<span class="branch-0 cbranch-no" title="branch not covered" >search ? "No matching requests" : "</span>No procurement requests added"}&lt;/TableCell&gt;&lt;/TableRow&gt;}
+        &lt;/TableBody&gt;
+      &lt;/Table&gt;
+&nbsp;
+      &lt;Dialog open={open} onOpenChange={setOpen}&gt;
+        &lt;DialogContent className="sm:max-w-sm"&gt;
+          &lt;DialogHeader&gt;&lt;DialogTitle&gt;Add Procurement Request&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;
+          &lt;div className="space-y-4"&gt;
+            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Request / Asset Title&lt;/Label&gt;&lt;Input value={title} onChange={(e) =&gt; setTitle(e.target.value)} /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Vendor&lt;/Label&gt;&lt;Input value={vendor} onChange={<span class="fstat-no" title="function not covered" >(e) =&gt; setVendor(e.target.value)} /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Asset Tag&lt;/Label&gt;&lt;Input value={tag} onChange={<span class="fstat-no" title="function not covered" >(e) =&gt; setTag(e.target.value)} p</span>laceholder="e.g. AST-001" /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Department&lt;/Label&gt;&lt;Input value={dept} onChange={<span class="fstat-no" title="function not covered" >(e) =&gt; setDept(e.target.value)} /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+            &lt;div&gt;&lt;Label className="text-xs"&gt;Procurement Status&lt;/Label&gt;&lt;Select value={status} onValueChange={setStatus}&gt;&lt;SelectTrigger className="h-9 text-xs"&gt;&lt;SelectValue placeholder="Select" /&gt;&lt;/SelectTrigger&gt;&lt;SelectContent&gt;&lt;SelectItem value="Requested"&gt;Requested&lt;/SelectItem&gt;&lt;SelectItem value="Quoted"&gt;Quoted&lt;/SelectItem&gt;&lt;SelectItem value="Approved"&gt;Approved&lt;/SelectItem&gt;&lt;SelectItem value="Ordered"&gt;Ordered&lt;/SelectItem&gt;&lt;SelectItem value="Received"&gt;Received&lt;/SelectItem&gt;&lt;SelectItem value="Issued"&gt;Issued&lt;/SelectItem&gt;&lt;/SelectContent&gt;&lt;/Select&gt;&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={<span class="fstat-no" title="function not covered" >() =&gt; setOpen(false)}&gt;C</span>ancel&lt;/Button&gt;&lt;Button disabled={!title} onClick={() =&gt; { const items = ls(); items.push({ id: crypto.randomUUID(), requestTitle: title, vendorName: vendor, assetTag: tag, departmentName: dept, procurementStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}&gt;Add&lt;/Button&gt;&lt;/DialogFooter&gt;
+        &lt;/DialogContent&gt;
+      &lt;/Dialog&gt;
+    &lt;/div&gt;
+  );
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-05-24T08:13:26.952Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

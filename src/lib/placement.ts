@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type Company = { id: string; name: string; industry: string; website: string; contacts: string; past_drives: number; offers_made: number; created_at: string; };

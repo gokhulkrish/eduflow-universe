@@ -1,0 +1,343 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/InventoryModule.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> InventoryModule.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/86</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/86</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import "@/lib/runtime-storage";</span></span></span>
+<span class="cstat-no" title="statement not covered" >import { useEffect, useState } from "react";</span>
+<span class="cstat-no" title="statement not covered" >import { Package, Plus, Trash2, Minus, PlusCircle } from "lucide-react";</span>
+<span class="cstat-no" title="statement not covered" >import { toast } from "sonner";</span>
+<span class="cstat-no" title="statement not covered" >import { PageHeader } from "@/components/PageHeader";</span>
+<span class="cstat-no" title="statement not covered" >import { Button } from "@/components/ui/button";</span>
+<span class="cstat-no" title="statement not covered" >import { Input } from "@/components/ui/input";</span>
+<span class="cstat-no" title="statement not covered" >import { Label } from "@/components/ui/label";</span>
+<span class="cstat-no" title="statement not covered" >import { Badge } from "@/components/ui/badge";</span>
+<span class="cstat-no" title="statement not covered" >import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";</span>
+<span class="cstat-no" title="statement not covered" >import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";</span>
+<span class="cstat-no" title="statement not covered" >import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";</span>
+<span class="cstat-no" title="statement not covered" >import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";</span>
+<span class="cstat-no" title="statement not covered" >import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";</span>
+<span class="cstat-no" title="statement not covered" >import { usePagination } from "@/hooks/usePagination";</span>
+<span class="cstat-no" title="statement not covered" >import { TablePagination } from "@/components/TablePagination";</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >type Item = { id: string; name: string; category: string; quantity: number; min_stock: number; unit: string; location: string; };</span>
+<span class="cstat-no" title="statement not covered" >const INVENTORY_KEY = "eduflow_inventory";</span>
+<span class="cstat-no" title="statement not covered" >function ls(): Item[] { try { return JSON.parse(localStorage.getItem(INVENTORY_KEY) ?? "[]"); } catch { return []; } }</span>
+<span class="cstat-no" title="statement not covered" >function ss(v: Item[]) { localStorage.setItem(INVENTORY_KEY, JSON.stringify(v)); emitAppSync(INVENTORY_KEY); }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export default function InventoryModule() {</span>
+<span class="cstat-no" title="statement not covered" >  const [items, setItems] = useState(ls()); const [search, setSearch] = useState(""); const refresh = () =&gt; setItems(ls());</span>
+<span class="cstat-no" title="statement not covered" >  const [open, setOpen] = useState(false); const [name, setName] = useState(""); const [cat, setCat] = useState(""); const [qty, setQty] = useState(""); const [minStock, setMinStock] = useState(""); const [unit, setUnit] = useState(""); const [loc, setLoc] = useState("");</span>
+<span class="cstat-no" title="statement not covered" >  const filtered = items.filter((i) =&gt; !search || i.name.toLowerCase().includes(search.toLowerCase()) || i.category.toLowerCase().includes(search.toLowerCase()));</span>
+<span class="cstat-no" title="statement not covered" >  const pag = usePagination({ data: filtered, pageSize: 10 });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; subscribeAppSync([INVENTORY_KEY], refresh), []);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;PageHeader title="Inventory Module" subtitle="Track assets &amp; stock levels" icon={&lt;Package className="h-6 w-6" /&gt;} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="grid gap-4 sm:grid-cols-4 mb-6"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Total Items&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{items.length}&lt;/p&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Total Quantity&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{items.reduce((s, i) =&gt; s + i.quantity, 0)}&lt;/p&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Low Stock&lt;/p&gt;&lt;p className="text-2xl font-bold text-destructive"&gt;{items.filter((i) =&gt; i.quantity &lt;= i.min_stock).length}&lt;/p&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Card className="p-4"&gt;&lt;p className="text-[10px] text-muted-foreground"&gt;Categories&lt;/p&gt;&lt;p className="text-2xl font-bold"&gt;{new Set(items.map((i) =&gt; i.category)).size}&lt;/p&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;div className="flex gap-3 mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Input value={search} onChange={(e) =&gt; setSearch(e.target.value)} placeholder="Search items..." className="flex-1 h-9 text-xs" /&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() =&gt; { setName(""); setCat(""); setQty(""); setMinStock(""); setUnit(""); setLoc(""); setOpen(true); }}&gt;&lt;Plus className="h-4 w-4 mr-1" /&gt; Add Item&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;TablePagination {...pag} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Table&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;TableHeader className=""&gt;&lt;TableRow&gt;&lt;TableHead className="text-xs"&gt;Item&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Category&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Quantity&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Min Stock&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Unit&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Location&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Status&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Actions&lt;/TableHead&gt;&lt;/TableRow&gt;&lt;/TableHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {pag.pageData.map((i) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            const low = i.quantity &lt;= i.min_stock;</span>
+<span class="cstat-no" title="statement not covered" >            return (</span>
+<span class="cstat-no" title="statement not covered" >              &lt;TableRow key={i.id}&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className="text-xs font-medium"&gt;{i.name}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className="text-xs"&gt;{i.category}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className={`text-xs font-bold ${low ? "text-destructive" : ""}`}&gt;{i.quantity}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className="text-xs"&gt;{i.min_stock}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className="text-xs"&gt;{i.unit}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell className="text-xs"&gt;{i.location}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell&gt;{low ? &lt;Badge className="text-[9px] bg-destructive/15 text-destructive"&gt;Low Stock&lt;/Badge&gt; : &lt;Badge className="text-[9px] bg-success/15 text-success"&gt;In Stock&lt;/Badge&gt;}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="flex gap-1"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={() =&gt; { ss(ls().map((x) =&gt; x.id === i.id ? { ...x, quantity: x.quantity + 1 } : x)); refresh(); }}&gt;&lt;PlusCircle className="h-3 w-3" /&gt;&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={() =&gt; { if (i.quantity &gt; 0) { ss(ls().map((x) =&gt; x.id === i.id ? { ...x, quantity: Math.max(0, x.quantity - 1) } : x)); refresh(); } }}&gt;&lt;Minus className="h-3 w-3" /&gt;&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0 text-destructive" onClick={() =&gt; { ss(ls().filter((x) =&gt; x.id !== i.id)); refresh(); toast.success("Deleted"); }}&gt;&lt;Trash2 className="h-3 w-3" /&gt;&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/TableRow&gt;</span>
+<span class="cstat-no" title="statement not covered" >            );</span>
+<span class="cstat-no" title="statement not covered" >          })}</span>
+<span class="cstat-no" title="statement not covered" >          {filtered.length === 0 &amp;&amp; &lt;TableRow&gt;&lt;TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8"&gt;{search ? "No matching items" : "No items in inventory"}&lt;/TableCell&gt;&lt;/TableRow&gt;}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Table&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      &lt;Dialog open={open} onOpenChange={setOpen}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DialogContent className="sm:max-w-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogHeader&gt;&lt;DialogTitle&gt;Add Inventory Item&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Item Name&lt;/Label&gt;&lt;Input value={name} onChange={(e) =&gt; setName(e.target.value)} /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Category&lt;/Label&gt;&lt;Input value={cat} onChange={(e) =&gt; setCat(e.target.value)} placeholder="e.g. Stationery" /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Quantity&lt;/Label&gt;&lt;Input type="number" value={qty} onChange={(e) =&gt; setQty(e.target.value)} /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Min Stock&lt;/Label&gt;&lt;Input type="number" value={minStock} onChange={(e) =&gt; setMinStock(e.target.value)} /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Unit&lt;/Label&gt;&lt;Input value={unit} onChange={(e) =&gt; setUnit(e.target.value)} placeholder="e.g. pcs, kg" /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Location&lt;/Label&gt;&lt;Input value={loc} onChange={(e) =&gt; setLoc(e.target.value)} placeholder="e.g. Store Room A" /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={() =&gt; setOpen(false)}&gt;Cancel&lt;/Button&gt;&lt;Button disabled={!name || !cat} onClick={() =&gt; { const items = ls(); items.push({ id: crypto.randomUUID(), name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}&gt;Add&lt;/Button&gt;&lt;/DialogFooter&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/DialogContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Dialog&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >  );</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-05-24T08:13:26.952Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

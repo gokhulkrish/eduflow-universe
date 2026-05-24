@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type LiveSession = {

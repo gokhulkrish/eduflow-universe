@@ -27,18 +27,18 @@ describe("migration feature flags", () => {
   it("uses declared defaults when nothing is stored", () => {
     const snapshot = loadMigrationFlagSnapshot();
     expect(snapshot.flags[MIGRATION_PATCH_FLAGS[0].key].enabled).toBe(true);
-    expect(snapshot.flags[MIGRATION_PATCH_FLAGS[2].key].enabled).toBe(false);
+    expect(snapshot.flags[MIGRATION_PATCH_FLAGS[2].key].enabled).toBe(true);
   });
 
   it("persists toggles to local storage", () => {
     const key = MIGRATION_PATCH_FLAGS[2].key;
-    expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(false);
-
-    toggleMigrationFlag(key);
     expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(true);
 
-    setMigrationFlag(key, false);
+    toggleMigrationFlag(key);
     expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(false);
+
+    setMigrationFlag(key, true);
+    expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(true);
   });
 
   it("respects environment overrides", () => {
@@ -51,9 +51,8 @@ describe("migration feature flags", () => {
   it("resets to defaults", () => {
     const key = MIGRATION_PATCH_FLAGS[2].key;
     toggleMigrationFlag(key);
-    expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(true);
-    resetMigrationFlags();
     expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(false);
+    resetMigrationFlags();
+    expect(loadMigrationFlagSnapshot().flags[key].enabled).toBe(true);
   });
 });
-

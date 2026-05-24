@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type Subject = { id: string; name: string; code: string; class_id: string; teacher_id: string; credits: number; };

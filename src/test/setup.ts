@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import "@/lib/runtime-storage";
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

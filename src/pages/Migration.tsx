@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowUpCircle,
-  CheckCircle2,
   Database,
   Layers3,
   RefreshCw,
@@ -22,6 +21,31 @@ import { MIGRATION_PATCH_FLAGS, setMigrationFlag, toggleMigrationFlag } from "@/
 import { buildMigrationRegistrySnapshot, getMigrationModulesByDomain } from "@/lib/migration-registry";
 import { clearRollback, resetRollbackRegistry, triggerRollback } from "@/lib/rollbackRegistry";
 import { getMigrationRuntimeSnapshot, subscribeMigrationRuntime } from "@/lib/migrationRuntime";
+import { buildDuplicationReport } from "@/lib/duplication-report";
+import { buildStorageOwnershipReport, clearOwnedRuntimeStorage } from "@/lib/storage-registry";
+import { buildLegacyAdapterReport } from "@/lib/legacy-adapter";
+import {
+  broadcastEnterpriseOrchestration,
+  buildEnterpriseOrchestrationSnapshot,
+  subscribeEnterpriseOrchestration,
+  subscribeEnterpriseOrchestrationEvents,
+} from "@/lib/enterprise-orchestration";
+import {
+  clearRuntimeHardeningSnapshot,
+  getRuntimeHardeningSnapshot,
+  runRuntimeHardeningSuite,
+  subscribeRuntimeHardening,
+} from "@/lib/runtime-hardening";
+import { buildMigrationCertificationReport } from "@/lib/migration-certification";
+import { buildRuntimeResilienceSnapshot, subscribeRuntimeResilience } from "@/lib/runtime-resilience";
+import { clearRuntimeDiagnostics } from "@/lib/runtime-diagnostics";
+import { buildModuleDedupSnapshot, clearModuleDedupSnapshot, subscribeModuleDedup } from "@/lib/module-deduplication";
+import {
+  buildStorageNormalizationSnapshot,
+  bootstrapStorageNormalizationLayer,
+  clearCorruptedStorageEntries,
+  subscribeStorageNormalization,
+} from "@/lib/storage-normalization";
 
 function statusClasses(kind: "compatible" | "bridge-required" | "deferred") {
   if (kind === "compatible") return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300";
@@ -37,17 +61,41 @@ function sourceLabel(source: string) {
 
 export default function Migration() {
   const [, setRevision] = useState(0);
+  const [resilience, setResilience] = useState(() => buildRuntimeResilienceSnapshot());
+  const [moduleDedup, setModuleDedup] = useState(() => buildModuleDedupSnapshot());
+  const [storageNormalization, setStorageNormalization] = useState(() => buildStorageNormalizationSnapshot());
+  const [hardening, setHardening] = useState(() => getRuntimeHardeningSnapshot());
+  const [orchestrationSignal, setOrchestrationSignal] = useState<{ scope: string; reason: string; signal: string } | null>(null);
 
   useEffect(() => {
     const unsubscribeRuntime = subscribeMigrationRuntime(() => setRevision((value) => value + 1));
+    const unsubscribeOrchestration = subscribeEnterpriseOrchestration(() => setRevision((value) => value + 1));
+    const unsubscribeResilience = subscribeRuntimeResilience(() => setResilience(buildRuntimeResilienceSnapshot()));
+    const unsubscribeModuleDedup = subscribeModuleDedup(() => setModuleDedup(buildModuleDedupSnapshot()));
+    const unsubscribeStorageNormalization = subscribeStorageNormalization(() => setStorageNormalization(buildStorageNormalizationSnapshot()));
+    const unsubscribeHardening = subscribeRuntimeHardening(() => setHardening(getRuntimeHardeningSnapshot()));
+    const unsubscribeOrchestrationBus = subscribeEnterpriseOrchestrationEvents((event) =>
+      setOrchestrationSignal({ scope: event.scope, reason: event.reason, signal: event.signal }),
+    );
     return () => {
       unsubscribeRuntime();
+      unsubscribeOrchestration();
+      unsubscribeResilience();
+      unsubscribeModuleDedup();
+      unsubscribeStorageNormalization();
+      unsubscribeHardening();
+      unsubscribeOrchestrationBus();
     };
   }, []);
 
   const registry = buildMigrationRegistrySnapshot();
   const runtime = getMigrationRuntimeSnapshot();
   const domainGroups = getMigrationModulesByDomain();
+  const storageOwnership = buildStorageOwnershipReport();
+  const duplicationReport = buildDuplicationReport();
+  const legacyBridge = buildLegacyAdapterReport();
+  const orchestration = buildEnterpriseOrchestrationSnapshot();
+  const certification = buildMigrationCertificationReport();
   const topGaps = registry.gapAnalysis.slice(0, 6);
   const topClusters = registry.capabilityClusters.slice(0, 6);
 
@@ -78,6 +126,50 @@ export default function Migration() {
     setRevision((value) => value + 1);
   };
 
+  const handleResetRuntimeStorage = () => {
+    clearOwnedRuntimeStorage();
+    toast.success("Runtime storage cleared");
+    setRevision((value) => value + 1);
+  };
+
+  const handleClearDiagnostics = () => {
+    clearRuntimeDiagnostics();
+    setResilience(buildRuntimeResilienceSnapshot());
+    toast.success("Runtime diagnostics cleared");
+  };
+
+  const handleClearModuleDedup = () => {
+    clearModuleDedupSnapshot();
+    setModuleDedup(buildModuleDedupSnapshot());
+    toast.success("Dedup registry cleared");
+    setRevision((value) => value + 1);
+  };
+
+  const handleNormalizeStorage = () => {
+    setStorageNormalization(bootstrapStorageNormalizationLayer());
+    toast.success("Storage normalization applied");
+    setRevision((value) => value + 1);
+  };
+
+  const handleClearCorruptedStorage = () => {
+    setStorageNormalization(clearCorruptedStorageEntries());
+    toast.success("Corrupted storage entries cleared");
+    setRevision((value) => value + 1);
+  };
+
+  const handleRunHardeningSuite = () => {
+    setHardening(runRuntimeHardeningSuite());
+    toast.success("Hardening suite completed");
+    setRevision((value) => value + 1);
+  };
+
+  const handleClearHardeningSuite = () => {
+    clearRuntimeHardeningSnapshot();
+    setHardening(getRuntimeHardeningSnapshot());
+    toast.success("Hardening suite snapshot cleared");
+    setRevision((value) => value + 1);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -89,6 +181,10 @@ export default function Migration() {
             <Button variant="outline" className="rounded-xl border-border/60" onClick={handleResetAll}>
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset controls
+            </Button>
+            <Button variant="outline" className="rounded-xl border-border/60" onClick={handleResetRuntimeStorage}>
+              <Database className="mr-2 h-4 w-4" />
+              Clear runtime storage
             </Button>
             <Button className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90" onClick={() => setRevision((value) => value + 1)}>
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -310,6 +406,609 @@ export default function Migration() {
                 <span className="font-mono text-[11px] text-muted-foreground">{module.sourceLine ?? "n/a"}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Storage Ownership</h3>
+            <p className="text-xs text-muted-foreground">Normalized runtime namespaces, owned keys, and reset-safe storage groups.</p>
+          </div>
+          <Badge variant="secondary" className="bg-primary/15 text-primary">
+            {storageOwnership.length} namespaces
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {storageOwnership.map((namespace) => (
+            <div key={namespace.namespace} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">{namespace.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{namespace.namespace}</p>
+                </div>
+                <Badge variant="outline">{namespace.presentKeys.length}/{namespace.keys.length} present</Badge>
+              </div>
+              <div className="mt-3 space-y-2 text-xs">
+                {namespace.keys.map((key) => (
+                  <div key={key.key} className="flex items-center justify-between rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                    <span className="truncate pr-2">{key.label}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{key.key}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{namespace.byteSize} bytes tracked</span>
+                <span>{namespace.missingKeys.length} missing</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Storage Normalization</h3>
+            <p className="text-xs text-muted-foreground">Alias repair and corruption detection for registry, settings, workspace, and migration persistence.</p>
+          </div>
+          <Badge
+            variant="secondary"
+            className={storageNormalization.status === "blocked" ? "bg-red-500/15 text-red-600" : storageNormalization.status === "watch" ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}
+          >
+            {storageNormalization.status}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {[
+            { label: "Namespaces", value: storageNormalization.summary.namespaces },
+            { label: "Present keys", value: storageNormalization.summary.presentKeys },
+            { label: "Missing keys", value: storageNormalization.summary.missingKeys },
+            { label: "Corrupted", value: storageNormalization.summary.corruptedKeys },
+            { label: "Collisions", value: storageNormalization.summary.collisions },
+            { label: "Repairs", value: storageNormalization.summary.repairs },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Issues</p>
+            <div className="mt-3 space-y-2">
+              {storageNormalization.issues.length ? (
+                storageNormalization.issues.slice(0, 6).map((issue) => (
+                  <div key={`${issue.kind}:${issue.namespace}:${issue.key}`} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{issue.kind}</span>
+                    <span className="mx-2">•</span>
+                    <span>{issue.namespace}</span>
+                    <span className="mx-2">•</span>
+                    <span className="font-mono">{issue.key}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No storage normalization issues detected.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Controls</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="outline" className="rounded-xl" onClick={handleNormalizeStorage}>
+                <Database className="mr-2 h-4 w-4" />
+                Normalize storage
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={handleClearCorruptedStorage}>
+                <ShieldAlert className="mr-2 h-4 w-4" />
+                Clear corrupted keys
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Duplication Watch</h3>
+            <p className="text-xs text-muted-foreground">Registry collisions, shared capability families, and duplicate storage keys.</p>
+          </div>
+          <Badge variant="secondary" className="bg-warning/15 text-warning">
+            {duplicationReport.summary.totalFindings} findings
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {[
+            { label: "Registry collisions", value: duplicationReport.summary.registryCollisions },
+            { label: "Capability clusters", value: duplicationReport.summary.capabilityClusters },
+            { label: "Storage duplicates", value: duplicationReport.summary.duplicateStorageKeys },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {duplicationReport.findings.length ? (
+            duplicationReport.findings.map((finding) => (
+              <div key={finding.title} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{finding.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{finding.detail}</p>
+                  </div>
+                  <Badge variant="outline">{finding.count}</Badge>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No duplicate surfaces found in the current snapshot.</p>
+          )}
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Module De-Duplication</h3>
+            <p className="text-xs text-muted-foreground">Singleton listener installs and duplicate execution prevention across runtime bootstraps.</p>
+          </div>
+          <Badge variant="secondary" className={moduleDedup.totalPreventedDuplicates > 0 ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+            {moduleDedup.totalPreventedDuplicates} prevented
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {[
+            { label: "Tracked modules", value: moduleDedup.totalEntries },
+            { label: "Executions", value: moduleDedup.totalExecutions },
+            { label: "Duplicates prevented", value: moduleDedup.totalPreventedDuplicates },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-5">
+          {([
+            ["utility", "Utilities"],
+            ["registry", "Registries"],
+            ["state", "State"],
+            ["renderer", "Renderers"],
+            ["handler", "Handlers"],
+          ] as const).map(([category, label]) => (
+            <div key={category} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{moduleDedup.categories[category]}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" className="rounded-xl" onClick={handleClearModuleDedup}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Clear dedup registry
+          </Button>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="glass p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-lg font-semibold">Legacy Bridge</h3>
+              <p className="text-xs text-muted-foreground">Compatibility aliases for routes, storage, and imported legacy state.</p>
+            </div>
+            <Badge variant="secondary" className="bg-primary/15 text-primary">
+              {legacyBridge.eventAdapters} events
+            </Badge>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              { label: "Route aliases", value: legacyBridge.routeAliases },
+              { label: "Storage aliases", value: legacyBridge.storageAliases },
+              { label: "State adapters", value: legacyBridge.stateAdapters },
+              { label: "Event adapters", value: legacyBridge.eventAdapters },
+              { label: "API bridges", value: legacyBridge.apiBridges },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="mt-1 font-display text-2xl font-bold">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{legacyBridge.seededStorageAliases} seeded storage aliases</span>
+            <span>{legacyBridge.mirroredLegacyEvents} mirrored legacy events</span>
+          </div>
+        </Card>
+
+        <Card className="glass p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-lg font-semibold">Enterprise Orchestration</h3>
+              <p className="text-xs text-muted-foreground">Shell, registry, diagnostics, and storage coordination in one snapshot.</p>
+            </div>
+            <Badge variant="secondary" className={orchestration.health === "blocked" ? "bg-red-500/15 text-red-600" : orchestration.health === "watch" ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+              {orchestration.health}
+            </Badge>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              { label: "Modules", value: orchestration.summary.modules },
+              { label: "Diagnostics", value: orchestration.summary.diagnostics },
+              { label: "Patches ready", value: orchestration.summary.activePatches },
+              { label: "Route aliases", value: orchestration.summary.routeAliases },
+              { label: "ERP modules", value: orchestration.summary.erpModules },
+              { label: "Signals", value: orchestration.summary.signals },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="mt-1 font-display text-2xl font-bold">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" className="rounded-xl border-border/60" onClick={() => {
+              const snapshot = broadcastEnterpriseOrchestration("workspace", "Migration center workspace sync");
+              setRevision((value) => value + 1);
+              setOrchestrationSignal({
+                scope: snapshot.summary.lastScope,
+                reason: snapshot.summary.lastReason,
+                signal: `${snapshot.summary.lastScope}:${snapshot.summary.signals}`,
+              });
+            }}>
+              <Workflow className="mr-2 h-4 w-4" />
+              Sync workspace
+            </Button>
+            <Button variant="outline" className="rounded-xl border-border/60" onClick={() => {
+              const snapshot = broadcastEnterpriseOrchestration("registry", "Migration center registry sync");
+              setRevision((value) => value + 1);
+              setOrchestrationSignal({
+                scope: snapshot.summary.lastScope,
+                reason: snapshot.summary.lastReason,
+                signal: `${snapshot.summary.lastScope}:${snapshot.summary.signals}`,
+              });
+            }}>
+              <Database className="mr-2 h-4 w-4" />
+              Sync registry
+            </Button>
+            <Button variant="outline" className="rounded-xl border-border/60" onClick={() => {
+              const snapshot = broadcastEnterpriseOrchestration("diagnostics", "Migration center diagnostics sync");
+              setRevision((value) => value + 1);
+              setOrchestrationSignal({
+                scope: snapshot.summary.lastScope,
+                reason: snapshot.summary.lastReason,
+                signal: `${snapshot.summary.lastScope}:${snapshot.summary.signals}`,
+              });
+            }}>
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Sync diagnostics
+            </Button>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              Last signal: {orchestrationSignal ? `${orchestrationSignal.scope} · ${orchestrationSignal.reason}` : `${orchestration.summary.lastScope} · ${orchestration.summary.lastReason}`}
+            </span>
+            <span>{orchestration.summary.syncTargets} sync targets</span>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Final Hardening</h3>
+            <p className="text-xs text-muted-foreground">Memory, stress, import, accessibility, mobile, and rollback checks.</p>
+          </div>
+          <Badge variant="secondary" className={hardening.summary.overall === "blocked" ? "bg-red-500/15 text-red-600" : hardening.summary.overall === "watch" ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+            {hardening.summary.overall}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          {[
+            { label: "Pass", value: hardening.summary.pass },
+            { label: "Watch", value: hardening.summary.watch },
+            { label: "Blocked", value: hardening.summary.blocked },
+            { label: "Info", value: hardening.summary.info },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {hardening.checks.map((check) => (
+            <div key={check.key} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">{check.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{check.detail}</p>
+                </div>
+                <Badge variant="outline">{check.status}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          {[
+            { label: "Samples", value: hardening.suite.samples },
+            { label: "Avg collection ms", value: hardening.suite.averageCollectionMs.toFixed(1) },
+            { label: "Max collection ms", value: hardening.suite.maxCollectionMs.toFixed(1) },
+            { label: "Total collection ms", value: hardening.suite.collectionMs.toFixed(1) },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-border/60 bg-card/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Hardening suite</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Last run {hardening.suite.lastRunAt} · {hardening.summary.checks} checks evaluated for memory, runtime, stress, import, registry, mobile, accessibility, and rollback stability.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="rounded-xl" onClick={handleRunHardeningSuite}>
+                <ShieldAlert className="mr-2 h-4 w-4" />
+                Run suite
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => setHardening(getRuntimeHardeningSnapshot())}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh snapshot
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={handleClearHardeningSuite}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Clear suite snapshot
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Runtime Resilience</h3>
+            <p className="text-xs text-muted-foreground">Recovery, retry, telemetry, and audit signals from the live runtime.</p>
+          </div>
+          <Badge
+            variant="secondary"
+            className={resilience.status === "blocked" ? "bg-red-500/15 text-red-600" : resilience.status === "watch" ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}
+          >
+            {resilience.status}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-5">
+          {[
+            { label: "Errors", value: resilience.summary.errors },
+            { label: "Recoveries", value: resilience.summary.recoveries },
+            { label: "Telemetry", value: resilience.summary.telemetry },
+            { label: "Audits", value: resilience.summary.audits },
+            { label: "Retries", value: resilience.summary.retries },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Recent sources</p>
+            <div className="mt-3 space-y-2">
+              {resilience.recentSources.length ? resilience.recentSources.map((source) => (
+                <div key={source} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {source}
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">No resilience events recorded yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Controls</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="outline" className="rounded-xl" onClick={handleClearDiagnostics}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Clear diagnostics
+              </Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => setResilience(buildRuntimeResilienceSnapshot())}>
+                <ShieldAlert className="mr-2 h-4 w-4" />
+                Refresh snapshot
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="glass p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold">Migration Certification</h3>
+            <p className="text-xs text-muted-foreground">Legacy inventory coverage, hardening status, and orchestration readiness.</p>
+          </div>
+          <Badge variant="secondary" className={certification.status === "blocked" ? "bg-red-500/15 text-red-600" : certification.status === "conditional" ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+            {certification.status}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-5">
+          {[
+            { label: "Legacy coverage", value: `${Math.round(certification.summary.legacyCoverage * 100)}%` },
+            { label: "Matched inventory", value: certification.summary.matchedLegacyInventory },
+            { label: "Unmatched inventory", value: certification.summary.unmatchedLegacyInventory },
+            { label: "Runtime flows", value: `${certification.summary.healthyRuntimeFlows}/${certification.summary.runtimeFlows}` },
+            { label: "Rollback ready", value: certification.summary.rollbackReady },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 font-display text-2xl font-bold">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-border/60 bg-card/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Completion matrix</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {certification.status === "certified"
+                  ? "Certification is complete and the runtime is ready for release."
+                  : certification.status === "conditional"
+                    ? "Most runtime layers are aligned, but a few non-critical gaps remain."
+                    : "Certification is blocked by runtime ownership, orchestration, or flow parity gaps."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className={certification.summary.blockers > 0 ? "bg-red-500/15 text-red-600" : "bg-emerald-500/15 text-emerald-700"}>
+                {certification.summary.blockers} blockers
+              </Badge>
+              <Badge variant="secondary" className={certification.summary.orphanedSystems > 0 ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+                {certification.summary.orphanedSystems} orphaned systems
+              </Badge>
+              <Badge variant="secondary" className={certification.summary.duplicateRuntimeOwnership > 0 ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"}>
+                {certification.summary.duplicateRuntimeOwnership} ownership conflicts
+              </Badge>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            {[
+              { label: "Legacy coverage", value: `${Math.round(certification.summary.legacyCoverage * 100)}%` },
+              { label: "Flow parity", value: `${Math.round(certification.flowParity.coverage * 100)}%` },
+              { label: "Orchestration parity", value: `${certification.orchestrationParity.healthy}/${certification.orchestrationParity.channels}` },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="mt-1 font-display text-xl font-semibold">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Flow parity</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {[
+                { label: "Healthy", value: certification.flowParity.healthy },
+                { label: "Watch", value: certification.flowParity.watch },
+                { label: "Blocked", value: certification.flowParity.blocked },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 font-display text-xl font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+              {Math.round(certification.flowParity.coverage * 100)}% runtime flow coverage · {certification.flowParity.status}
+            </div>
+            <div className="mt-3 space-y-2">
+              {certification.flowParity.flows.map((flow) => (
+                <div key={flow.key} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{flow.label}</p>
+                    <Badge variant="outline">{flow.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{flow.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Orchestration parity</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {[
+                { label: "Channels", value: certification.orchestrationParity.channels },
+                { label: "Signals", value: certification.orchestrationParity.signals },
+                { label: "Healthy", value: certification.orchestrationParity.healthy },
+                { label: "Watch", value: certification.orchestrationParity.watch },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 font-display text-xl font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+              {certification.orchestrationParity.syncTargets} sync targets tracked · {certification.orchestrationParity.status}
+            </div>
+            <div className="mt-3 space-y-2">
+              {certification.evidence.slice(0, 3).map((item) => (
+                <div key={item} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Blockers</p>
+            <div className="mt-3 space-y-2">
+              {certification.blockers.length ? certification.blockers.map((blocker) => (
+                <div key={blocker} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {blocker}
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">No certification blockers remain.</p>
+              )}
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">Duplicate runtime ownership</p>
+            <div className="mt-3 space-y-2">
+              {certification.duplicateRuntimeOwnership.length ? certification.duplicateRuntimeOwnership.map((item) => (
+                <div key={item} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {item}
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">No duplicate runtime ownership remains.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Orphaned systems</p>
+            <div className="mt-3 space-y-2">
+              {certification.orphanedSystems.length ? certification.orphanedSystems.map((item) => (
+                <div key={item} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {item}
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground">No orphaned systems remain.</p>
+              )}
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">Evidence</p>
+            <div className="mt-3 space-y-2">
+              {certification.evidence.map((item) => (
+                <div key={item} className="rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Card>

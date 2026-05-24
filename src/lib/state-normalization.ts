@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 export type ThemeMode = "light" | "dark";
 export type LayoutMode = "desktop" | "mobile";
 
@@ -164,4 +165,3 @@ export function removeStoredKey(key: string) {
 }
 
 export { coerceBoolean, coerceLayoutMode, coerceString, coerceTheme, coerceStringArray };
-

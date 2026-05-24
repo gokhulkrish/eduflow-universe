@@ -8,7 +8,21 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "lib/**/*.{test,spec}.{ts,tsx}", "legacy/**/*.{test,spec}.{ts,tsx}", "core/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "legacy/**/*.{ts,tsx}", "core/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.{test,spec}.{ts,tsx}",
+        "lib/**/*.{test,spec}.{ts,tsx}",
+        "src/components/ui/**",
+        "src/integrations/**",
+        "src/test/**",
+        "**/*.d.ts",
+        "**/types.ts",
+      ],
+    },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

@@ -59,7 +59,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { subscribeAppSync } from "@/lib/app-sync";
 import {
-  buildAutoMapping,
+  buildAutoMappingReport,
   buildImportPreview,
   deleteCustomImportField,
   deleteImportProfile,
@@ -69,7 +69,6 @@ import {
   loadImportBatchHistory,
   loadImportProfiles,
   loadExistingStudentsForImport,
-  parseImportFile,
   saveCustomImportField,
   saveImportProfile,
   importStorageKeys,
@@ -95,8 +94,6 @@ import {
   createImportBatch,
   saveImportBatches,
   loadImportBatchesFromDB,
-  setupDatabase,
-  getImportBatchById,
   deleteImportBatch as deleteBatchFromDB,
   rollbackImport,
   storeRollbackSnapshot,
@@ -109,7 +106,20 @@ import {
   checkStepPrerequisite,
   getAllModuleDescriptors,
   getModule,
-  loadInitialModules,
+  bootstrapImportEngine,
+  getImportEngineRuntimeSnapshot,
+  getImportFileSignature,
+  findImportMappingTemplate,
+  deleteImportMappingTemplatesByProfile,
+  recordImportMappingTemplateUsage,
+  saveImportMappingTemplate,
+  getImportValidationRuntimeSnapshot,
+  runImportValidationCycle,
+  subscribeImportValidationRuntime,
+  parseImportFileCached,
+  resetImportEngineSession,
+  setImportRuntimeActiveBatch,
+  buildImportValidationReport,
   type ImportBatch,
   type ImportPipelineStep,
   type ImportPipelineState,
@@ -117,10 +127,13 @@ import {
   type ImportModuleFieldGroup,
   type ImportMatchStrategy,
   type ImportMode,
+  type ImportMappingTemplate,
   IMPORT_MODE_CONFIGS,
   getImportSchemaDriftReport,
   buildGenericPreview,
   type ImportSchemaDriftReport,
+  type ImportValidationReport,
+  type ImportValidationRuntimeSnapshot,
 } from "@/lib/import-engine";
 
 const STEPS = [
@@ -169,16 +182,11 @@ const summarizeExisting = (row: ExistingStudentRecord | null) => {
 const applyRegistryPresetMapping = (
   headers: string[],
   customFields: ImportCustomFieldDefinition[],
-  profile: ImportProfile | null
+  profile: ImportProfile | null,
+  recoveredTemplate: ImportMappingTemplate | null = null,
 ) => {
-  const autoMapping = buildAutoMapping(headers, customFields);
-  if (!profile) return autoMapping;
-
-  const next = { ...autoMapping };
-  for (const [header, target] of Object.entries(profile.mapping ?? {})) {
-    if (headers.includes(header)) next[header] = target as ImportTargetBinding;
-  }
-  return next;
+  const preferredBindings = (profile?.mapping ?? recoveredTemplate?.mapping ?? {}) as Record<string, ImportTargetBinding>;
+  return buildAutoMappingReport(headers, customFields, { preferredBindings }).mapping;
 };
 
 export default function Import() {
@@ -217,10 +225,41 @@ export default function Import() {
   const [loadingBatches, setLoadingBatches] = useState(true);
   const [detailBatch, setDetailBatch] = useState<ImportBatch | null>(null);
   const [autoCommitPending, setAutoCommitPending] = useState(false);
+  const [recoveredMappingTemplate, setRecoveredMappingTemplate] = useState<ImportMappingTemplate | null>(null);
+  const [validationRuntimeSnapshot, setValidationRuntimeSnapshot] = useState<ImportValidationRuntimeSnapshot>(() =>
+    getImportValidationRuntimeSnapshot(),
+  );
 
   const pipelineRef = useRef<ImportPipelineState>(createImportPipelineState());
+  const importInitRef = useRef(false);
+  const savedBatchesRef = useRef(savedBatches);
+  const validationAuditSignatureRef = useRef<string>("");
+  savedBatchesRef.current = savedBatches;
+  const importFormStateRef = useRef({
+    batchName,
+    batchDescription,
+    moduleId,
+    mode,
+    rule,
+    design,
+  });
+  importFormStateRef.current = {
+    batchName,
+    batchDescription,
+    moduleId,
+    mode,
+    rule,
+    design,
+  };
 
-  const getCurrentBatch = (): ImportBatch | null => savedBatches[0] ?? null;
+  const getCurrentBatch = (): ImportBatch | null => {
+    const runtime = getImportEngineRuntimeSnapshot();
+    if (runtime.activeBatchId) {
+      const active = savedBatches.find((batch) => batch.batchId === runtime.activeBatchId);
+      if (active) return active;
+    }
+    return savedBatches[0] ?? null;
+  };
 
   const tryNavigateTo = (targetStep: number) => {
     const batch = getCurrentBatch();
@@ -245,16 +284,19 @@ export default function Import() {
   };
 
   useEffect(() => {
+    if (importInitRef.current) return;
+    importInitRef.current = true;
+
     let alive = true;
     const init = async () => {
       try {
-        await setupDatabase();
-        await loadInitialModules();
+        await bootstrapImportEngine();
         const descriptors = getAllModuleDescriptors();
         if (alive) setModules(descriptors);
         const batches = await loadImportBatchesFromDB();
         if (alive) setSavedBatches(batches);
       } catch {
+        importInitRef.current = false;
         if (alive) setModules(getAllModuleDescriptors());
       } finally {
         if (alive) setLoadingBatches(false);
@@ -312,7 +354,7 @@ export default function Import() {
     }
     setGroupOverrides({});
     setActionOverrides({});
-  }, [moduleId]);
+  }, [design, moduleId]);
 
   useEffect(() => {
     let alive = true;
@@ -343,11 +385,13 @@ export default function Import() {
 
     const run = async () => {
       if (!file) {
+        resetImportEngineSession("file-cleared");
         setParsedFile(null);
         setParseError(null);
         setCommitResult(null);
         setGroupOverrides({});
         setActionOverrides({});
+        setRecoveredMappingTemplate(null);
         return;
       }
 
@@ -356,32 +400,69 @@ export default function Import() {
       setCommitResult(null);
 
       try {
-        const parsed = await parseImportFile(file);
+        const previousRuntime = getImportEngineRuntimeSnapshot();
+        const signature = getImportFileSignature(file);
+        if (previousRuntime.activeFileSignature !== signature) {
+          setImportRuntimeActiveBatch(null);
+        }
+
+        const parsed = await parseImportFileCached(file);
         if (!alive) return;
         setParsedFile(parsed);
+        const form = importFormStateRef.current;
         const activeProfile = profiles.find((profile) => profile.id === registrySettings.activeProfileId) ?? null;
         setSelectedProfileId(activeProfile?.id ?? "");
+        const mappingTemplateMatch = findImportMappingTemplate(parsed.headers, form.moduleId, {
+          customFieldIds: customFields.map((field) => field.id),
+        });
+        setRecoveredMappingTemplate(mappingTemplateMatch?.template ?? null);
 
-        const isManual = mode === "manual";
-        const autoMapping = isManual
+        const isManual = form.mode === "manual";
+        const preferredBindings = isManual
           ? Object.fromEntries(parsed.headers.map((h) => [h, "ignore" as ImportTargetBinding]))
-          : applyRegistryPresetMapping(parsed.headers, customFields, activeProfile);
-        setMapping(autoMapping);
+          : (activeProfile?.mapping as Record<string, ImportTargetBinding> | undefined) ??
+            mappingTemplateMatch?.template.mapping;
+        const autoMappingReport = buildAutoMappingReport(parsed.headers, customFields, {
+          preferredBindings,
+        });
+        setMapping(autoMappingReport.mapping);
         setGroupOverrides({});
         setActionOverrides({});
+        if (!activeProfile && mappingTemplateMatch?.template?.id) {
+          recordImportMappingTemplateUsage(mappingTemplateMatch.template.id);
+        }
 
-        const engineBatch = createImportBatch({
-          batchName: batchName.trim() || getDefaultBatchName(file.name),
-          batchDescription: batchDescription.trim(),
-          moduleId,
-          mode,
-          sourceRows: parsed.rows,
-          importHeaders: parsed.headers,
-          defaultImportType: rule === "Update Existing Only" ? "update" : rule === "New Entry Only" ? "newentry" : "newentry",
-          matchStrategy: design,
-        });
+        const reusedBatch =
+          previousRuntime.activeFileSignature === signature && previousRuntime.activeBatchId
+            ? savedBatchesRef.current.find((batch) => batch.batchId === previousRuntime.activeBatchId) ?? null
+            : null;
+
+        const engineBatch =
+          reusedBatch ??
+          createImportBatch({
+            batchName: form.batchName.trim() || getDefaultBatchName(file.name),
+            batchDescription: form.batchDescription.trim(),
+            moduleId: form.moduleId,
+            mode: form.mode,
+            sourceRows: parsed.rows,
+            importHeaders: parsed.headers,
+            defaultImportType:
+              form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : "newentry",
+            matchStrategy: form.design,
+          });
+
+        engineBatch.batchName = form.batchName.trim() || getDefaultBatchName(parsed.fileName);
+        engineBatch.batchDescription = form.batchDescription.trim();
+        engineBatch.moduleId = form.moduleId;
+        engineBatch.mode = form.mode;
+        engineBatch.sourceRows = parsed.rows.map((row) => ({ ...row }));
+        engineBatch.importHeaders = [...parsed.headers];
+        engineBatch.rowCount = parsed.rows.length;
+        engineBatch.defaultImportType =
+          form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : "newentry";
+        engineBatch.matchStrategy = form.design;
         engineBatch.mappingLines = parsed.headers.map((h) => {
-          const target = autoMapping[h];
+          const target = autoMappingReport.mapping[h];
           return {
             importField: h,
             targetField: target && target !== "ignore" ? target : null,
@@ -389,17 +470,20 @@ export default function Import() {
             isRequired: false,
           };
         });
-        await saveImportBatches([engineBatch]);
-        setSavedBatches((prev) => {
-          const next = prev.filter((b) => b.batchId !== engineBatch.batchId);
-          return [engineBatch, ...next];
-        });
-        setParsedFile(parsed);
-        refreshCanonicalPipelineState(pipelineRef.current, engineBatch);
-        setStep(mode === "auto" ? 6 : 1);
 
-        if (mode === "auto" && !alive) return;
-        if (mode === "auto") {
+        if (reusedBatch) {
+          setSavedBatches((prev) => prev.map((batch) => (batch.batchId === engineBatch.batchId ? engineBatch : batch)));
+        } else {
+          setSavedBatches((prev) => [engineBatch, ...prev.filter((batch) => batch.batchId !== engineBatch.batchId)]);
+        }
+
+        await saveImportBatches([engineBatch]);
+        setImportRuntimeActiveBatch(engineBatch.batchId);
+        refreshCanonicalPipelineState(pipelineRef.current, engineBatch);
+        setStep(form.mode === "auto" ? 6 : 1);
+
+        if (form.mode === "auto" && !alive) return;
+        if (form.mode === "auto") {
           setAutoCommitPending(true);
         }
       } catch (error) {
@@ -407,6 +491,7 @@ export default function Import() {
         const message = error instanceof Error ? error.message : "Failed to parse file";
         setParseError(message);
         setParsedFile(null);
+        setRecoveredMappingTemplate(null);
         toast.error(message);
       } finally {
         if (alive) setParsing(false);
@@ -418,26 +503,37 @@ export default function Import() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, customFields, profiles, registrySettings.activeProfileId]);
 
+  const resolvedMapping = useMemo(() => {
+    if (!parsedFile) return mapping;
+    const preferredBindings = Object.fromEntries(
+      Object.entries(mapping).filter(([, target]) => target && target !== "ignore"),
+    ) as Record<string, ImportTargetBinding>;
+    return buildAutoMappingReport(parsedFile.headers, customFields, {
+      preferredBindings,
+    }).mapping;
+  }, [customFields, mapping, parsedFile]);
+
   useEffect(() => {
-    const batch = savedBatches[0];
+    const runtime = getImportEngineRuntimeSnapshot();
+    const batch = runtime.activeBatchId
+      ? savedBatches.find((candidate) => candidate.batchId === runtime.activeBatchId) ?? savedBatches[0] ?? null
+      : savedBatches[0] ?? null;
     if (!batch || !parsedFile) return;
     batch.batchName = batchName.trim() || getDefaultBatchName(parsedFile.fileName);
     batch.batchDescription = batchDescription.trim();
     batch.matchStrategy = design;
     const updatedMapping = parsedFile.headers.map((h) => ({
       importField: h,
-      targetField: mapping[h] && mapping[h] !== "ignore" ? mapping[h] : null,
+      targetField: resolvedMapping[h] && resolvedMapping[h] !== "ignore" ? resolvedMapping[h] : null,
       transferMode: "newentry" as const,
       isRequired: false,
     }));
     batch.mappingLines = updatedMapping;
     void saveImportBatches([batch]);
     invalidateImportDownstream(pipelineRef.current, "map", batch, "batch-updated");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapping, rule, design, threshold]);
+  }, [batchDescription, batchName, design, parsedFile, resolvedMapping, savedBatches]);
 
   const handleResumeBatch = async (batch: ImportBatch) => {
     setBatchName(batch.batchName);
@@ -453,6 +549,7 @@ export default function Import() {
       ),
     );
     setSavedBatches((prev) => [batch, ...prev.filter((b) => b.batchId !== batch.batchId)]);
+    setImportRuntimeActiveBatch(batch.batchId);
     setStep(Math.min(step, 1));
     invalidateImportDownstream(pipelineRef.current, "map", batch, "batch-resumed");
     refreshCanonicalPipelineState(pipelineRef.current, batch);
@@ -462,6 +559,10 @@ export default function Import() {
   const handleDeleteSavedBatch = async (batchId: string) => {
     try {
       await deleteBatchFromDB(batchId);
+      const runtime = getImportEngineRuntimeSnapshot();
+      if (runtime.activeBatchId === batchId) {
+        setImportRuntimeActiveBatch(null);
+      }
       setSavedBatches((prev) => prev.filter((b) => b.batchId !== batchId));
       toast.success("Batch deleted.");
     } catch {
@@ -473,9 +574,9 @@ export default function Import() {
     if (!parsedFile) return null;
     const mod = getModule(moduleId);
     if (mod?.fieldGroups && moduleId !== "students") {
-      return buildGenericPreview(parsedFile, mapping, mod.fieldGroups, customFields) as unknown as ImportPreviewState;
+      return buildGenericPreview(parsedFile, resolvedMapping, mod.fieldGroups, customFields) as unknown as ImportPreviewState;
     }
-    return buildImportPreview(parsedFile, mapping, existingRows, {
+    return buildImportPreview(parsedFile, resolvedMapping, existingRows, {
       design: design as any,
       threshold,
       rule,
@@ -483,7 +584,7 @@ export default function Import() {
       groupOverrides,
       actionOverrides,
     });
-  }, [actionOverrides, customFields, design, existingRows, groupOverrides, mapping, parsedFile, rule, threshold, moduleId]);
+  }, [actionOverrides, customFields, design, existingRows, groupOverrides, moduleId, parsedFile, resolvedMapping, rule, threshold]);
 
   const activeRegistryProfile = useMemo(
     () =>
@@ -511,7 +612,20 @@ export default function Import() {
       .sort((left, right) => right.rows.length - left.rows.length);
   }, [preview]);
 
-  const validationRows = useMemo(() => preview?.rows.filter((row) => row.validationIssues.length > 0) ?? [], [preview]);
+  const runtimeSnapshot = getImportEngineRuntimeSnapshot();
+  const currentBatch = useMemo<ImportBatch | null>(() => {
+    if (runtimeSnapshot.activeBatchId) {
+      return savedBatches.find((batch) => batch.batchId === runtimeSnapshot.activeBatchId) ?? savedBatches[0] ?? null;
+    }
+    return savedBatches[0] ?? null;
+  }, [runtimeSnapshot.activeBatchId, savedBatches]);
+
+  const validationBatch = useMemo<ImportBatch | null>(() => (currentBatch ? { ...currentBatch } : null), [currentBatch]);
+
+  const validationReport = useMemo<ImportValidationReport>(
+    () => buildImportValidationReport(validationBatch, preview),
+    [preview, validationBatch],
+  );
 
   const stepPct = Math.round(((step + 1) / STEPS.length) * 100);
   const Active = STEPS[step].icon;
@@ -620,7 +734,7 @@ export default function Import() {
     setCustomFields(nextFields);
     invalidateRegistryCache();
     if (parsedFile) {
-      setMapping(applyRegistryPresetMapping(parsedFile.headers, nextFields, activeRegistryProfile));
+      setMapping(applyRegistryPresetMapping(parsedFile.headers, nextFields, activeRegistryProfile, recoveredMappingTemplate));
     }
     setCustomFieldDraft(createEmptyCustomFieldDraft());
     toast.success(`Saved custom field "${saved.label}" v${saved.version}.`);
@@ -632,7 +746,7 @@ export default function Import() {
     setCustomFields(nextFields);
     invalidateRegistryCache();
     if (parsedFile) {
-      setMapping(applyRegistryPresetMapping(parsedFile.headers, nextFields, activeRegistryProfile));
+      setMapping(applyRegistryPresetMapping(parsedFile.headers, nextFields, activeRegistryProfile, recoveredMappingTemplate));
     }
     toast.success("Custom field removed.");
   };
@@ -643,6 +757,14 @@ export default function Import() {
       return;
     }
 
+    const preferredBindings = Object.fromEntries(
+      Object.entries(mapping).filter(([, target]) => target && target !== "ignore"),
+    ) as Record<string, ImportTargetBinding>;
+    const mappingReport = buildAutoMappingReport(parsedFile.headers, customFields, {
+      preferredBindings,
+    });
+    const resolvedMapping = mappingReport.mapping;
+
     const saved = saveImportProfile({
       id: selectedProfileId || undefined,
       name: profileDraft.name.trim() || batchName.trim() || "Unnamed profile",
@@ -650,9 +772,19 @@ export default function Import() {
       rule,
       design: design as any,
       threshold,
-      mapping,
+      mapping: resolvedMapping,
       groupOverrides,
       actionOverrides,
+      customFieldIds: customFields.map((field) => field.id),
+    });
+
+    const savedTemplate = saveImportMappingTemplate({
+      name: saved.name,
+      moduleId,
+      headers: parsedFile.headers,
+      mapping: resolvedMapping,
+      conflicts: mappingReport.conflicts,
+      sourceProfileId: saved.id,
       customFieldIds: customFields.map((field) => field.id),
     });
 
@@ -661,6 +793,7 @@ export default function Import() {
     invalidateRegistryCache();
     setSelectedProfileId(saved.id);
     setRegistrySettings((current) => saveHeaderRegistrySettings({ ...current, activeProfileId: saved.id }));
+    setRecoveredMappingTemplate(savedTemplate);
     setProfileDraft(createEmptyProfileDraft());
     toast.success(`Saved profile "${saved.name}" v${saved.version}.`);
   };
@@ -673,7 +806,11 @@ export default function Import() {
     setRule(profile.rule);
     setDesign(profile.design);
     setThreshold(profile.threshold);
-    setMapping(profile.mapping as Record<string, ImportTargetBinding>);
+    setMapping(
+      parsedFile
+        ? applyRegistryPresetMapping(parsedFile.headers, customFields, profile, recoveredMappingTemplate)
+        : (profile.mapping as Record<string, ImportTargetBinding>),
+    );
     setGroupOverrides(profile.groupOverrides);
     setActionOverrides(profile.actionOverrides);
     toast.success(`Applied profile "${profile.name}".`);
@@ -681,12 +818,14 @@ export default function Import() {
 
   const handleDeleteProfile = (profileId: string) => {
     deleteImportProfile(profileId);
+    deleteImportMappingTemplatesByProfile(profileId);
     const nextProfiles = loadImportProfiles();
     setProfiles(nextProfiles);
     invalidateRegistryCache();
     if (selectedProfileId === profileId) {
       setSelectedProfileId("");
       setProfileDraft(createEmptyProfileDraft());
+      setRecoveredMappingTemplate(null);
     }
     setRegistrySettings((current) =>
       current.activeProfileId === profileId
@@ -708,9 +847,13 @@ export default function Import() {
       return;
     }
 
+    const preferredBindings = Object.fromEntries(
+      Object.entries(mapping).filter(([, target]) => target && target !== "ignore"),
+    ) as Record<string, ImportTargetBinding>;
+
     setCommitting(true);
     try {
-      let current = savedBatches[0];
+      let current = getCurrentBatch();
       if (!current) {
         current = createImportBatch({
           batchName: batchName.trim() || getDefaultBatchName(parsedFile.fileName),
@@ -721,6 +864,7 @@ export default function Import() {
           matchStrategy: design,
         });
         current.status = "draft";
+        setImportRuntimeActiveBatch(current.batchId);
       }
       current.previewRows = preview.rows.map((r) => ({
         sourceRowIndex: r.sourceRowIndex,
@@ -764,6 +908,19 @@ export default function Import() {
       const refreshed = await mod.adapter.loadExistingRecords();
       setExistingRows(refreshed as ExistingStudentRecord[]);
       await handleRefreshHistory();
+      const committedMappingReport = buildAutoMappingReport(parsedFile.headers, customFields, {
+        preferredBindings,
+      });
+      const committedTemplate = saveImportMappingTemplate({
+        name: current.batchName || batchName.trim() || getDefaultBatchName(parsedFile.fileName),
+        moduleId,
+        headers: parsedFile.headers,
+        mapping: committedMappingReport.mapping,
+        conflicts: committedMappingReport.conflicts,
+        sourceProfileId: selectedProfileId || null,
+        customFieldIds: customFields.map((field) => field.id),
+      });
+      setRecoveredMappingTemplate(committedTemplate);
 
       current.status = "transferred";
       current.insertedCount = result.inserted;
@@ -782,7 +939,7 @@ export default function Import() {
   };
 
   const handleRollback = async () => {
-    const current = savedBatches[0];
+    const current = getCurrentBatch();
     if (!current?.rollbackData?.length) {
       toast.error("No rollback data available.");
       return;
@@ -818,6 +975,19 @@ export default function Import() {
     void handleCommit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCommitPending, preview, parsedFile]);
+
+  useEffect(() => {
+    return subscribeImportValidationRuntime(() => {
+      setValidationRuntimeSnapshot(getImportValidationRuntimeSnapshot());
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!preview || !validationBatch) return;
+    const result = runImportValidationCycle(pipelineRef.current, validationBatch, preview);
+    validationAuditSignatureRef.current = result.report.signature;
+    setValidationRuntimeSnapshot(result.snapshot);
+  }, [preview, validationBatch]);
 
   return (
     <div>
@@ -1132,14 +1302,39 @@ export default function Import() {
                     <Badge variant="secondary" className="bg-success/10 text-success">
                       Active preset: {registryMappingStats.activeProfileName}
                     </Badge>
+                    {recoveredMappingTemplate && (
+                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                        Recovered: {recoveredMappingTemplate.name}
+                      </Badge>
+                    )}
                     <Button
                       variant="outline"
                       className="rounded-xl"
-                      onClick={() => parsedFile && setMapping(applyRegistryPresetMapping(parsedFile.headers, customFields, activeRegistryProfile))}
+                      onClick={() =>
+                        parsedFile &&
+                        setMapping(
+                          applyRegistryPresetMapping(
+                            parsedFile.headers,
+                            customFields,
+                            activeRegistryProfile,
+                            recoveredMappingTemplate,
+                          ),
+                        )
+                      }
                       disabled={!parsedFile}
                     >
                       Apply registry defaults
                     </Button>
+                    {recoveredMappingTemplate && (
+                      <Button
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => parsedFile && setMapping(recoveredMappingTemplate.mapping)}
+                        disabled={!parsedFile}
+                      >
+                        Reapply recovered mapping
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -1178,7 +1373,22 @@ export default function Import() {
                   <p className="text-sm font-semibold">Schema mapping</p>
                   <p className="text-xs text-muted-foreground">Map each source column to the register field it should populate.</p>
                 </div>
-                <Button variant="outline" className="rounded-xl" onClick={() => parsedFile && setMapping(applyRegistryPresetMapping(parsedFile.headers, customFields, activeRegistryProfile))} disabled={!parsedFile}>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() =>
+                    parsedFile &&
+                    setMapping(
+                      applyRegistryPresetMapping(
+                        parsedFile.headers,
+                        customFields,
+                        activeRegistryProfile,
+                        recoveredMappingTemplate,
+                      ),
+                    )
+                  }
+                  disabled={!parsedFile}
+                >
                   Auto-map again
                 </Button>
               </div>
@@ -1359,10 +1569,18 @@ export default function Import() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold">Validation</p>
-                  <p className="text-xs text-muted-foreground">These rows need attention before they are safe to commit.</p>
+                  <p className="text-xs text-muted-foreground">QA scoring, blockers, and review signals before commit.</p>
                 </div>
-                <Badge variant="secondary" className="bg-warning/15 text-warning">
-                  {validationRows.length} issue rows
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    validationReport.status === "blocked" && "bg-destructive/15 text-destructive",
+                    validationReport.status === "warning" && "bg-warning/15 text-warning",
+                    validationReport.status === "healthy" && "bg-success/15 text-success",
+                    validationReport.status === "empty" && "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {validationReport.status}
                 </Badge>
               </div>
 
@@ -1370,29 +1588,110 @@ export default function Import() {
                 <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
                   Validation appears after a file is parsed and mapped.
                 </Card>
-              ) : validationRows.length ? (
-                validationRows.map((row) => (
-                  <div key={row.rowKey} className="rounded-xl border border-warning/30 bg-warning/5 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium">{row.displayName}</p>
-                        <p className="text-xs text-muted-foreground">{row.sourceRowIndex + 2}</p>
-                      </div>
-                      <Badge variant="secondary" className="bg-warning/15 text-warning">
-                        {row.validationIssues.length} issue(s)
-                      </Badge>
-                    </div>
-                    <ul className="mt-3 space-y-1 text-sm text-warning">
-                      {row.validationIssues.map((issue) => (
-                        <li key={issue}>• {issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
               ) : (
-                <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
-                  No validation issues found for the current mapping.
-                </Card>
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    {[
+                      { label: "Score", value: `${validationReport.score}`, className: "text-primary" },
+                      { label: "Blockers", value: validationReport.blockerCount, className: "text-destructive" },
+                      { label: "Warnings", value: validationReport.warningCount, className: "text-warning" },
+                      { label: "Review rows", value: validationReport.reviewRows, className: "text-muted-foreground" },
+                    ].map((item) => (
+                      <Card key={item.label} className="glass p-4 text-center">
+                        <p className={cn("font-display text-3xl font-bold", item.className)}>{item.value}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{item.label}</p>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <Card className="border-border/60 bg-card/70 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">{validationReport.summary}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {validationReport.validRows}/{validationReport.totalRows} rows valid · {validationReport.invalidRows} invalid · {validationReport.internalDuplicates} internal duplicates
+                        </p>
+                      </div>
+                      <div className="min-w-24 text-right">
+                        <p className="font-display text-3xl font-bold text-primary">{validationReport.score}</p>
+                        <p className="text-xs text-muted-foreground">Quality score</p>
+                      </div>
+                    </div>
+                    <Progress value={validationReport.score} className="mt-4 h-1.5" />
+                  </Card>
+
+                  <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
+                    <Card className="border-border/60 bg-card/60 p-4">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Validation runtime</p>
+                      <p className="mt-2 text-sm font-semibold capitalize">{validationRuntimeSnapshot.stability}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Last run: {validationRuntimeSnapshot.lastRunAt ? new Date(validationRuntimeSnapshot.lastRunAt).toLocaleString() : "Not run yet"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Last audit: {validationRuntimeSnapshot.lastAuditedAt ? new Date(validationRuntimeSnapshot.lastAuditedAt).toLocaleString() : "Not audited yet"}
+                      </p>
+                    </Card>
+                    <Card className="border-border/60 bg-card/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Integrity notes</p>
+                        <Badge variant="secondary">{validationRuntimeSnapshot.integrityNotes.length}</Badge>
+                      </div>
+                      {validationRuntimeSnapshot.integrityNotes.length ? (
+                        <div className="mt-2 space-y-1.5">
+                          {validationRuntimeSnapshot.integrityNotes.slice(0, 3).map((note) => (
+                            <p key={note} className="text-xs text-muted-foreground">
+                              {note}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">No data integrity mismatches were detected.</p>
+                      )}
+                    </Card>
+                  </div>
+
+                  {validationReport.findings.length ? (
+                    <div className="space-y-3">
+                      {validationReport.findings.slice(0, 8).map((finding) => (
+                        <Card
+                          key={finding.code}
+                          className={cn(
+                            "p-4",
+                            finding.kind === "blocker" && "border-destructive/30 bg-destructive/5",
+                            finding.kind === "warning" && "border-warning/30 bg-warning/5",
+                            finding.kind === "info" && "border-primary/30 bg-primary/5",
+                          )}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-medium">{finding.title}</p>
+                                <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                    finding.kind === "blocker" && "bg-destructive/15 text-destructive",
+                                    finding.kind === "warning" && "bg-warning/15 text-warning",
+                                    finding.kind === "info" && "bg-primary/10 text-primary",
+                                  )}
+                                >
+                                  {finding.kind}
+                                </Badge>
+                              </div>
+                              {finding.rowLabel ? (
+                                <p className="mt-1 text-xs text-muted-foreground">{finding.rowLabel}</p>
+                              ) : null}
+                            </div>
+                            <p className="max-w-xl text-sm text-muted-foreground">{finding.detail}</p>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
+                      No validation findings were raised for the current preview.
+                    </Card>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -1518,7 +1817,7 @@ export default function Import() {
                   ))}
                 </div>
               ) : null}
-              {commitResult && savedBatches[0]?.rollbackData?.length ? (
+              {commitResult && getCurrentBatch()?.rollbackData?.length ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" className="rounded-xl border-warning/40 text-warning hover:bg-warning/10">
@@ -1571,7 +1870,7 @@ export default function Import() {
             ) : commitResult ? (
               <Button
                 variant="outline"
-                onClick={() => { pipelineRef.current = createImportPipelineState(); setStep(0); setCommitResult(null); setParsedFile(null); setFile(null); setBatchName(""); setBatchDescription(""); }}
+                onClick={() => { pipelineRef.current = createImportPipelineState(); resetImportEngineSession("new-import"); setImportRuntimeActiveBatch(null); setStep(0); setCommitResult(null); setParsedFile(null); setFile(null); setBatchName(""); setBatchDescription(""); }}
                 className="rounded-xl"
               >
                 New Import

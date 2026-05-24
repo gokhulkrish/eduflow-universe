@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 export type LeaveRequest = { id: string; employee: string; department: string; type: string; start_date: string; end_date: string; reason: string; status: string; applied_at: string; };
 export type Holiday = { id: string; name: string; date: string; type: string; };
 

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useActivityTrace, type TraceCategory } from "@/stores/activityTrace";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { acquireMobileScrollLock } from "@/lib/mobile-shell";
 import { Download, Trash2, Activity } from "lucide-react";
 
 const categoryStyles: Record<TraceCategory, string> = {
@@ -25,6 +27,12 @@ function fmtTime(ts: number) {
 
 export function ActivityTraceDrawer() {
   const { events, open, setOpen, filter, setFilter, query, setQuery, clear } = useActivityTrace();
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!isMobile || !open) return;
+    return acquireMobileScrollLock();
+  }, [isMobile, open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -47,7 +55,7 @@ export function ActivityTraceDrawer() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-md">
+      <SheetContent side="right" className="flex w-full max-h-[100dvh] flex-col overflow-hidden p-0 sm:max-w-md">
         <SheetHeader className="border-b px-5 py-4">
           <SheetTitle className="flex items-center gap-2 font-display">
             <Activity className="h-4 w-4 text-primary" /> Activity Trace

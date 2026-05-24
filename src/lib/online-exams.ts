@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { readSupabaseRows } from "@/lib/supabase-query";
 import { isModuleEnabled } from "@/lib/module-access";

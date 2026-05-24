@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type AcademicCohort = { id: string; grade: string; section: string; teacher_id: string; room: string; capacity: number; };

@@ -112,7 +112,7 @@ export function createSupabaseRollbackFn() {
         } else if (entry.changeType === "updated") {
           const { error } = await supabase
             .from("students")
-            .update(entry.previousState)
+            .update(entry.previousState as any)
             .eq("id", entry.studentKey);
           if (error) throw error;
           restored++;

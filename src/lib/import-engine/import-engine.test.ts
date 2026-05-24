@@ -518,7 +518,7 @@ describe("supabase-adapter", () => {
       diffSummary: ["Name change"],
     };
 
-    const converted = toSupabasePreviewRow(engineRow, existingRecords);
+    const converted = toSupabasePreviewRow(engineRow, existingRecords as any);
     expect(converted.existing).not.toBeNull();
     expect(converted.existing!.student_id).toBe("s1");
     expect(converted.existing!.admission_no).toBe("A001");

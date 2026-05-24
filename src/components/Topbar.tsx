@@ -1,5 +1,7 @@
-import { Bell, Search, Moon, Sun, Command, Activity, LogOut } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Bell, Search, Moon, Sun, Command, Activity, LogOut, Maximize2, Minimize2 } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,9 +15,16 @@ import { useShell } from "@/stores/shell";
 import { useActivityTrace } from "@/stores/activityTrace";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { getFocusRuntimeOptions, getFocusRuntimeSnapshot, summarizeFocusRuntime } from "@/lib/focus-runtime";
+import { loadAccessibleModuleKeys } from "@/lib/module-access";
+import { resolveAccessKeyForPathname } from "@/lib/global-access-registry";
+import { subscribeAppSync } from "@/lib/app-sync";
+import { toast } from "sonner";
 
 export function Topbar() {
   const { theme, toggleTheme } = useShell();
+  const focusMode = useShell((s) => s.focusMode);
+  const setFocusMode = useShell((s) => s.setFocusMode);
   const dark = theme === "dark";
   const openTrace = useActivityTrace((s) => s.setOpen);
   const traceCount = useActivityTrace((s) => s.events.length);
@@ -23,13 +32,29 @@ export function Topbar() {
   const nav = useNavigate();
   const primaryRole = roles[0] ?? "guest";
   const initials = (user?.email ?? "??").slice(0, 2).toUpperCase();
+  const focusRuntime = getFocusRuntimeSnapshot(focusMode);
+  const accessQuery = useQuery({
+    queryKey: ["accessible-module-keys", "topbar"],
+    queryFn: () => loadAccessibleModuleKeys(),
+    staleTime: Infinity,
+  });
 
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
+  useEffect(() => {
+    return subscribeAppSync(["sms.module-access.v1"], () => {
+      void accessQuery.refetch();
+    });
+  }, [accessQuery.refetch]);
+
+  const canShowShortcut = (path: string) => {
+    const accessKey = resolveAccessKeyForPathname(path);
+    if (!accessKey) return false;
+    if (accessQuery.isLoading) return false;
+    return accessQuery.data?.has(accessKey) ?? false;
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
-      {/* Sidebar trigger moved into sidebar for both states; Topbar no longer renders it */}
+      <SidebarTrigger className="rounded-lg md:h-6 md:w-6 md:rounded-md md:opacity-75 md:hover:opacity-100" />
 
       <div className="relative ml-2 hidden flex-1 max-w-md md:block">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -49,6 +74,40 @@ export function Topbar() {
             <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{traceCount}</span>
           )}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative rounded-xl" title={`Focus mode: ${focusRuntime.label}`}>
+              {focusRuntime.active ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel className="flex items-center justify-between gap-2">
+              Focus mode
+              <Badge variant="secondary" className="text-[10px]">{focusRuntime.label}</Badge>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {getFocusRuntimeOptions().map((runtime) => (
+              <DropdownMenuItem
+                key={runtime.mode}
+                className="flex flex-col items-start gap-0.5 py-2.5"
+                onClick={() => {
+                  setFocusMode(runtime.mode);
+                  toast.success(`${runtime.label} mode active`);
+                }}
+              >
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{runtime.label}</span>
+                  <Badge variant="secondary" className="text-[10px]">{runtime.mode}</Badge>
+                </div>
+                <span className="text-xs text-muted-foreground">{runtime.description}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <div className="px-2 py-2 text-xs text-muted-foreground">
+              {summarizeFocusRuntime(focusMode)}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl">
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
@@ -92,9 +151,13 @@ export function Topbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Active session</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => nav("/permissions")}>Permission Matrix</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => nav("/settings/institute")}>Institute Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {canShowShortcut("/permissions") && (
+              <DropdownMenuItem onClick={() => nav("/permissions")}>Permission Matrix</DropdownMenuItem>
+            )}
+            {canShowShortcut("/settings/institute") && (
+              <DropdownMenuItem onClick={() => nav("/settings/institute")}>Institute Settings</DropdownMenuItem>
+            )}
+            {(canShowShortcut("/permissions") || canShowShortcut("/settings/institute")) && <DropdownMenuSeparator />}
             <DropdownMenuItem onClick={async () => { await signOut(); nav("/auth"); }} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" /> Sign out
             </DropdownMenuItem>

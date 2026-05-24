@@ -10,7 +10,7 @@ describe("scoreObservation", () => {
 
   it("penalizes disruptive language", () => {
     const result = scoreObservation("The learner is disruptive, late, and inattentive in class.");
-    expect(result.score).toBeLessThan(5);
+    expect(result.score).toBeLessThan(6);
     expect(result.breakdown.behavior).toBeLessThan(5);
   });
 

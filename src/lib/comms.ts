@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type Announcement = { id: string; title: string; body: string; audience: string; priority: string; author: string; views: number; created_at: string; };

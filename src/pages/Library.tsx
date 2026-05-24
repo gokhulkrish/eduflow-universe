@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { BookOpen, Clock, DollarSign, Plus, BadgeCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";

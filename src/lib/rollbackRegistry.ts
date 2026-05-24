@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync, subscribeAppSync } from "./app-sync";
 import { MIGRATION_PATCH_FLAGS } from "./featureFlags";
 
@@ -157,4 +158,3 @@ export function resetRollbackRegistry(): RollbackSnapshot {
 export function subscribeMigrationRollbacks(listener: () => void) {
   return subscribeAppSync([MIGRATION_ROLLBACK_STORAGE_KEY], listener);
 }
-

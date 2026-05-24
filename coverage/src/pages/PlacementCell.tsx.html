@@ -1,0 +1,712 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/PlacementCell.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> PlacementCell.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/209</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/209</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { useEffect, useState } from "react";</span></span></span>
+<span class="cstat-no" title="statement not covered" >import { Briefcase, Plus, Users, Trash2, Building2, BarChart3 } from "lucide-react";</span>
+<span class="cstat-no" title="statement not covered" >import { toast } from "sonner";</span>
+<span class="cstat-no" title="statement not covered" >import { PageHeader } from "@/components/PageHeader";</span>
+<span class="cstat-no" title="statement not covered" >import { Button } from "@/components/ui/button";</span>
+<span class="cstat-no" title="statement not covered" >import { Input } from "@/components/ui/input";</span>
+<span class="cstat-no" title="statement not covered" >import { Label } from "@/components/ui/label";</span>
+<span class="cstat-no" title="statement not covered" >import { Textarea } from "@/components/ui/textarea";</span>
+<span class="cstat-no" title="statement not covered" >import { Badge } from "@/components/ui/badge";</span>
+<span class="cstat-no" title="statement not covered" >import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";</span>
+<span class="cstat-no" title="statement not covered" >import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";</span>
+<span class="cstat-no" title="statement not covered" >import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";</span>
+<span class="cstat-no" title="statement not covered" >import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";</span>
+<span class="cstat-no" title="statement not covered" >import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";</span>
+<span class="cstat-no" title="statement not covered" >import { subscribeAppSync } from "@/lib/app-sync";</span>
+<span class="cstat-no" title="statement not covered" >import { usePagination } from "@/hooks/usePagination";</span>
+<span class="cstat-no" title="statement not covered" >import { TablePagination } from "@/components/TablePagination";</span>
+<span class="cstat-no" title="statement not covered" >import { companiesKey, jobsKey, placementRegistrationsKey, interviewStagesKey, getJobs, createJob, updateJob, deleteJob, getRegistrations, registerStudent, updateRegistration, getCompanies, createCompany, deleteCompany, getInterviews, addInterviewStage, updateInterviewStage, getPlacementAnalytics } from "@/lib/placement";</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >export default function PlacementCell() {</span>
+<span class="cstat-no" title="statement not covered" >  const [tab, setTab] = useState("analytics");</span>
+<span class="cstat-no" title="statement not covered" >  const [jobs, setJobs] = useState(() =&gt; getJobs()); const [companies, setCompanies] = useState(() =&gt; getCompanies()); const [regs, setRegs] = useState(() =&gt; getRegistrations()); const [interviews, setInterviews] = useState(() =&gt; getInterviews());</span>
+<span class="cstat-no" title="statement not covered" >  const analytics = getPlacementAnalytics();</span>
+<span class="cstat-no" title="statement not covered" >  const refreshJobs = () =&gt; setJobs(getJobs()); const refreshCompanies = () =&gt; setCompanies(getCompanies()); const refreshRegs = () =&gt; setRegs(getRegistrations()); const refreshInterviews = () =&gt; setInterviews(getInterviews());</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const pag1 = usePagination({ data: companies, pageSize: 10 });</span>
+<span class="cstat-no" title="statement not covered" >  const pag2 = usePagination({ data: regs, pageSize: 10 });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; subscribeAppSync([companiesKey, jobsKey, placementRegistrationsKey, interviewStagesKey], () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    refreshJobs();</span>
+<span class="cstat-no" title="statement not covered" >    refreshCompanies();</span>
+<span class="cstat-no" title="statement not covered" >    refreshRegs();</span>
+<span class="cstat-no" title="statement not covered" >    refreshInterviews();</span>
+<span class="cstat-no" title="statement not covered" >  }), []);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const [jOpen, setJOpen] = useState(false); const [jEditId, setJEditId] = useState&lt;string | null&gt;(null);</span>
+<span class="cstat-no" title="statement not covered" >  const [jTitle, setJTitle] = useState(""); const [jCompany, setJCompany] = useState(""); const [jCompanyId, setJCompanyId] = useState(""); const [jLoc, setJLoc] = useState(""); const [jDesc, setJDesc] = useState(""); const [jReq, setJReq] = useState(""); const [jSalary, setJSalary] = useState(""); const [jVacancy, setJVacancy] = useState("1"); const [jDeadline, setJDeadline] = useState("");</span>
+<span class="cstat-no" title="statement not covered" >  const [cOpen, setCOpen] = useState(false); const [cName, setCName] = useState(""); const [cIndustry, setCIndustry] = useState(""); const [cWebsite, setCWebsite] = useState(""); const [cContacts, setCContacts] = useState("");</span>
+<span class="cstat-no" title="statement not covered" >  const [regOpen, setRegOpen] = useState(false); const [regJobId, setRegJobId] = useState(""); const [studentName, setStudentName] = useState("");</span>
+<span class="cstat-no" title="statement not covered" >  const [ivOpen, setIvOpen] = useState(false); const [ivRegId, setIvRegId] = useState(""); const [ivStage, setIvStage] = useState("screening"); const [ivFeedback, setIvFeedback] = useState(""); const [ivStatus, setIvStatus] = useState("passed");</span>
+<span class="cstat-no" title="statement not covered" >  const STAGES = ["screening", "written", "technical", "hr", "offer"];</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const openJobEdit = (j?: any) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setJEditId(j?.id ?? null); setJTitle(j?.title ?? ""); setJCompany(j?.company ?? ""); setJCompanyId(j?.company_id ?? ""); setJLoc(j?.location ?? ""); setJDesc(j?.description ?? ""); setJReq(j?.requirements ?? ""); setJSalary(j?.salary ?? ""); setJVacancy(String(j?.vacancy ?? 1)); setJDeadline(j?.deadline?.split("T")[0] ?? ""); setJOpen(true);</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+<span class="cstat-no" title="statement not covered" >  const handleJobSave = () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    const data = { title: jTitle, company: jCompany, company_id: jCompanyId, location: jLoc, description: jDesc, requirements: jReq, salary: jSalary, vacancy: Number(jVacancy), deadline: jDeadline ? new Date(jDeadline).toISOString() : null, status: jEditId ? (jobs.find((j) =&gt; j.id === jEditId)?.status ?? "draft") : "draft" };</span>
+<span class="cstat-no" title="statement not covered" >    if (jEditId) { updateJob(jEditId, data); } else { createJob(data as any); }</span>
+<span class="cstat-no" title="statement not covered" >    refreshJobs(); setJOpen(false); toast.success(jEditId ? "Updated" : "Created");</span>
+<span class="cstat-no" title="statement not covered" >  };</span>
+<span class="cstat-no" title="statement not covered" >  const handleStatus = (id: string, s: string) =&gt; { updateJob(id, { status: s }); refreshJobs(); toast.success(`Status: ${s}`); };</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  return (</span>
+<span class="cstat-no" title="statement not covered" >    &lt;div&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;PageHeader title="Placement Cell" subtitle="Job postings, recruiters, interviews &amp; analytics" icon={&lt;Briefcase className="h-6 w-6" /&gt;} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Tabs value={tab} onValueChange={setTab}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;TabsList className="mb-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TabsTrigger value="analytics"&gt;Analytics&lt;/TabsTrigger&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TabsTrigger value="jobs"&gt;Jobs&lt;/TabsTrigger&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TabsTrigger value="companies"&gt;Recruiters&lt;/TabsTrigger&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TabsTrigger value="pipeline"&gt;Pipeline&lt;/TabsTrigger&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TabsList&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        &lt;TabsContent value="analytics"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Open Jobs&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-2xl font-bold"&gt;{analytics.openJobs}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Total Vacancies&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-2xl font-bold"&gt;{analytics.totalVacancies}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Registrations&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-2xl font-bold"&gt;{analytics.totalRegistrations}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Placed&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-2xl font-bold text-success"&gt;{analytics.placed}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="grid gap-4 sm:grid-cols-3"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Total Jobs&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-xl font-bold"&gt;{analytics.totalJobs}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Recruiters&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-xl font-bold"&gt;{analytics.companies}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Card&gt;&lt;CardHeader className="pb-1"&gt;&lt;CardTitle className="text-xs text-muted-foreground"&gt;Avg Salary&lt;/CardTitle&gt;&lt;/CardHeader&gt;&lt;CardContent&gt;&lt;p className="text-xl font-bold"&gt;{analytics.avgSalary ? `₹${Math.round(analytics.avgSalary / 1000)}K` : "—"}&lt;/p&gt;&lt;/CardContent&gt;&lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TabsContent&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        &lt;TabsContent value="jobs"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="flex justify-end mb-4"&gt;&lt;Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() =&gt; openJobEdit()}&gt;&lt;Plus className="h-4 w-4 mr-1" /&gt; Post Job&lt;/Button&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            {jobs.length === 0 &amp;&amp; &lt;Card className="col-span-full"&gt;&lt;CardContent className="py-12 text-center text-sm text-muted-foreground"&gt;No jobs posted&lt;/CardContent&gt;&lt;/Card&gt;}</span>
+<span class="cstat-no" title="statement not covered" >            {jobs.map((j) =&gt; (</span>
+<span class="cstat-no" title="statement not covered" >              &lt;Card key={j.id} className="border-border/40"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;CardHeader className="pb-2"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="flex items-start justify-between"&gt;&lt;CardTitle className="text-sm"&gt;{j.title}&lt;/CardTitle&gt;&lt;Badge className={`text-[9px] ${j.status === "open" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}&gt;{j.status}&lt;/Badge&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;p className="text-xs text-muted-foreground"&gt;{j.company} · {j.location} · {j.vacancy || 1} vacancy&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/CardHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;CardContent className="space-y-1 text-xs"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;p className="text-muted-foreground line-clamp-2"&gt;{j.description}&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;p className="text-muted-foreground"&gt;&lt;strong&gt;Req:&lt;/strong&gt; {j.requirements}&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;p className="text-muted-foreground"&gt;{j.salary ? `${j.salary} · ` : ""}Deadline: {j.deadline ? new Date(j.deadline).toLocaleDateString() : "—"}&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;div className="flex gap-2 pt-2 flex-wrap"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() =&gt; openJobEdit(j)}&gt;Edit&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    {j.status === "draft" &amp;&amp; &lt;Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() =&gt; handleStatus(j.id, "open")}&gt;Open&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >                    {j.status === "open" &amp;&amp; &lt;Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() =&gt; handleStatus(j.id, "closed")}&gt;Close&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() =&gt; { setRegJobId(j.id); setStudentName(""); setRegOpen(true); }}&gt;&lt;Users className="h-3 w-3 mr-1" /&gt;Register&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() =&gt; { deleteJob(j.id); refreshJobs(); toast.success("Deleted"); }}&gt;&lt;Trash2 className="h-3 w-3" /&gt;&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/CardContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;/Card&gt;</span>
+<span class="cstat-no" title="statement not covered" >            ))}</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TabsContent&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        &lt;TabsContent value="companies"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="flex justify-end mb-4"&gt;&lt;Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() =&gt; { setCName(""); setCIndustry(""); setCWebsite(""); setCContacts(""); setCOpen(true); }}&gt;&lt;Plus className="h-4 w-4 mr-1" /&gt; Add Recruiter&lt;/Button&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TablePagination {...pag1} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Table&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;TableHeader className=""&gt;&lt;TableRow&gt;&lt;TableHead className="text-xs"&gt;Company&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Industry&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Website&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Past Drives&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Offers Made&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Actions&lt;/TableHead&gt;&lt;/TableRow&gt;&lt;/TableHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >              {companies.length === 0 &amp;&amp; &lt;TableRow&gt;&lt;TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8"&gt;No recruiters added&lt;/TableCell&gt;&lt;/TableRow&gt;}</span>
+<span class="cstat-no" title="statement not covered" >              {pag1.pageData.map((c) =&gt; (</span>
+<span class="cstat-no" title="statement not covered" >                &lt;TableRow key={c.id}&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell className="text-xs font-medium"&gt;{c.name}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell className="text-xs"&gt;{c.industry}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell className="text-xs text-primary underline"&gt;&lt;a href={c.website} target="_blank"&gt;{c.website}&lt;/a&gt;&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell className="text-xs"&gt;{c.past_drives}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell className="text-xs"&gt;{c.offers_made}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableCell&gt;&lt;Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() =&gt; { deleteCompany(c.id); refreshCompanies(); toast.success("Deleted"); }}&gt;&lt;Trash2 className="h-3 w-3" /&gt;&lt;/Button&gt;&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;/TableRow&gt;</span>
+<span class="cstat-no" title="statement not covered" >              ))}</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/Table&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TabsContent&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        &lt;TabsContent value="pipeline"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;TablePagination {...pag2} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;Table&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;TableHeader className=""&gt;&lt;TableRow&gt;&lt;TableHead className="text-xs"&gt;Student&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Job&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Registered&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Status&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Interviews&lt;/TableHead&gt;&lt;TableHead className="text-xs"&gt;Actions&lt;/TableHead&gt;&lt;/TableRow&gt;&lt;/TableHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >              {regs.length === 0 &amp;&amp; &lt;TableRow&gt;&lt;TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8"&gt;No registrations&lt;/TableCell&gt;&lt;/TableRow&gt;}</span>
+<span class="cstat-no" title="statement not covered" >              {pag2.pageData.map((r) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >                const ivs = interviews.filter((iv) =&gt; iv.reg_id === r.id);</span>
+<span class="cstat-no" title="statement not covered" >                return (</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;TableRow key={r.id}&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell className="text-xs"&gt;{r.student}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell className="text-xs"&gt;{(jobs.find((j) =&gt; j.id === r.job_id)?.title ?? "—")}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell className="text-xs"&gt;{new Date(r.registered_at).toLocaleDateString()}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;&lt;Badge className={`text-[9px] ${r.status === "placed" ? "bg-success/15 text-success" : r.status === "shortlisted" ? "bg-info/15 text-info" : "bg-muted text-muted-foreground"}`}&gt;{r.status}&lt;/Badge&gt;&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell className="text-xs"&gt;{ivs.length &gt; 0 ? ivs.map((iv) =&gt; iv.stage).join(", ") : "—"}&lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                      &lt;div className="flex gap-1 flex-wrap"&gt;</span>
+<span class="cstat-no" title="statement not covered" >                        {r.status === "registered" &amp;&amp; &lt;Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() =&gt; { updateRegistration(r.id, "shortlisted"); refreshRegs(); toast.success("Shortlisted"); }}&gt;Shortlist&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >                        {r.status === "shortlisted" &amp;&amp; &lt;Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() =&gt; { updateRegistration(r.id, "placed"); refreshRegs(); toast.success("Placed"); }}&gt;Place&lt;/Button&gt;}</span>
+<span class="cstat-no" title="statement not covered" >                        &lt;Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={() =&gt; { setIvRegId(r.id); setIvStage("screening"); setIvFeedback(""); setIvStatus("passed"); setIvOpen(true); }}&gt;+ Stage&lt;/Button&gt;</span>
+<span class="cstat-no" title="statement not covered" >                      &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >                    &lt;/TableCell&gt;</span>
+<span class="cstat-no" title="statement not covered" >                  &lt;/TableRow&gt;</span>
+<span class="cstat-no" title="statement not covered" >                );</span>
+<span class="cstat-no" title="statement not covered" >              })}</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/TableBody&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/Table&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/TabsContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Tabs&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      &lt;Dialog open={jOpen} onOpenChange={setJOpen}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DialogContent className="sm:max-w-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogHeader&gt;&lt;DialogTitle&gt;{jEditId ? "Edit" : "New"} Job&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div&gt;&lt;Label className="text-xs"&gt;Title&lt;/Label&gt;&lt;Input value={jTitle} onChange={(e) =&gt; setJTitle(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div&gt;&lt;Label className="text-xs"&gt;Company Name&lt;/Label&gt;&lt;Input value={jCompany} onChange={(e) =&gt; setJCompany(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div&gt;&lt;Label className="text-xs"&gt;Location&lt;/Label&gt;&lt;Input value={jLoc} onChange={(e) =&gt; setJLoc(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >              &lt;div&gt;&lt;Label className="text-xs"&gt;Vacancy&lt;/Label&gt;&lt;Input type="number" value={jVacancy} onChange={(e) =&gt; setJVacancy(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Description&lt;/Label&gt;&lt;Textarea value={jDesc} onChange={(e) =&gt; setJDesc(e.target.value)} rows={2} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Requirements&lt;/Label&gt;&lt;Textarea value={jReq} onChange={(e) =&gt; setJReq(e.target.value)} rows={2} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Salary&lt;/Label&gt;&lt;Input value={jSalary} onChange={(e) =&gt; setJSalary(e.target.value)} placeholder="e.g. ₹5LPA" /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Deadline&lt;/Label&gt;&lt;Input type="date" value={jDeadline} onChange={(e) =&gt; setJDeadline(e.target.value)} /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={() =&gt; setJOpen(false)}&gt;Cancel&lt;/Button&gt;&lt;Button onClick={handleJobSave} disabled={!jTitle || !jCompany}&gt;{jEditId ? "Update" : "Create"}&lt;/Button&gt;&lt;/DialogFooter&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/DialogContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Dialog&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      &lt;Dialog open={cOpen} onOpenChange={setCOpen}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DialogContent className="sm:max-w-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogHeader&gt;&lt;DialogTitle&gt;Add Recruiter&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Company Name&lt;/Label&gt;&lt;Input value={cName} onChange={(e) =&gt; setCName(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div className="grid grid-cols-2 gap-3"&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Industry&lt;/Label&gt;&lt;Input value={cIndustry} onChange={(e) =&gt; setCIndustry(e.target.value)} /&gt;&lt;/div&gt;&lt;div&gt;&lt;Label className="text-xs"&gt;Website&lt;/Label&gt;&lt;Input value={cWebsite} onChange={(e) =&gt; setCWebsite(e.target.value)} /&gt;&lt;/div&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Contacts (comma separated)&lt;/Label&gt;&lt;Input value={cContacts} onChange={(e) =&gt; setCContacts(e.target.value)} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={() =&gt; setCOpen(false)}&gt;Cancel&lt;/Button&gt;&lt;Button disabled={!cName} onClick={() =&gt; { createCompany({ name: cName, industry: cIndustry, website: cWebsite, contacts: cContacts, past_drives: 0, offers_made: 0 }); refreshCompanies(); setCOpen(false); toast.success("Added"); }}&gt;Add&lt;/Button&gt;&lt;/DialogFooter&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/DialogContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Dialog&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      &lt;Dialog open={regOpen} onOpenChange={setRegOpen}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DialogContent className="sm:max-w-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogHeader&gt;&lt;DialogTitle&gt;Register Student&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div&gt;&lt;Label className="text-xs"&gt;Student Name&lt;/Label&gt;&lt;Input value={studentName} onChange={(e) =&gt; setStudentName(e.target.value)} placeholder="Full name" /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={() =&gt; setRegOpen(false)}&gt;Cancel&lt;/Button&gt;&lt;Button disabled={!studentName} onClick={() =&gt; { registerStudent(regJobId, studentName); refreshRegs(); setRegOpen(false); toast.success("Registered"); }}&gt;Register&lt;/Button&gt;&lt;/DialogFooter&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/DialogContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Dialog&gt;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      &lt;Dialog open={ivOpen} onOpenChange={setIvOpen}&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;DialogContent className="sm:max-w-sm"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogHeader&gt;&lt;DialogTitle&gt;Add Interview Stage&lt;/DialogTitle&gt;&lt;/DialogHeader&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;div className="space-y-4"&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Stage&lt;/Label&gt;&lt;Select value={ivStage} onValueChange={setIvStage}&gt;&lt;SelectTrigger&gt;&lt;SelectValue /&gt;&lt;/SelectTrigger&gt;&lt;SelectContent&gt;{STAGES.map((s) =&gt; &lt;SelectItem key={s} value={s}&gt;{s}&lt;/SelectItem&gt;)}&lt;/SelectContent&gt;&lt;/Select&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Status&lt;/Label&gt;&lt;Select value={ivStatus} onValueChange={setIvStatus}&gt;&lt;SelectTrigger&gt;&lt;SelectValue /&gt;&lt;/SelectTrigger&gt;&lt;SelectContent&gt;&lt;SelectItem value="passed"&gt;Passed&lt;/SelectItem&gt;&lt;SelectItem value="failed"&gt;Failed&lt;/SelectItem&gt;&lt;SelectItem value="pending"&gt;Pending&lt;/SelectItem&gt;&lt;/SelectContent&gt;&lt;/Select&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >            &lt;div&gt;&lt;Label className="text-xs"&gt;Feedback&lt;/Label&gt;&lt;Textarea value={ivFeedback} onChange={(e) =&gt; setIvFeedback(e.target.value)} rows={2} /&gt;&lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >          &lt;DialogFooter&gt;&lt;Button variant="outline" onClick={() =&gt; setIvOpen(false)}&gt;Cancel&lt;/Button&gt;&lt;Button onClick={() =&gt; { addInterviewStage(ivRegId, ivStage); updateInterviewStage(getInterviews(ivRegId).length &gt; 0 ? getInterviews(ivRegId)[getInterviews(ivRegId).length - 1].id : "", { status: ivStatus, feedback: ivFeedback, conducted_at: new Date().toISOString() }); refreshInterviews(); setIvOpen(false); toast.success("Stage added"); }}&gt;Add&lt;/Button&gt;&lt;/DialogFooter&gt;</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/DialogContent&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;/Dialog&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
+<span class="cstat-no" title="statement not covered" >  );</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-05-24T08:13:26.952Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

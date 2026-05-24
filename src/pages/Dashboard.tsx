@@ -1,9 +1,12 @@
+import { useMemo, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/PageHeader";
+import { moduleConfigs } from "@/pages/module-configs";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer,
   XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -18,8 +21,101 @@ import {
   departmentDist, activities, pipelines,
   dashboardHero, erpKpis, erpRealtimeFabric,
 } from "@/lib/mock-data";
+import { useAuth } from "@/hooks/useAuth";
+import { loadAccessibleModuleKeys } from "@/lib/module-access";
+import { APP_ACCESS_RULES } from "@/lib/global-access-registry";
+import { canOpenCommandCenter } from "@/lib/command-center-access";
 
 const COLORS = ["hsl(245 80% 60%)", "hsl(270 90% 70%)", "hsl(200 95% 60%)", "hsl(152 70% 50%)"];
+
+type LandingProfile = {
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  features: string[];
+  path: string;
+  ctaLabel: string;
+};
+
+const fallbackLandingProfiles: Record<string, Omit<LandingProfile, "path">> = {
+  students: {
+    title: "Student Registry",
+    subtitle: "Search, inspect, and manage the currently available student workspace.",
+    icon: <Users className="h-6 w-6" />,
+    features: [
+      "Live student register",
+      "Cohort filtering and profile lookup",
+      "Admission and status visibility",
+      "Quick access to student information",
+      "Reusable search and audit flow",
+      "Role-scoped record visibility",
+    ],
+    ctaLabel: "Open Student Area",
+  },
+  taskManagement: {
+    title: "Task Management",
+    subtitle: "Track work items, progress, and ownership from the first accessible area.",
+    icon: <CheckCircle2 className="h-6 w-6" />,
+    features: [
+      "Create and update tasks",
+      "Priority and status tracking",
+      "Assignee and due-date control",
+      "Immediate local sync",
+      "Compact task board flow",
+      "Role-safe workspace actions",
+    ],
+    ctaLabel: "Open Task Area",
+  },
+  collegeInfo: {
+    title: "Institute Identity",
+    subtitle: "Branding, profile, and configuration now act as the home surface.",
+    icon: <Sparkles className="h-6 w-6" />,
+    features: [
+      "Institute profile and branding",
+      "Localization and contact details",
+      "Configuration and reference data",
+      "Controlled settings visibility",
+      "Fast access to identity setup",
+      "Scoped administrative controls",
+    ],
+    ctaLabel: "Open Institute Identity",
+  },
+};
+
+const resolveLandingProfile = (path: string, key: string | null): LandingProfile | null => {
+  if (!key) return null;
+
+  const config = moduleConfigs[key];
+  if (config) {
+    return {
+      title: config.title,
+      subtitle: config.subtitle,
+      icon: config.icon,
+      features: config.features,
+      path,
+      ctaLabel: `Open ${config.title}`,
+    };
+  }
+
+  const fallback = fallbackLandingProfiles[key];
+  if (fallback) {
+    return { ...fallback, path };
+  }
+
+  return {
+    title: "Workspace",
+    subtitle: "Your next available area is ready to open from here.",
+    icon: <LayoutDashboard className="h-6 w-6" />,
+    features: [
+      "Role-based access only",
+      "No restricted dashboard widgets",
+      "Immediate entry into the first permitted area",
+      "Consistent module-level control",
+    ],
+    path,
+    ctaLabel: "Open available area",
+  };
+};
 
 function StatCard({ icon: Icon, label, value, delta, positive = true, suffix = "" }: any) {
   return (
@@ -46,6 +142,129 @@ function StatCard({ icon: Icon, label, value, delta, positive = true, suffix = "
 }
 
 export default function Dashboard() {
+  const { roles, loading: authLoading } = useAuth();
+  const { data: accessibleKeys, isLoading } = useQuery({
+    queryKey: ["accessible-module-keys", "dashboard"],
+    queryFn: () => loadAccessibleModuleKeys(),
+    staleTime: Infinity,
+  });
+
+  const hasCommandCenter = !isLoading && !authLoading && canOpenCommandCenter(roles);
+  const preferredLandingPaths = useMemo(() => [
+    "/students",
+    "/attendance",
+    "/reports",
+    "/fees",
+    "/admissions",
+    "/tasks",
+    "/notifications",
+    "/settings/institute",
+    "/student-search",
+    "/student-information",
+  ], []);
+
+  const landingTarget = useMemo(() => {
+    if (!accessibleKeys) return null;
+
+    return preferredLandingPaths
+      .map((path) => APP_ACCESS_RULES.find((rule) => rule.path === path && accessibleKeys.has(rule.key)))
+      .filter((rule): rule is NonNullable<typeof rule> => Boolean(rule))
+      .map((rule) => rule.path!)[0] ?? null;
+  }, [accessibleKeys, preferredLandingPaths]);
+
+  const landingProfile = useMemo(() => {
+    if (!landingTarget) return null;
+    const matchedRule = APP_ACCESS_RULES.find((rule) => rule.path === landingTarget) ?? null;
+    return resolveLandingProfile(landingTarget, matchedRule?.key ?? null);
+  }, [landingTarget]);
+
+  if (isLoading || authLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Workspace"
+          subtitle="Preparing your role-based landing view"
+          icon={<LayoutDashboard className="h-6 w-6" />}
+        />
+        <Card className="glass p-6">
+          <p className="text-sm text-muted-foreground">Loading your available areas…</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!hasCommandCenter) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={landingProfile?.title ?? "Workspace"}
+          subtitle={landingProfile?.subtitle ?? "Your next available area"}
+          icon={landingProfile?.icon ?? <LayoutDashboard className="h-6 w-6" />}
+          actions={
+            landingProfile ? (
+              <Button asChild className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+                <Link to={landingProfile.path}>{landingProfile.ctaLabel}</Link>
+              </Button>
+            ) : null
+          }
+        />
+
+        {landingProfile ? (
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <Card className="glass relative overflow-hidden border-0 p-6 shadow-elegant">
+              <div className="absolute inset-0 opacity-30" style={{ background: "var(--gradient-mesh)" }} />
+              <div className="relative">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="bg-primary/15 text-primary">
+                    Next available area
+                  </Badge>
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                    Role scoped
+                  </Badge>
+                </div>
+                <h2 className="mt-4 font-display text-3xl font-bold tracking-tight">{landingProfile.title}</h2>
+                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{landingProfile.subtitle}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Button asChild size="sm" className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+                    <Link to={landingProfile.path}>{landingProfile.ctaLabel}</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="rounded-xl">
+                    <Link to="/permissions">Review permissions</Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="glass p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+                  {landingProfile.icon}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">What is available</p>
+                  <p className="font-display text-lg font-semibold">{landingProfile.title}</p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-2">
+                {landingProfile.features.map((feature) => (
+                  <div key={feature} className="rounded-xl border border-border/60 bg-secondary/40 px-3 py-2 text-sm text-foreground">
+                    {feature}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        ) : (
+          <Card className="glass p-6">
+            <p className="text-sm text-muted-foreground">
+              No accessible areas are currently assigned to this role. If that seems unexpected, ask an admin to review the permission matrix.
+            </p>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader

@@ -1,0 +1,10 @@
+
+  [32m[1mVITE[22m v5.4.19[39m  [2mready in [0m[1m421[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[2m11:24:21 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/D:/SMS 2.0/eduflow-universe/src/index.css, /src/components/RouteAccessGate.tsx[22m
+[2m11:25:53 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/D:/SMS 2.0/eduflow-universe/src/index.css, /src/components/RouteAccessGate.tsx, /@fs/D:/SMS 2.0/eduflow-universe/src/pages/Permissions.tsx[22m
+[2m11:26:04 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /@fs/D:/SMS 2.0/eduflow-universe/src/index.css[22m
+[2m11:26:24 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /@fs/D:/SMS 2.0/eduflow-universe/src/index.css[22m
+[2m11:26:37 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/AppSidebar.tsx, /@fs/D:/SMS 2.0/eduflow-universe/src/index.css[22m
+[2m11:29:04 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/@fs/D:/SMS 2.0/eduflow-universe/src/index.css, /src/components/RouteAccessGate.tsx, /@fs/D:/SMS 2.0/eduflow-universe/src/pages/Permissions.tsx, /src/components/AppSidebar.tsx[22m

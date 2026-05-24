@@ -1,4 +1,13 @@
 import { emitAppSync, subscribeAppSync } from "./app-sync";
+import { normalizeFocusMode, type FocusMode } from "./focus-mode";
+import {
+  applyThemeSnapshot,
+  clearThemeRuntimeStorage,
+  readLegacyThemeMode,
+  setThemeMode,
+  THEME_RUNTIME_SYNC_KEYS,
+  type ThemeRuntimeSnapshot,
+} from "./theme-runtime";
 import {
   normalizeShellState,
   readStoredJson,
@@ -9,15 +18,19 @@ import {
 } from "./state-normalization";
 
 export const SHELL_RUNTIME_STORAGE_KEY = "sms.shell.runtime.v1";
-const THEME_STORAGE_KEY = "gct-theme";
-const LEGACY_THEME_STORAGE_KEY = "nge-theme";
-const SHELL_RUNTIME_SYNC_KEYS = [SHELL_RUNTIME_STORAGE_KEY, THEME_STORAGE_KEY, LEGACY_THEME_STORAGE_KEY];
+const SHELL_RUNTIME_SYNC_KEYS = [SHELL_RUNTIME_STORAGE_KEY, ...THEME_RUNTIME_SYNC_KEYS];
 
 export interface ShellRuntimeSnapshot extends ShellNormalizedState {
   shellMode: LayoutMode;
+  focusMode: FocusMode;
 }
 
 const isBrowser = () => typeof window !== "undefined";
+let shellRuntimeListenersInstalled = false;
+let shellRuntimeSubscriberCount = 0;
+const handleShellRuntimeResize = () => {
+  refreshShellLayoutMode();
+};
 
 const detectLayoutMode = (): LayoutMode => {
   if (!isBrowser()) return "desktop";
@@ -29,15 +42,13 @@ const detectLayoutMode = (): LayoutMode => {
 };
 
 const readLegacyTheme = (): "light" | "dark" => {
-  if (!isBrowser()) return "light";
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-  if (stored === "dark" || stored === "light") return stored;
-  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  return readLegacyThemeMode();
 };
 
 const snapshotFromRaw = (raw: Partial<ShellRuntimeSnapshot> & Record<string, unknown> = {}): ShellRuntimeSnapshot => {
+  const focusMode = normalizeFocusMode(raw.focusMode ?? (raw.focus ? "focus" : "off"));
   const normalized = normalizeShellState({
-    focus: raw.focus,
+    focus: focusMode !== "off",
     fabOpen: raw.fabOpen,
     theme: raw.theme ?? readLegacyTheme(),
     layoutMode: raw.layoutMode ?? raw.shellMode ?? detectLayoutMode(),
@@ -48,6 +59,7 @@ const snapshotFromRaw = (raw: Partial<ShellRuntimeSnapshot> & Record<string, unk
   return {
     ...normalized,
     shellMode: normalized.layoutMode,
+    focusMode,
   };
 };
 
@@ -59,14 +71,29 @@ export function getShellRuntimeSnapshot(): ShellRuntimeSnapshot {
 
 function applySnapshot(snapshot: ShellRuntimeSnapshot) {
   if (!isBrowser()) return;
+  const focusCompression = snapshot.focusMode === "deep" ? "compressed" : snapshot.focusMode === "focus" ? "balanced" : "off";
+  applyThemeSnapshot({
+    mode: snapshot.theme,
+    className: snapshot.theme === "dark" ? "dark" : "",
+    colorScheme: snapshot.theme,
+    surfaceTone: snapshot.theme === "dark" ? "dim" : "bright",
+    contrastTone: snapshot.theme === "dark" ? "strong" : "soft",
+    tokenInheritance: "root",
+    updatedAt: snapshot.updatedAt,
+  } satisfies ThemeRuntimeSnapshot);
   const root = document.documentElement;
-  root.classList.toggle("dark", snapshot.theme === "dark");
-  root.setAttribute("data-theme", snapshot.theme);
   root.dataset.sidebarMode = snapshot.shellMode;
-  root.dataset.focusMode = snapshot.focus ? "on" : "off";
+  root.dataset.focusMode = snapshot.focusMode;
+  root.dataset.focusCompression = focusCompression;
   root.classList.toggle("preboot-desktop-mode", snapshot.shellMode === "desktop");
   root.classList.toggle("preboot-mobile-mode", snapshot.shellMode === "mobile");
-  document.body.classList.toggle("app-focus-enabled", snapshot.focus);
+  document.body.classList.toggle("app-focus-enabled", snapshot.focusMode !== "off");
+  document.body.classList.toggle("app-focus-reduced-noise", snapshot.focusMode !== "off");
+  document.body.classList.toggle("app-focus-workspace-minimized", snapshot.focusMode !== "off");
+  document.body.classList.toggle("app-focus-deep", snapshot.focusMode === "deep");
+  document.body.classList.toggle("app-focus-compressed", snapshot.focusMode === "deep");
+  document.body.dataset.focusMode = snapshot.focusMode;
+  document.body.dataset.focusCompression = focusCompression;
   document.body.dataset.shellMode = snapshot.shellMode;
 }
 
@@ -74,7 +101,7 @@ function persistSnapshot(snapshot: ShellRuntimeSnapshot) {
   if (!isBrowser()) return;
   const next = { ...snapshot, updatedAt: new Date().toISOString() };
   writeStoredJson(SHELL_RUNTIME_STORAGE_KEY, next);
-  writeStoredJson(THEME_STORAGE_KEY, next.theme);
+  setThemeMode(next.theme);
   emitAppSync(SHELL_RUNTIME_STORAGE_KEY);
 }
 
@@ -94,11 +121,31 @@ export function bootstrapShellRuntime() {
 
 export function setShellRuntimeSnapshot(patch: Partial<ShellRuntimeSnapshot>): ShellRuntimeSnapshot {
   const current = getShellRuntimeSnapshot();
+  const hasFocusModePatch = Object.prototype.hasOwnProperty.call(patch, "focusMode");
+  const hasFocusPatch = Object.prototype.hasOwnProperty.call(patch, "focus");
+  const nextFocusMode = hasFocusModePatch
+    ? normalizeFocusMode(patch.focusMode, current.focusMode)
+    : hasFocusPatch
+      ? (patch.focus ? (current.focusMode === "deep" ? "deep" : "focus") : "off")
+      : current.focusMode;
   const next = snapshotFromRaw({
     ...current,
     ...patch,
+    focusMode: nextFocusMode,
+    focus: nextFocusMode !== "off",
     layoutMode: patch.layoutMode ?? patch.shellMode ?? current.layoutMode,
   });
+  if (
+    current.focus === next.focus &&
+    current.focusMode === next.focusMode &&
+    current.fabOpen === next.fabOpen &&
+    current.theme === next.theme &&
+    current.layoutMode === next.layoutMode &&
+    current.shellMode === next.shellMode &&
+    current.sidebarCollapsed === next.sidebarCollapsed
+  ) {
+    return current;
+  }
   applySnapshot(next);
   persistSnapshot(next);
   return next;
@@ -116,24 +163,27 @@ export function subscribeShellRuntime(listener: () => void) {
   if (!isBrowser()) return () => {};
 
   const unsubscribeSync = subscribeAppSync(SHELL_RUNTIME_SYNC_KEYS, listener);
-  const handleResize = () => {
-    const before = getShellRuntimeSnapshot();
-    const after = refreshShellLayoutMode();
-    if (before.layoutMode !== after.layoutMode) listener();
-  };
 
-  window.addEventListener("resize", handleResize);
-  window.addEventListener("orientationchange", handleResize);
+  if (!shellRuntimeListenersInstalled) {
+    window.addEventListener("resize", handleShellRuntimeResize);
+    window.addEventListener("orientationchange", handleShellRuntimeResize);
+    shellRuntimeListenersInstalled = true;
+  }
+  shellRuntimeSubscriberCount += 1;
 
   return () => {
     unsubscribeSync();
-    window.removeEventListener("resize", handleResize);
-    window.removeEventListener("orientationchange", handleResize);
+    shellRuntimeSubscriberCount = Math.max(0, shellRuntimeSubscriberCount - 1);
+    if (shellRuntimeSubscriberCount === 0 && shellRuntimeListenersInstalled) {
+      window.removeEventListener("resize", handleShellRuntimeResize);
+      window.removeEventListener("orientationchange", handleShellRuntimeResize);
+      shellRuntimeListenersInstalled = false;
+    }
   };
 }
 
 export function clearShellRuntimeStorage() {
   removeStoredKey(SHELL_RUNTIME_STORAGE_KEY);
-  removeStoredKey(THEME_STORAGE_KEY);
+  clearThemeRuntimeStorage();
   emitAppSync(SHELL_RUNTIME_STORAGE_KEY);
 }

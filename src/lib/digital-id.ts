@@ -1,6 +1,7 @@
 export type IDTemplate = { id: string; name: string; bg_color: string; text_color: string; font: string; logo_url: string; fields: string[]; card_width: number; card_height: number; };
 export type DigitalIDEntry = { id: string; entity_type: string; entity_id: string; entity_name: string; id_number: string; template_id: string; issue_date: string; expiry_date: string; status: string; qr_data: string; created_at: string; };
 
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export const digitalIdTemplatesKey = "eduflow_id_templates";

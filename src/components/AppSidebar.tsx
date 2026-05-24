@@ -1,4 +1,5 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, GraduationCap, ClipboardCheck, FileBarChart, Calendar,
@@ -7,13 +8,18 @@ import {
   FileSignature, Megaphone, Target, CalendarClock, PartyPopper, IdCard, DatabaseBackup, ArrowUpCircle,
   Workflow, Shield, Database, CalendarDays, ListTodo, DollarSign, Package,
   ClipboardList, MessageSquare, HelpCircle, Sun, Layers, FileImage, Swords,
-  Phone, LayoutPanelTop, DoorOpen, Search, Activity,
+  Phone, LayoutPanelTop, DoorOpen, Search, Activity, MonitorCog, House,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuAction, SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { loadAccessibleModuleKeys } from "@/lib/module-access";
+import { resolveAccessKeyForPathname } from "@/lib/global-access-registry";
+import { subscribeAppSync } from "@/lib/app-sync";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { canOpenCommandCenter } from "@/lib/command-center-access";
 
 interface SidebarItem {
   title: string;
@@ -22,7 +28,25 @@ interface SidebarItem {
   action?: { icon: any; label: string; href: string };
 }
 
-const SidebarItemRow = memo(function SidebarItemRow({ item, collapsed, isActive, isActionActive }: { item: SidebarItem; collapsed: boolean; isActive: boolean; isActionActive: boolean }) {
+const normalizeRoutePath = (value: string) => value.replace(/\/+$/, "") || "/";
+
+const isSidebarItemActive = (pathname: string, url: string) =>
+  normalizeRoutePath(pathname) === normalizeRoutePath(url);
+
+const isSidebarActionActive = (pathname: string, href: string) =>
+  normalizeRoutePath(pathname) === normalizeRoutePath(href) || pathname.startsWith(href + "/");
+
+const SidebarItemRow = memo(function SidebarItemRow({
+  item,
+  collapsed,
+  isActive,
+  isActionActive,
+}: {
+  item: SidebarItem;
+  collapsed: boolean;
+  isActive: boolean;
+  isActionActive: boolean;
+}) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
@@ -54,6 +78,7 @@ const academics: SidebarItem[] = [
   { title: "Exams & Results", url: "/exams", icon: FileBarChart },
   { title: "Timetable", url: "/timetable", icon: Calendar },
   { title: "Assignments", url: "/assignments", icon: NotebookPen },
+  { title: "Homework", url: "/homework", icon: NotebookPen },
   { title: "Library", url: "/library", icon: BookOpen },
   { title: "Online Exams", url: "/online-exams", icon: FileSignature },
   { title: "Course Info", url: "/course-information", icon: BookOpen },
@@ -62,9 +87,16 @@ const academics: SidebarItem[] = [
   { title: "Lessons", url: "/lessons", icon: BookOpen },
   { title: "Quiz", url: "/quiz", icon: HelpCircle },
   { title: "Live Classes", url: "/live", icon: Video },
+  { title: "Video Rooms", url: "/video-rooms", icon: Video },
   { title: "Certificates", url: "/certificates", icon: Award },
   { title: "Scholarship", url: "/scholarship", icon: Award },
   { title: "Promotion Engine", url: "/promotion", icon: ArrowUpCircle },
+  { title: "Scoring Workspace", url: "/scoring", icon: BarChart3 },
+  { title: "Monitoring Dashboard", url: "/monitor", icon: Activity },
+  { title: "Departments", url: "/departments", icon: Building2 },
+  { title: "Curriculum & Outcomes", url: "/curriculum", icon: BookOpen },
+  { title: "LMS & E-Learning", url: "/lms", icon: GraduationCap },
+  { title: "Research & Innovation", url: "/research", icon: Layers },
 ];
 
 const finance: SidebarItem[] = [
@@ -93,6 +125,9 @@ const campus: SidebarItem[] = [
   { title: "Telephone", url: "/telephone", icon: Phone },
   { title: "Class Wall", url: "/class-wall", icon: LayoutPanelTop },
   { title: "Reception", url: "/reception", icon: DoorOpen },
+  { title: "Health & Wellbeing", url: "/health", icon: Heart },
+  { title: "Documents & DMS", url: "/documents", icon: FileImage },
+  { title: "Procurement & Assets", url: "/procurement", icon: Package },
 ];
 
 const community: SidebarItem[] = [
@@ -114,6 +149,7 @@ const platform: SidebarItem[] = [
 ];
 
 const admin: SidebarItem[] = [
+  { title: "Administration", url: "/administration", icon: House },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
   { title: "Headers & Fields", url: "/settings/headers", icon: Settings },
@@ -122,21 +158,48 @@ const admin: SidebarItem[] = [
   { title: "User Management", url: "/user-management", icon: Shield },
   { title: "Migration Center", url: "/migration", icon: ArrowUpCircle },
   { title: "Backups", url: "/backups", icon: DatabaseBackup },
+  { title: "System", url: "/system", icon: MonitorCog },
+  { title: "Accreditation & IQAC", url: "/accreditation", icon: ClipboardCheck },
 ];
 
-function SidebarGroupSection({ label, items, collapsed, pathname }: { label: string; items: SidebarItem[]; collapsed: boolean; pathname: string }) {
+function SidebarGroupSection({
+  label,
+  items,
+  collapsed,
+  pathname,
+  accessibleKeys,
+  isLoading,
+}: {
+  label: string;
+  items: SidebarItem[];
+  collapsed: boolean;
+  pathname: string;
+  accessibleKeys?: Set<string>;
+  isLoading: boolean;
+}) {
+  const visibleItems = useMemo(() => {
+    if (isLoading) return [];
+
+    return items.filter((item) => {
+      const accessKey = resolveAccessKeyForPathname(item.url);
+      return !accessKey ? true : (accessibleKeys?.has(accessKey) ?? false);
+    });
+  }, [accessibleKeys, isLoading, items]);
+
+  if (!visibleItems.length) return null;
+
   return (
     <SidebarGroup>
       {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <SidebarItemRow
               key={item.title}
               item={item}
               collapsed={collapsed}
-              isActive={pathname === "/" ? pathname === item.url : pathname.startsWith(item.url)}
-              isActionActive={item.action ? pathname === item.action.href || pathname.startsWith(item.action.href + "/") : false}
+              isActive={isSidebarItemActive(pathname, item.url)}
+              isActionActive={item.action ? isSidebarActionActive(pathname, item.action.href) : false}
             />
           ))}
         </SidebarMenu>
@@ -149,6 +212,18 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { pathname } = useLocation();
+  const { roles, loading: authLoading } = useAuth();
+  const accessQuery = useQuery({
+    queryKey: ["accessible-module-keys", "sidebar"],
+    queryFn: () => loadAccessibleModuleKeys(),
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    return subscribeAppSync(["sms.module-access.v1"], () => {
+      void accessQuery.refetch();
+    });
+  }, [accessQuery.refetch]);
 
   const groups = useMemo(() => [
     { label: "Academics", items: academics },
@@ -159,26 +234,17 @@ export function AppSidebar() {
     { label: "Platform", items: platform },
     { label: "Admin", items: admin },
   ] as const, []);
+  const showDashboard = !authLoading && canOpenCommandCenter(roles);
 
   return (
     <Sidebar collapsible="icon" style={{ willChange: "width" }} className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-          <div className="relative flex items-center gap-2 px-2 py-3 group-data-[state=collapsed]:px-0">
+        <div className="flex items-center gap-2 px-2 py-3 group-data-[state=collapsed]:px-0">
           {!collapsed && (
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary shadow-glow p-1">
               <GraduationCap className="h-5 w-5 text-primary-foreground shrink-0" />
             </div>
           )}
-
-          {/* Single trigger that moves position via transition to match sidebar timing */}
-          <div
-            className={
-              "absolute top-1/2 -translate-y-1/2 transition-all duration-200 ease-[cubic-bezier(.2,.8,.2,1)] " +
-              (collapsed ? "left-1/2 -translate-x-1/2" : "right-2 translate-x-0")
-            }
-          >
-            <SidebarTrigger className="text-foreground" />
-          </div>
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-display text-base font-bold tracking-tight text-sidebar-foreground">NextGen</span>
@@ -189,9 +255,24 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        <SidebarItemRow item={dashboard} collapsed={collapsed} isActive={pathname === "/"} isActionActive={false} />
+        {showDashboard && (
+          <SidebarItemRow
+            item={dashboard}
+            collapsed={collapsed}
+            isActive={isSidebarItemActive(pathname, "/")}
+            isActionActive={false}
+          />
+        )}
         {groups.map((g) => (
-          <SidebarGroupSection key={g.label} label={g.label} items={g.items} collapsed={collapsed} pathname={pathname} />
+          <SidebarGroupSection
+            key={g.label}
+            label={g.label}
+            items={g.items}
+            collapsed={collapsed}
+            pathname={pathname}
+            accessibleKeys={accessQuery.data}
+            isLoading={accessQuery.isLoading}
+          />
         ))}
       </SidebarContent>
     </Sidebar>

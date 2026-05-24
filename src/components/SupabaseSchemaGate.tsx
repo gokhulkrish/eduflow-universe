@@ -1,10 +1,14 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { loadAccessibleModuleKeys } from "@/lib/module-access";
+import { resolveAccessKeyForPathname } from "@/lib/global-access-registry";
 import { tableExists } from "@/lib/supabase-health";
 import { Link, useLocation } from "react-router-dom";
+import { clearRuntimeDiagnostics, recordRuntimeDiagnostic, recordRuntimeError, recordRuntimeRecovery } from "@/lib/runtime-diagnostics";
+import { withRuntimeRetry, recordRuntimeTelemetry, recordRuntimeAudit } from "@/lib/runtime-resilience";
 
 const REQUIRED_TABLES = [
   "students",
@@ -31,13 +35,21 @@ const ACTIVE_PROJECT_ID = (() => {
 export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const bypass = pathname.startsWith("/migration");
+  const { data: accessibleKeys, isLoading: accessLoading } = useQuery({
+    queryKey: ["accessible-module-keys", "schema-gate"],
+    queryFn: () => loadAccessibleModuleKeys(),
+    staleTime: Infinity,
+  });
 
   const { data, error, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["schema-gate"],
     queryFn: async () => {
-      const checks = await Promise.all(
-        REQUIRED_TABLES.map(async (table) => ({ table, ok: await tableExists(table) })),
+      const checks = await withRuntimeRetry(
+        "supabase-schema-gate",
+        async () => Promise.all(REQUIRED_TABLES.map(async (table) => ({ table, ok: await tableExists(table) }))),
+        { maxAttempts: 2, baseDelayMs: 200 },
       );
+      recordRuntimeTelemetry("supabase-schema-gate", "Schema check completed", `Checked ${checks.length} tables`);
       return checks.filter((entry) => !entry.ok).map((entry) => entry.table);
     },
     staleTime: 5 * 60 * 1000,
@@ -45,6 +57,23 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
   });
 
   const missing = data ?? [];
+  const missingSummary = missing.join(", ");
+  useEffect(() => {
+    if (error) recordRuntimeError(error, "supabase-schema-gate", false);
+  }, [error]);
+
+  useEffect(() => {
+    if (missing.length > 0) {
+      recordRuntimeDiagnostic({
+        kind: "schema",
+        source: "supabase-schema-gate",
+        message: "Missing required Supabase tables",
+        detail: missingSummary,
+        recoverable: false,
+      });
+    }
+  }, [missingSummary, missing.length]);
+
   if (bypass) return <>{children}</>;
   if (isLoading) {
     return (
@@ -84,6 +113,16 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
                   <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                   Retry schema check
                 </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    clearRuntimeDiagnostics();
+                    recordRuntimeRecovery("supabase-schema-gate", "Schema error retry requested");
+                    recordRuntimeAudit("supabase-schema-gate", "User retried schema check", missingSummary || "no missing tables");
+                  }}
+                >
+                  Clear diagnostics
+                </Button>
               </div>
             </div>
           </div>
@@ -92,6 +131,7 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
     );
   }
   if (missing.length === 0) return <>{children}</>;
+  const canShowMigration = !accessLoading && (accessibleKeys?.has(resolveAccessKeyForPathname("/migration") ?? "") ?? false);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -115,9 +155,11 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
               </p>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Button asChild variant="secondary" className="bg-background text-foreground hover:bg-background/90">
-                <Link to="/migration">Open migrations</Link>
-              </Button>
+              {canShowMigration && (
+                <Button asChild variant="secondary" className="bg-background text-foreground hover:bg-background/90">
+                  <Link to="/migration">Open migrations</Link>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="border-amber-500/30 bg-transparent text-amber-950 hover:bg-amber-500/15 dark:text-amber-50"
@@ -126,6 +168,16 @@ export function SupabaseSchemaGate({ children }: { children: ReactNode }) {
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Recheck schema
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  clearRuntimeDiagnostics();
+                  recordRuntimeRecovery("supabase-schema-gate", "Schema reset requested");
+                  recordRuntimeAudit("supabase-schema-gate", "User cleared schema diagnostics", missingSummary || "no missing tables");
+                }}
+              >
+                Clear diagnostics
               </Button>
             </div>
           </div>

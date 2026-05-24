@@ -1,0 +1,18 @@
+[2m11:26:24 pm[22m [31m[1m[vite][22m[39m [31mInternal server error:   x Nullish coalescing operator(??) requires parens when mixing with logical operators
+     ,-[D:/SMS 2.0/eduflow-universe/src/components/AppSidebar.tsx:248:1]
+ 245 |           collapsed={collapsed}
+ 246 |           isActive={pathname === "/"}
+ 247 |           isActionActive={false}
+ 248 |           canAccess={!accessQuery.isFetched || accessQuery.data?.has("system") ?? false}
+     :                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 249 |         />
+ 250 |         {groups.map((g) => (
+ 251 |           <SidebarGroupSection
+     `----
+
+
+Caused by:
+    Syntax Error[39m
+  Plugin: [35mvite:react-swc[39m
+  File: [36mD:/SMS 2.0/eduflow-universe/src/components/AppSidebar.tsx[39m
+  

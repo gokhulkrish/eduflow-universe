@@ -4,13 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useShell } from "@/stores/shell";
 import { useActivityTrace } from "@/stores/activityTrace";
+import { getFocusModeRuntime } from "@/lib/focus-mode";
 import { toast } from "sonner";
 
 export function WorkspaceFab() {
   const open = useShell((s) => s.fabOpen);
   const setOpen = useShell((s) => s.setFabOpen);
-  const { focus, toggleFocus } = useShell();
+  const focusMode = useShell((s) => s.focusMode);
+  const setFocusMode = useShell((s) => s.setFocusMode);
   const { setOpen: setTraceOpen, events } = useActivityTrace();
+  const focusRuntime = getFocusModeRuntime(focusMode);
 
   const items = [
     {
@@ -21,17 +24,24 @@ export function WorkspaceFab() {
       badge: events.length,
     },
     {
-      label: focus ? "Exit Focus" : "Enter Focus",
-      meta: "Hide sidebar chrome",
-      icon: focus ? Minimize2 : Maximize2,
-      onClick: () => { toggleFocus(); toast.success(focus ? "Focus exited" : "Focus mode on"); },
+      label: focusRuntime.actionLabel,
+      meta: focusRuntime.actionDescription,
+      icon: focusRuntime.nextMode === "off" ? Maximize2 : Minimize2,
+      onClick: () => {
+        setFocusMode(focusRuntime.nextMode);
+        setOpen(false);
+        toast.success(
+          focusRuntime.nextMode === "off" ? "Focus exited" : `${getFocusModeRuntime(focusRuntime.nextMode).label} active`,
+        );
+      },
+      badge: focusRuntime.active ? focusRuntime.label : undefined,
     },
   ];
 
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+      <div className="pointer-events-none fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
       {open && (
-        <div className="pointer-events-auto flex w-72 flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
+        <div className="pointer-events-auto flex w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
           {items.map((it) => (
             <button
               key={it.label}
@@ -55,7 +65,7 @@ export function WorkspaceFab() {
 
       <Button
         size="icon"
-        onClick={() => setOpen(!open)}
+      onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label="Workspace actions"
         className={cn(

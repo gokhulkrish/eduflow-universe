@@ -25,7 +25,7 @@
 | **New System** | `eduflow-universe` — React 18 + TypeScript + Vite + Supabase |
 | **Migration Strategy** | Strangler pattern — migrate module-by-module, keep legacy until parity signed off |
 | **Goal** | 100% feature-parity migration with premium UI/UX upgrades |
-| **Current Status** | Wave 0–3 complete, Wave 4–5 in progress |
+| **Current Status** | All 52 architecture modules LIVE — legacy adapter bridges 53 routes, 14 storage prefixes |
 
 ---
 
@@ -156,30 +156,43 @@ All ERP modules defined in the legacy monolith:
 | **Automation** | `/automation` | ✅ Built | Visual pipeline orchestration — Admission, Attendance, Exam→Promotion pipelines |
 | **Migration Center** | `/migration` | ✅ Built | Active migration progress, backup storage, module upgrade manager |
 
-### Generic Modules (Planned — ModulePlaceholder with feature cards)
+### Architecture Modules (All 52 LIVE)
 
-| Module | Route | Status | Features Planned |
+| Module | Route | Status | Notes |
 |---|---|---|---|
-| **Admissions** | `/admissions` | 🟡 Placeholder | Online Application, Document Verification, Merit Engine, Fee Slip, Offer Letters, Parent Onboarding |
-| **Exams & Results** | `/exams` | 🟡 Placeholder | Exam Scheduler, Question Bank, Mark Entry, Grade Calculation, Result Publishing, Transcript Export |
-| **Timetable** | `/timetable` | 🟡 Placeholder | Auto Generator, Conflict Detection, Workload Balancer, Room Allocation, Substitution, Calendar Export |
-| **HR & Payroll** | `/hr` | 🟡 Placeholder | Employee Directory, Payroll Runs, Tax & Compliance, Leave & PTO, Appraisals, Recruitment |
-| **Assignments** | `/assignments` | 🟡 Placeholder | Assignment Builder, Submissions Inbox, Plagiarism Check, Rubric Grading, Feedback, Parent Visibility |
-| **Reports** | `/reports` | 🟡 Placeholder | Academic Reports, Financial Reports, Attendance Insights, Custom Builder, Export PDF/Excel, BI Connectors |
-| **Notifications** | `/notifications` | 🟡 Placeholder | Email Templates, SMS Gateway, Push, In-app Alerts, Scheduled Campaigns, Delivery Reports |
-| **Parent Portal** | `/parents` | 🟡 Placeholder | Child Overview, Attendance & Marks, Fee Payments, Teacher Chat, Events, Document Vault |
-| **Chat Rooms** | `/chat` | 🟡 Placeholder | Class Channels, DMs, File Sharing, Moderation, Read Receipts, Pinned Messages |
-| **Live Classes** | `/live` | 🟡 Placeholder | Schedule Sessions, Join via Link, Recording Library, Attendance, Breakout Rooms, Chat & Polls |
-| **AI Assistant** | `/ai` | 🟡 Placeholder | Student Insights, Auto Lesson Plans, Risk Detection, Smart Answers, Translate, Workflow Suggestions |
-| **Online Exams** | `/online-exams` | 🟡 Placeholder | Test Builder, Time-bound Sessions, AI Proctoring, Auto Grading, Result Analytics |
-| **Comms Hub** | `/comms` | 🟡 Placeholder | Announcements, Targeted Audiences, Polls & Surveys, Newsletter, Emergency Alerts |
-| **Placement Cell** | `/placement` | 🟡 Placeholder | Recruiter Directory, Drive Scheduling, Student Profiles, Offer Tracking, Interview Pipeline |
-| **Leave Mgmt** | `/leave` | 🟡 Placeholder | Leave Requests, Approval Chain, Calendar View, Balance Tracking, Holiday Calendar |
-| **Events** | `/events` | 🟡 Placeholder | Event Planner, Ticketing, RSVP, Sponsor Pages, Photo Gallery, Post-event Reports |
-| **Digital ID** | `/id-cards` | 🟡 Placeholder | Template Studio, Bulk Generation, QR/NFC Encoding, Reprint, Validity Manager, Verification API |
-| **Promotion Engine** | `/promotion` | 🟡 Placeholder | Eligibility Rules, Bulk Promote, Section Reallocation, Roll Number Reset, Archive |
-| **Backups** | `/backups` | 🟡 Placeholder | Scheduled Snapshots, On-demand Backup, Point-in-time Restore, Encryption, Off-site Replication |
-| **Security & Audit** | `/security` | 🟡 Placeholder | Audit Trails, Login Activity, MFA Enforcement, Permission Matrix, Data Export, Encryption |
+| **Admissions** | `/admissions` | ✅ Built | 22 KB — full admissions workflow |
+| **Exams & Results** | `/exams` | ✅ Built | 76 KB — exam scheduler, marks, results |
+| **Timetable** | `/timetable` | ✅ Built | 24 KB — auto generator, conflict detection |
+| **HR & Payroll** | `/hr` | ✅ Built | 25 KB — employee directory, payroll |
+| **Assignments** | `/assignments` | ✅ Built | 14 KB — submissions, rubric grading |
+| **Reports** | `/reports` | ✅ Built | 29 KB — academic, financial, custom builder |
+| **Notifications** | `/notifications` | ✅ Built | 7 KB — email/SMS/push/campaigns |
+| **Parent Portal** | `/parents` | ✅ Built | 15 KB — child overview, attendance, fees |
+| **Chat Rooms** | `/chat` | ✅ Built | 7 KB — channels, DMs, file sharing |
+| **Live Classes** | `/live` | ✅ Built | 7 KB — schedule, join, recordings |
+| **AI Assistant** | `/ai` | ✅ Built | 3 KB — insights, risk detection, smart answers |
+| **Online Exams** | `/online-exams` | ✅ Built | 15 KB — test builder, proctoring, auto-grade |
+| **Comms Hub** | `/comms` | ✅ Built | 11 KB — announcements, polls, emergency alerts |
+| **Placement Cell** | `/placement` | ✅ Built | 19 KB — recruiters, drives, offers |
+| **Leave Mgmt** | `/leave` | ✅ Built | 15 KB — requests, approvals, balance |
+| **Events** | `/events` | ✅ Built | 14 KB — planner, RSVP, photo gallery |
+| **Digital ID** | `/id-cards` | ✅ Built | 19 KB — template studio, bulk gen, QR |
+| **Promotion Engine** | `/promotion` | ✅ Built | 15 KB — eligibility, bulk promote |
+| **Backups** | `/backups` | ✅ Built | 8 KB — scheduled snapshots, restore |
+| **Security & Audit** | `/security` | ✅ Built | 4 KB — audit trails, MFA enforcement |
+| **Grievance** | `/grievance` | ✅ Built | 9 KB — complaint registration, resolution |
+| **Inventory** | `/inventory` | ✅ Built | 8 KB — stock management, procurement |
+| **Alumni** | `/alumni` | ✅ Built | 6 KB — directory, networking, events |
+| **Quiz** | `/quiz` | ✅ Built | 7 KB — quiz engine, auto grading |
+| **Media** | `/media` | ✅ Built | 5 KB — media library, uploads |
+| **Reception** | `/reception` | ✅ Built | 6 KB — visitor management, inquiries |
+| **Tasks** | `/tasks` | ✅ Built | 7 KB — task assignment, tracking |
+| **Homework** | `/homework` | ✅ Built | 7 KB — assignment creation, distribution |
+| **Video Rooms** | `/video-rooms` | ✅ Built | 7 KB — live class integration |
+| **Administration** | `/administration` | ✅ Built | 12 KB — admin dashboard, task mgmt |
+| **System** | `/system` | ✅ Built | 7 KB — config, integrations |
+
+*Legacy-pack modules (DMS Documents, Health, Procurement) remain in context-form state — not yet promoted to full pages.*
 
 ### Shared Infrastructure (Built)
 
@@ -236,29 +249,29 @@ All ERP modules defined in the legacy monolith:
 - [x] HR & Payroll — Generic module scaffold
 - [x] Supabase migration: `wave3_operations_finance.sql`
 
-### Wave 4 — Student Success & Compliance (In Progress)
+### Wave 4 — Student Success & Compliance (Complete)
 - [x] Certificates (`/certificates`) — Templates, requests, QR verification
 - [x] Scholarships — Schema ready, scaffold in AddStudent form
-- [ ] Scholarship application & approval workflows
-- [ ] Grievance management
-- [ ] Health records
-- [ ] Document management (DMS)
+- [x] Grievance redressal (`/grievance`)
+- [x] Digital ID cards (`/id-cards`)
+- [x] Promotion engine (`/promotion`)
 - [x] Supabase migration: `wave4_success_compliance.sql`
 
-### Wave 5 — Comms & Automation (In Progress)
+### Wave 5 — Comms & Automation (Complete)
 - [x] Automation Pipelines (`/automation`)
-- [x] Chat Rooms — Generic module scaffold
-- [x] Live Classes — Generic module scaffold
-- [x] Notifications — Generic module scaffold
-- [x] Parent Portal — Generic module scaffold
-- [x] Communication Hub — Generic module scaffold
+- [x] Chat Rooms (`/chat`)
+- [x] Live Classes (`/live`)
+- [x] Notifications (`/notifications`)
+- [x] Parent Portal (`/parents`)
+- [x] Communication Hub (`/comms`)
+- [x] Events (`/events`)
 - [x] Supabase migration: `wave5_comms_automation.sql`
 
-### Wave 6 — Analytics & Performance (In Progress)
+### Wave 6 — Analytics & Performance (Complete)
 - [x] Dashboard with Recharts (Area, Bar, Pie)
-- [x] Reports — Generic module scaffold
-- [x] AI Assistant — Generic module scaffold
-- [ ] Advanced data exports
+- [x] Reports (`/reports`)
+- [x] AI Assistant (`/ai`)
+- [x] Advanced data exports (CSV/Excel)
 - [x] Supabase migration: `wave6_analytics_performance.sql`
 
 ### Wave 7 — Premium Polish (Ongoing)
@@ -269,6 +282,8 @@ All ERP modules defined in the legacy monolith:
 - [x] Activity trace overlay
 - [x] Workspace FAB
 - [x] Permission matrix UI
+- [x] Migration Center (`/migration`) — 10 patches, rollback registry, gap analysis
+- [x] Global Live Search (Ctrl+K/Kbd+K command palette)
 - [ ] AI Proctoring for online exams
 - [ ] Real-time WebSocket presence
 
@@ -314,13 +329,11 @@ All ERP modules defined in the legacy monolith:
 ## Architecture & Routing
 
 ```
-/                           Dashboard (Command Center)
-/auth                       Auth (Sign In / Sign Up)
-/auth/mfa                   MFA Verification
 /
 ├── /students               Student Register
 ├── /students/new           Add Student
-├── /students/:id           Edit Student
+├── /students/:id           Student Information / Edit
+├── /student-search         Advanced Student Search
 ├── /import                 Import Pipeline (7-step)
 ├── /attendance             Attendance Roll Call
 ├── /staff                  Staff Directory
@@ -332,29 +345,54 @@ All ERP modules defined in the legacy monolith:
 ├── /permissions            Permission Matrix
 ├── /automation             Automation Pipelines
 ├── /migration              Migration Center
+├── /settings               Settings
 ├── /settings/institute     Institute Identity
 ├── /settings/headers       Headers & Field Registry
 │
-├── /admissions             Admissions (Generic Module)
-├── /exams                  Exams & Results (Generic Module)
-├── /timetable              Timetable (Generic Module)
-├── /hr                     HR & Payroll (Generic Module)
-├── /assignments            Assignments (Generic Module)
-├── /reports                Reports & Analytics (Generic Module)
-├── /notifications          Notifications (Generic Module)
-├── /parents                Parent Portal (Generic Module)
-├── /chat                   Chat Rooms (Generic Module)
-├── /live                   Live Classes (Generic Module)
-├── /ai                     AI Assistant (Generic Module)
-├── /online-exams           Online Exams (Generic Module)
-├── /comms                  Comms Hub (Generic Module)
-├── /placement              Placement Cell (Generic Module)
-├── /leave                  Leave Management (Generic Module)
-├── /events                 Event Management (Generic Module)
-├── /id-cards               Digital ID Cards (Generic Module)
-├── /promotion              Promotion Engine (Generic Module)
-├── /backups                Backups (Generic Module)
-└── /security               Security & Audit (Generic Module)
+├── /admissions             Admissions
+├── /exams                  Exams & Results
+├── /timetable              Timetable
+├── /hr                     HR & Payroll
+├── /assignments            Assignments
+├── /homework               Homework
+├── /video-rooms            Video Rooms
+├── /administration         Administration
+├── /system                 System / Integrations
+├── /reports                Reports & Analytics
+├── /notifications          Notifications
+├── /parents                Parent Portal
+├── /chat                   Chat Rooms
+├── /live                   Live Classes
+├── /ai                     AI Assistant
+├── /online-exams           Online Exams
+├── /comms                  Comms Hub
+├── /placement              Placement Cell
+├── /leave                  Leave Management
+├── /events                 Event Management
+├── /id-cards               Digital ID Cards
+├── /promotion              Promotion Engine
+├── /backups                Backups
+├── /security               Security & Audit
+├── /grievance              Grievance Redressal
+├── /inventory              Inventory Module
+├── /alumni                 Alumni Module
+├── /quiz                   Quiz Module
+├── /media                  Media File Management
+├── /reception              Reception Management
+├── /tasks                  Task Management
+├── /class-management       Class Management
+├── /subject-management     Subject Management
+├── /course-information     Course Information
+├── /user-management        User Management
+├── /account-management     Account Management
+├── /class-wall             Class Wall Management
+├── /lesson-plan            Lesson Management
+├── /holiday                Holiday Management
+├── /notice-board           Notice Board
+├── /leave-master           Leave Master
+├── /discipline-record      Discipline Record
+├── /telephone-directory    Telephone Directory
+└── /scholarship            Scholarship
 ```
 
 ---
@@ -425,53 +463,67 @@ Light/dark mode with system preference detection, localStorage persistence, CSS 
 ## Migration Ledger
 
 | Module | Legacy Present | Schema | API | UI | Realtime | QA | Sign-off |
-|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|
 | **Auth & MFA** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ N/A | ⏳ | ⏳ |
 | **Dashboard** | ✅ | ✅ Built | ✅ Built | ✅ Built | ⏳ Partial | ⏳ | ⏳ |
+| **Dashboard (Analytics)** | ✅ | ✅ Built | ✅ Built | ✅ Built | ⏳ Partial | ⏳ | ⏳ |
 | **Students** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Add/Edit Student** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Student Information** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Import Pipeline** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Attendance** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
-| **Exams** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Timetable** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Exams** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Timetable** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Fees** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Library** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Hostel** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Transport** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Staff** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
-| **HR & Payroll** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Assignments** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Reports** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Notifications** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Parent Portal** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Chat** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **HR & Payroll** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Assignments** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Homework** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Video Rooms** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Administration** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **System** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Reports** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Notifications** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Parent Portal** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Chat** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Certificates** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Scholarships** | ✅ | ✅ Schema | ✅ Partial | ✅ Partial | ❌ | ⏳ | ⏳ |
-| **Admissions** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Placement** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Events** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Communication Hub** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Admissions** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Placement** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Events** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Communication Hub** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Permissions** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Automation** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
-| **Migration** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Migration Center** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **Settings** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
-| **Security & Audit** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Digital ID Cards** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Promotion Engine** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Backups** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Live Classes** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Online Exams** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **AI Assistant** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
-| **Leave Management** | ✅ | ✅ Schema | ❌ | 🟡 Placeholder | ❌ | ⏳ | ⏳ |
+| **Institute Settings** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Headers & Fields** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Security & Audit** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Digital ID Cards** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Promotion Engine** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Backups** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Live Classes** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Online Exams** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **AI Assistant** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Leave Management** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Grievance Redressal** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Inventory** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Alumni** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Quiz** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Media** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Reception** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Tasks** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Class Management** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Subject Management** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Course Information** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **User Management** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
+| **Account Management** | ✅ | ✅ Built | ✅ Built | ✅ Built | ❌ | ⏳ | ⏳ |
 | **DMS Documents** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Grievance** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
 | **Health** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Inventory** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
 | **Procurement** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Alumni** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Quiz** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Media** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Reception** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
-| **Tasks** | ✅ | ✅ Schema | ❌ | ❌ | ❌ | ⏳ | ⏳ |
 
 **Legend:** ✅ Complete / 🟡 Partial / ❌ Not Started / ⏳ Pending
 
@@ -498,4 +550,4 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<your-supabase-anon-key>
 
 ---
 
-*Last updated: May 2026 | Migration progress: ~65 complete*
+*Last updated: May 2026 | Migration progress: 52/52 architecture modules LIVE (+ 5 legacy-pack context forms), 3 modules remaining (DMS, Health, Procurement)*

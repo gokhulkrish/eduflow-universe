@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
 import { Award, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";

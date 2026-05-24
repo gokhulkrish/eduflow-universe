@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type PromotionRule = { id: string; name: string; from_grade: string; to_grade: string; from_section: string; to_section: string; min_attendance: number; min_gpa: number; auto_promote: boolean; reset_roll: boolean; status: string; created_at: string; };

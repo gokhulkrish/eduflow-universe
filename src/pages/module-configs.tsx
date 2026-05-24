@@ -3,6 +3,7 @@ import {
   Building2, Bus, Briefcase, UserCog, NotebookPen, BarChart3, Bell, Heart,
   Settings, Award, MessagesSquare, Video, Sparkles, FileSignature, Megaphone,
   Target, CalendarClock, PartyPopper, IdCard, ArrowUpCircle, DatabaseBackup, Shield,
+  BookOpen, FlaskConical, ShieldCheck, FileText, Package,
 } from "lucide-react";
 import { BookOpen as BookOpenIcon } from "lucide-react";
 
@@ -148,5 +149,45 @@ export const moduleConfigs: Record<string, Cfg> = {
     title: "Security & Audit", subtitle: "ISO 27001 inspired · GDPR ready",
     icon: <Shield className="h-6 w-6" />,
     features: ["Audit Trails", "Login Activity", "MFA Enforcement", "Permission Matrix", "Data Export Requests", "Encryption Status"],
+  },
+  departments: {
+    title: "Departments & Programs", subtitle: "Registry · HOD · accreditation mapping",
+    icon: <Building2 className="h-6 w-6" />,
+    features: ["Department Registry", "Program Levels", "HOD Ownership", "Sanctioned Intake", "NAAC/NBA Status", "Accreditation Tracking"],
+  },
+  curriculum: {
+    title: "Curriculum & Outcomes", subtitle: "Versioning · CO-PO mapping · attainment",
+    icon: <BookOpen className="h-6 w-6" />,
+    features: ["Curriculum Versioning", "Course Code Registry", "CO-PO Mapping", "Syllabus Coverage", "Outcome Attainment", "Academic Audit"],
+  },
+  lms: {
+    title: "LMS & E-Learning", subtitle: "Digital content · engagement · completion",
+    icon: <GraduationCap className="h-6 w-6" />,
+    features: ["Course Rooms", "Content Units", "Faculty Assignment", "Engagement Tracking", "Completion Monitoring", "Intervention Alerts"],
+  },
+  research: {
+    title: "Research & Innovation", subtitle: "Projects · patents · grants · MoUs",
+    icon: <FlaskConical className="h-6 w-6" />,
+    features: ["Project Registry", "Principal Investigators", "Funding Agencies", "Grant Tracking", "Publication Log", "Innovation Cell"],
+  },
+  accreditation: {
+    title: "Accreditation & IQAC", subtitle: "NAAC · NBA · NIRF · AISHE · SSR/DVV",
+    icon: <ShieldCheck className="h-6 w-6" />,
+    features: ["Quality Cycles", "Framework Selection", "Criterion Mapping", "Evidence Collection", "SSR/DVV Readiness", "IQAC Actions"],
+  },
+  health: {
+    title: "Health & Wellbeing", subtitle: "Clinic · counselling · wellness tracking",
+    icon: <Heart className="h-6 w-6" />,
+    features: ["Case Registry", "Medical Records", "Counselling Log", "Follow-up Scheduling", "Wellbeing Interventions", "Care Status"],
+  },
+  documents: {
+    title: "Documents & DMS", subtitle: "Templates · evidence · student files",
+    icon: <FileText className="h-6 w-6" />,
+    features: ["Document Registry", "Type Classification", "Owner Assignment", "Expiry Alerts", "Approval Workflow", "Digital Records"],
+  },
+  procurement: {
+    title: "Procurement & Assets", subtitle: "Requests · vendors · asset tracking",
+    icon: <Package className="h-6 w-6" />,
+    features: ["Purchase Requests", "Vendor Management", "Asset Tagging", "Stock Inward", "AMC Planning", "Maintenance Scheduling"],
   },
 };

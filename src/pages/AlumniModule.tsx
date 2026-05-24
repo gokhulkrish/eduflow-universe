@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
 import { GraduationCap, Plus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";

@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync, subscribeAppSync } from "./app-sync";
 
 export type MigrationFlagSource = "default" | "storage" | "environment";
@@ -42,49 +43,115 @@ export const MIGRATION_PATCH_FLAGS: MigrationFlagDefinition[] = [
     key: "patch-003-runtime-shell-compatibility",
     label: "Patch 003: Runtime shell compatibility",
     description: "Desktop/mobile shell intelligence and hydration stability.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-004-state-normalization",
     label: "Patch 004: State normalization",
     description: "Unified state adapters for focus, workspace, settings, and registry state.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-005-workspace-actions",
     label: "Patch 005: Workspace actions",
     description: "Workspace menus, focus orchestration, and floating actions.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-006-settings-orchestration",
     label: "Patch 006: Settings orchestration",
     description: "Advanced settings tabs, panels, and persistence.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-007-registry-core",
     label: "Patch 007: Registry core",
     description: "Unified registry model, metadata, grouping, and persistence contracts.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-008-registry-explorer",
     label: "Patch 008: Registry explorer",
     description: "Inspector tooling, JSON views, and list virtualization.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-009-student-workspace",
     label: "Patch 009: Student workspace",
     description: "Student contextual tabs, detail panels, and flyout orchestration.",
-    defaultEnabled: false,
+    defaultEnabled: true,
   },
   {
     key: "patch-010-erp-context",
     label: "Patch 010: ERP context",
     description: "ERP module grouping, contextual navigation, and activation engine.",
-    defaultEnabled: false,
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-011-inventory-guard-rails",
+    label: "Patch 011: Inventory & guard rails",
+    description: "Feature inventory, legacyFeatureMap, compat namespace.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-012-schema-map",
+    label: "Patch 012: Schema map",
+    description: "Supabase schema mapping with batch_imports tables.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-013-import-engine-parity",
+    label: "Patch 013: Import engine parity",
+    description: "Import validation compat layer and batch engine parity.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-014-student-read-mirror",
+    label: "Patch 014: Student read mirror",
+    description: "Student read adapter for legacy query shapes.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-015-student-dual-write",
+    label: "Patch 015: Student dual-write",
+    description: "createStudent, updateStudent, deactivateStudent services.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-016-attendance-service",
+    label: "Patch 016: Attendance service",
+    description: "markAttendance, bulkUpload, override attendance services.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-017-assessment-engine",
+    label: "Patch 017: Assessment engine",
+    description: "Scoring engine compat layer and grading alignment.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-018-subjective-scoring",
+    label: "Patch 018: Subjective scoring",
+    description: "Standardized subjective-to-standard scoring adapter.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-019-comms-engine",
+    label: "Patch 019: Comms engine",
+    description: "Message templates, campaigns, logs tables and services.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-020-audit-service",
+    label: "Patch 020: Audit service",
+    description: "Centralized audit logging service.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-021-monitor-dashboard",
+    label: "Patch 021: Monitor dashboard",
+    description: "Monitoring overview SQL view for global dashboard.",
+    defaultEnabled: true,
   },
 ];
 

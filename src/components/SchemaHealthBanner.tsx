@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { loadAccessibleModuleKeys } from "@/lib/module-access";
+import { resolveAccessKeyForPathname } from "@/lib/global-access-registry";
 import { tableExists } from "@/lib/supabase-health";
 import { Link } from "react-router-dom";
 
@@ -28,6 +30,11 @@ const ACTIVE_PROJECT_ID = (() => {
 })();
 
 export function SchemaHealthBanner() {
+  const { data: accessibleKeys, isLoading: accessLoading } = useQuery({
+    queryKey: ["accessible-module-keys", "schema-banner"],
+    queryFn: () => loadAccessibleModuleKeys(),
+    staleTime: Infinity,
+  });
   const { data: missing = [], isLoading } = useQuery({
     queryKey: ["schema-health"],
     queryFn: async () => {
@@ -41,6 +48,9 @@ export function SchemaHealthBanner() {
   });
 
   if (isLoading || missing.length === 0) return null;
+  const canShowMigration = !accessLoading && (accessibleKeys?.has(resolveAccessKeyForPathname("/migration") ?? "") ?? false);
+  const instituteAccessKey = resolveAccessKeyForPathname("/settings/institute");
+  const canShowSettings = !accessLoading && (accessibleKeys?.has(instituteAccessKey ?? "") ?? false);
 
   return (
     <Card className="mb-4 border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-950 shadow-sm dark:text-amber-50">
@@ -59,13 +69,17 @@ export function SchemaHealthBanner() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="secondary" className="bg-background/80 text-foreground hover:bg-background">
-            <Link to="/migration">Open migrations</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="border-amber-500/30 bg-transparent text-amber-950 hover:bg-amber-500/15 dark:text-amber-50">
-            <Link to="/settings/institute">Check GCT settings</Link>
-          </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          {canShowMigration && (
+            <Button asChild size="sm" variant="secondary" className="bg-background/80 text-foreground hover:bg-background">
+              <Link to="/migration">Open migrations</Link>
+            </Button>
+          )}
+          {canShowSettings && (
+            <Button asChild size="sm" variant="outline" className="border-amber-500/30 bg-transparent text-amber-950 hover:bg-amber-500/15 dark:text-amber-50">
+              <Link to="/settings/institute">Check GCT settings</Link>
+            </Button>
+          )}
         </div>
       </div>
     </Card>

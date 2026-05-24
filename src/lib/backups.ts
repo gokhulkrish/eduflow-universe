@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type BackupEntry = { id: string; name: string; size: string; tables: number; rows: number; encrypted: boolean; schedule: string; created_at: string; status: string; };

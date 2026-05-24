@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 
 export type Event = { id: string; title: string; description: string; date: string; time: string; location: string; category: string; organizer: string; capacity: number; created_at: string; };

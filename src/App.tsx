@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,8 +10,11 @@ import { AppLayout } from "./components/AppLayout";
 import Auth from "./pages/Auth";
 import Mfa from "./pages/Mfa";
 import { moduleConfigs } from "./pages/module-configs";
-import NotFound from "./pages/NotFound.tsx";
+import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LEGACY_ROUTE_ALIASES } from "@/lib/legacy-adapter";
+import { supabase } from "@/integrations/supabase/client";
+import { subscribeAppSync } from "@/lib/app-sync";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Students = lazy(() => import("./pages/Students"));
@@ -73,6 +76,20 @@ const UserManagement = lazy(() => import("./pages/UserManagement"));
 const StudentSearch = lazy(() => import("./pages/StudentSearch"));
 const Scholarship = lazy(() => import("./pages/Scholarship"));
 const GrievanceRedressal = lazy(() => import("./pages/GrievanceRedressal"));
+const Homework = lazy(() => import("./pages/Homework"));
+const VideoRooms = lazy(() => import("./pages/VideoRooms"));
+const Administration = lazy(() => import("./pages/Administration"));
+const SystemPage = lazy(() => import("./pages/System"));
+const Departments = lazy(() => import("./pages/Departments"));
+const CurriculumOutcomes = lazy(() => import("./pages/CurriculumOutcomes"));
+const LmsElearning = lazy(() => import("./pages/LmsElearning"));
+const ResearchInnovation = lazy(() => import("./pages/ResearchInnovation"));
+const AccreditationIQAC = lazy(() => import("./pages/AccreditationIQAC"));
+const HealthWellbeing = lazy(() => import("./pages/HealthWellbeing"));
+const DocumentDms = lazy(() => import("./pages/DocumentDms"));
+const ProcurementAssets = lazy(() => import("./pages/ProcurementAssets"));
+const MonitoringDashboard = lazy(() => import("./pages/MonitoringDashboard"));
+const ScoringWorkspace = lazy(() => import("./pages/ScoringWorkspace"));
 const GenericModule = lazy(() => import("./pages/GenericModule"));
 
 import { initRegistryStorage } from "@/lib/header-registry";
@@ -87,19 +104,7 @@ const queryClient = new QueryClient({
     },
   },
 });
-const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance"]);
-const legacyRouteAliases: Record<string, string> = {
-  "/registeredStudents": "/students",
-  "/addStudent": "/students/new",
-  "/partialStudentsave": "/student-information",
-  "/collegeInfo": "/settings/institute",
-  "/courseInfo": "/course-information",
-  "/taskManagement": "/tasks",
-  "/reportsAnalytics": "/reports",
-  "/settingsBackup": "/settings",
-  "/userManagement": "/user-management",
-};
-
+const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance","homework","video-rooms","administration","system","departments","curriculum","lms","research","accreditation","health","documents","procurement","monitor","scoring"]);
 function PageLoader() {
   return (
     <div className="flex h-[60vh] items-center justify-center">
@@ -113,6 +118,38 @@ function PageLoader() {
 
 const LazyRoute = ({ element }: { element: JSX.Element }) => <Suspense fallback={<PageLoader />}>{element}</Suspense>;
 
+function CapabilityAccessSync() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const refreshAccessQueries = () => {
+      queryClient.invalidateQueries({ queryKey: ["module-enabled"] });
+    };
+
+    const unsubscribeAppSync = subscribeAppSync(["sms.module-access.v1"], refreshAccessQueries);
+    const channel = supabase
+      .channel("module-access-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "permissions" },
+        refreshAccessQueries,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "role_permissions" },
+        refreshAccessQueries,
+      )
+      .subscribe();
+
+    return () => {
+      unsubscribeAppSync();
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return null;
+}
+
 const App = () => {
   useEffect(() => { initRegistryStorage(); }, []);
   return (
@@ -122,10 +159,11 @@ const App = () => {
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
+            <CapabilityAccessSync />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/mfa" element={<Mfa />} />
-              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route element={<ErrorBoundary><ProtectedRoute><AppLayout /></ProtectedRoute></ErrorBoundary>}>
                 <Route path="/" element={<LazyRoute element={<Dashboard />} />} />
                 <Route path="/students" element={<LazyRoute element={<Students />} />} />
                 <Route path="/students/new" element={<LazyRoute element={<AddStudent />} />} />
@@ -135,6 +173,8 @@ const App = () => {
                 <Route path="/import" element={<LazyRoute element={<Import />} />} />
                 <Route path="/attendance" element={<LazyRoute element={<ErrorBoundary><Attendance /></ErrorBoundary>} />} />
                 <Route path="/automation" element={<LazyRoute element={<Automation />} />} />
+                <Route path="/monitor" element={<LazyRoute element={<MonitoringDashboard />} />} />
+                <Route path="/scoring" element={<LazyRoute element={<ScoringWorkspace />} />} />
                 <Route path="/migration" element={<LazyRoute element={<Migration />} />} />
                 <Route path="/permissions" element={<LazyRoute element={<Permissions />} />} />
                 <Route path="/settings/institute" element={<LazyRoute element={<InstituteSettings />} />} />
@@ -187,7 +227,19 @@ const App = () => {
                 <Route path="/student-search" element={<LazyRoute element={<StudentSearch />} />} />
                 <Route path="/scholarship" element={<LazyRoute element={<Scholarship />} />} />
                 <Route path="/grievance" element={<LazyRoute element={<GrievanceRedressal />} />} />
-                {Object.entries(legacyRouteAliases).map(([from, to]) => (
+                <Route path="/homework" element={<LazyRoute element={<Homework />} />} />
+                <Route path="/video-rooms" element={<LazyRoute element={<VideoRooms />} />} />
+                <Route path="/administration" element={<LazyRoute element={<Administration />} />} />
+                <Route path="/system" element={<LazyRoute element={<SystemPage />} />} />
+                <Route path="/departments" element={<LazyRoute element={<Departments />} />} />
+                <Route path="/curriculum" element={<LazyRoute element={<CurriculumOutcomes />} />} />
+                <Route path="/lms" element={<LazyRoute element={<LmsElearning />} />} />
+                <Route path="/research" element={<LazyRoute element={<ResearchInnovation />} />} />
+                <Route path="/accreditation" element={<LazyRoute element={<AccreditationIQAC />} />} />
+                <Route path="/health" element={<LazyRoute element={<HealthWellbeing />} />} />
+                <Route path="/documents" element={<LazyRoute element={<DocumentDms />} />} />
+                <Route path="/procurement" element={<LazyRoute element={<ProcurementAssets />} />} />
+                {Object.entries(LEGACY_ROUTE_ALIASES).map(([from, to]) => (
                   <Route key={from} path={from} element={<Navigate to={to} replace />} />
                 ))}
                 {Object.keys(moduleConfigs)

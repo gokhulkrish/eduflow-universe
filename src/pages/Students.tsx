@@ -26,6 +26,14 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { fetchStudentRegister, deleteStudentRecord, formatDataError, cohortLabelForStudent, initialsForStudent, studentRegisterSyncKey, type StudentRegisterRow } from "@/lib/student-records";
 import { subscribeAppSync } from "@/lib/app-sync";
+import {
+  buildGroupRuntimeModel,
+  clearGroupRuntimeStorage,
+  GROUP_MODEL_STORAGE_KEY,
+  getGroupRuntimeOverview,
+  resetGroupRuntimeNamespace,
+  toggleGroupSectionVisibility,
+} from "@/lib/group-model";
 import { toast } from "sonner";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -63,6 +71,8 @@ const feeColor: Record<string, string> = {
   pending: "bg-yellow-50 border-yellow-200 text-yellow-700",
   overdue: "bg-red-50 border-red-200 text-red-700",
 };
+
+const STUDENT_RIBBON_GROUP_NAMESPACE = "students.ribbon";
 
 const downloadStudentsCsv = (rows: StudentTableRow[]) => {
   const lines = [
@@ -112,6 +122,7 @@ const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] 
 export default function Students() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [groupRuntime, setGroupRuntime] = useState(() => getGroupRuntimeOverview());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -125,6 +136,12 @@ export default function Students() {
       queryClient.invalidateQueries({ queryKey: ["student-register"] });
     });
   }, [queryClient]);
+
+  useEffect(() => {
+    const sync = () => setGroupRuntime(getGroupRuntimeOverview());
+    sync();
+    return subscribeAppSync([GROUP_MODEL_STORAGE_KEY], sync);
+  }, []);
 
   const rows = studentsQuery.data ?? [];
   const tableRows: StudentTableRow[] = liveRegisterRowsToTable(rows);
@@ -177,8 +194,9 @@ export default function Students() {
     navigate(`/students/${firstActive.id}${mode === "view" ? "?mode=view" : ""}`);
   };
 
-  const groups: { title: string; actions: RibbonAction[] }[] = [
+  const ribbonModel = buildGroupRuntimeModel(STUDENT_RIBBON_GROUP_NAMESPACE, [
     {
+      id: "clipboard",
       title: "Clipboard",
       actions: [
         { id: "copy", label: "Copy", icon: Copy, onClick: () => void copyRows("table") },
@@ -187,6 +205,7 @@ export default function Students() {
       ],
     },
     {
+      id: "records",
       title: "Records",
       actions: [
         { id: "new", label: "New", icon: Plus, onClick: () => navigate("/students/new") },
@@ -197,6 +216,7 @@ export default function Students() {
       ],
     },
     {
+      id: "data",
       title: "Data",
       actions: [
         { id: "exp", label: "Export", icon: Download, onClick: () => downloadStudentsCsv(activeRows) },
@@ -205,13 +225,14 @@ export default function Students() {
       ],
     },
     {
+      id: "advanced",
       title: "Advanced",
       actions: [
         { id: "set", label: "Settings", icon: Settings2, onClick: () => navigate("/settings/headers") },
         { id: "filter", label: "Clear", icon: Filter, onClick: () => setQuery("") },
       ],
     },
-  ];
+  ]);
 
   return (
     <div>
@@ -262,20 +283,88 @@ export default function Students() {
             ))}
           </TabsList>
           <TabsContent value="home" className="m-0">
-            <div className="flex flex-wrap gap-2 p-3">
-              {groups.map((g) => (
-                <div key={g.title} className="flex flex-col items-stretch rounded-xl border border-border/60 bg-secondary/40 p-2">
-                  <div className="mb-1 flex gap-1">
-                    {g.actions.map((a) => (
-                      <button key={a.id} onClick={a.onClick}
-                        className="flex w-16 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[10px] transition-colors hover:bg-primary/10 hover:text-primary">
-                        <a.icon className="h-4 w-4" /><span>{a.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">{g.title}</p>
+            <div className="space-y-3 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {ribbonModel.sections.map((group) => (
+                    <Button
+                      key={group.id}
+                      type="button"
+                      variant={group.visible ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 rounded-full px-3 text-xs"
+                      onClick={() => toggleGroupSectionVisibility(STUDENT_RIBBON_GROUP_NAMESPACE, group.id)}
+                    >
+                      {group.title}
+                      <span className="ml-2 rounded-full bg-background/20 px-1.5 py-0.5 font-mono text-[10px]">
+                        {group.actionCount}
+                      </span>
+                    </Button>
+                  ))}
                 </div>
-              ))}
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    {groupRuntime.namespaceCount} namespace(s)
+                  </Badge>
+                  <Badge variant="secondary" className="bg-warning/15 text-warning">
+                    {groupRuntime.hiddenGroupCount} hidden group(s)
+                  </Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    {ribbonModel.summary.visibleGroupCount}/{ribbonModel.summary.groupCount} groups visible
+                  </Badge>
+                  {ribbonModel.summary.collisionCount > 0 ? (
+                    <Badge variant="secondary" className="bg-warning/15 text-warning">
+                      {ribbonModel.summary.collisionCount} collision(s)
+                    </Badge>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-full"
+                    onClick={() => resetGroupRuntimeNamespace(STUDENT_RIBBON_GROUP_NAMESPACE)}
+                  >
+                    Show all
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-full"
+                    onClick={() => {
+                      clearGroupRuntimeStorage();
+                      setGroupRuntime(getGroupRuntimeOverview());
+                      toast.success("Group runtime cleared");
+                    }}
+                  >
+                    Clear runtime
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ribbonModel.sections.filter((group) => group.visible).map((g) => (
+                  <div key={g.id} className="flex flex-col items-stretch rounded-xl border border-border/60 bg-secondary/40 p-2">
+                    <div className="mb-1 flex gap-1">
+                      {g.actions.map((a) => (
+                        <button
+                          key={a.id}
+                          onClick={a.onClick}
+                          className="flex w-16 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[10px] transition-colors hover:bg-primary/10 hover:text-primary"
+                        >
+                          <a.icon className="h-4 w-4" />
+                          <span>{a.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">{g.title}</p>
+                  </div>
+                ))}
+                {ribbonModel.summary.visibleGroupCount === 0 ? (
+                  <Card className="border-dashed border-border/60 bg-card/40 p-4 text-sm text-muted-foreground">
+                    All ribbon groups are hidden. Use the chips above to restore them.
+                  </Card>
+                ) : null}
+              </div>
             </div>
           </TabsContent>
           {["data","review","admin"].map((t) => (

@@ -1,3 +1,4 @@
+import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
 import { Building2, MapPin, Save, RotateCcw, Image as ImageIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";

@@ -2,55 +2,62 @@
 
 | Module | Old Versions Found | Status | New File | Schema Table | Notes |
 |---|---|---|---|---|---|
-| `home` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/Home/index.tsx` | `module_home` | Source line SMS-2.html:79679; inventory created, implementation pending. |
-| `dashboard-data-processing` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/DashboardDataProcessing/index.tsx` | `module_dashboard_data_processing` | Source line SMS-2.html:79680; inventory created, implementation pending. |
-| `dashboard-analytical` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/DashboardAnalytical/index.tsx` | `module_dashboard_analytical` | Source line SMS-2.html:79681; inventory created, implementation pending. |
-| `dashboard-scholarship-status` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/DashboardScholarshipStatus/index.tsx` | `module_dashboard_scholarship_status` | Source line SMS-2.html:79682; inventory created, implementation pending. |
-| `add-student` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/AddStudent/index.tsx` | `module_add_student` | Source line SMS-2.html:79688; inventory created, implementation pending. |
-| `registered-students` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/RegisteredStudents/index.tsx` | `module_registered_students` | Source line SMS-2.html:79689; inventory created, implementation pending. |
-| `partial-saved-students` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/PartialSavedStudents/index.tsx` | `module_partial_saved_students` | Source line SMS-2.html:79690; inventory created, implementation pending. |
-| `admissions` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/Admissions/index.tsx` | `module_admissions` | Source line SMS-2.html:79691; inventory created, implementation pending. |
-| `certificates` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/Certificates/index.tsx` | `module_certificates` | Source line SMS-2.html:79692; inventory created, implementation pending. |
-| `import-create` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportCreateBatch/index.tsx` | `module_import_create` | Source line SMS-2.html:79698; inventory created, implementation pending. |
-| `import-map` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportSchemaMapping/index.tsx` | `module_import_map` | Source line SMS-2.html:79699; inventory created, implementation pending. |
-| `import-keying` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportKeyingStrategy/index.tsx` | `module_import_keying` | Source line SMS-2.html:79700; inventory created, implementation pending. |
-| `import-duplicate-review` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportDuplicateReview/index.tsx` | `module_import_duplicate_review` | Source line SMS-2.html:79701; inventory created, implementation pending. |
-| `import-validation` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportValidation/index.tsx` | `module_import_validation` | Source line SMS-2.html:79702; inventory created, implementation pending. |
-| `import-preview` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportPreview/index.tsx` | `module_import_preview` | Source line SMS-2.html:79703; inventory created, implementation pending. |
-| `import-transfer` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ImportTransfer/index.tsx` | `module_import_transfer` | Source line SMS-2.html:79704; inventory created, implementation pending. |
-| `collegeInfo` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/InstituteInformation/index.tsx` | `module_collegeInfo` | Source line SMS-2.html:79710; inventory created, implementation pending. |
-| `courseInfo` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/CourseInformation/index.tsx` | `module_courseInfo` | Source line SMS-2.html:79711; inventory created, implementation pending. |
-| `userManagement` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/UserManagement/index.tsx` | `module_userManagement` | Source line SMS-2.html:79712; inventory created, implementation pending. |
-| `academics` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/AcademicManagement/index.tsx` | `module_academics` | Source line SMS-2.html:79718; inventory created, implementation pending. |
-| `timetable` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Timetable/index.tsx` | `module_timetable` | Source line SMS-2.html:79719; inventory created, implementation pending. |
-| `homework` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Homework/index.tsx` | `module_homework` | Source line SMS-2.html:79720; inventory created, implementation pending. |
-| `assignments` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Assignments/index.tsx` | `module_assignments` | Source line SMS-2.html:79721; inventory created, implementation pending. |
-| `attendance` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/AttendanceManagement/index.tsx` | `module_attendance` | Source line SMS-2.html:79722; inventory created, implementation pending. |
-| `exams` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ExamsMarksManagement/index.tsx` | `module_exams` | Source line SMS-2.html:79723; inventory created, implementation pending. |
-| `videoRooms` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/VideoRooms/index.tsx` | `module_videoRooms` | Source line SMS-2.html:79724; inventory created, implementation pending. |
-| `quiz` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Quiz/index.tsx` | `module_quiz` | Source line SMS-2.html:79725; inventory created, implementation pending. |
-| `people` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/PeopleDirectory/index.tsx` | `module_people` | Source line SMS-2.html:79731; inventory created, implementation pending. |
-| `administration` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Administration/index.tsx` | `module_administration` | Source line SMS-2.html:79732; inventory created, implementation pending. |
-| `payroll` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Payroll/index.tsx` | `module_payroll` | Source line SMS-2.html:79733; inventory created, implementation pending. |
-| `reception` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Reception/index.tsx` | `module_reception` | Source line SMS-2.html:79734; inventory created, implementation pending. |
-| `fees` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/FeeManagement/index.tsx` | `module_fees` | Source line SMS-2.html:79740; inventory created, implementation pending. |
-| `scholarships` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/Scholarship/index.tsx` | `module_scholarships` | Source line SMS-2.html:79741; inventory created, implementation pending. |
-| `communication` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/CommunicationHub/index.tsx` | `module_communication` | Source line SMS-2.html:79747; inventory created, implementation pending. |
-| `chat` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Chat/index.tsx` | `module_chat` | Source line SMS-2.html:79748; inventory created, implementation pending. |
-| `events` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/EventsHolidays/index.tsx` | `module_events` | Source line SMS-2.html:79749; inventory created, implementation pending. |
-| `media` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Media/index.tsx` | `module_media` | Source line SMS-2.html:79750; inventory created, implementation pending. |
-| `hostel` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/Hostel/index.tsx` | `module_hostel` | Source line SMS-2.html:79756; inventory created, implementation pending. |
-| `transport` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/Transport/index.tsx` | `module_transport` | Source line SMS-2.html:79757; inventory created, implementation pending. |
-| `library` | legacy shell + bridge patch 7 | 🟡 PARTIAL | `components/modules/Library/index.tsx` | `module_library` | Source line SMS-2.html:79758; inventory created, implementation pending. |
-| `inventory` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Inventory/index.tsx` | `module_inventory` | Source line SMS-2.html:79759; inventory created, implementation pending. |
-| `taskManagement` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/TaskManagement/index.tsx` | `module_taskManagement` | Source line SMS-2.html:79760; inventory created, implementation pending. |
-| `placement` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Placement/index.tsx` | `module_placement` | Source line SMS-2.html:79766; inventory created, implementation pending. |
-| `reportsAnalytics` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/ReportsAnalytics/index.tsx` | `module_reportsAnalytics` | Source line SMS-2.html:79767; inventory created, implementation pending. |
-| `alumni` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/Alumni/index.tsx` | `module_alumni` | Source line SMS-2.html:79768; inventory created, implementation pending. |
-| `system` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/System/index.tsx` | `module_system` | Source line SMS-2.html:79774; inventory created, implementation pending. |
-| `settingsBackup` | legacy shell + bridge patch 7 + future module stubs | 🟡 PARTIAL | `components/modules/SettingsBackup/index.tsx` | `module_settingsBackup` | Source line SMS-2.html:79775; inventory created, implementation pending. |
-| `settings-header-registry` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/HeaderRegistry/index.tsx` | `module_settings_header_registry` | Source line SMS-2.html:79776; inventory created, implementation pending. |
-| `settings-workspace-control` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/WorkspaceControl/index.tsx` | `module_settings_workspace_control` | Source line SMS-2.html:79777; inventory created, implementation pending. |
-| `settings-ai-policy` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/WorkspaceAIPolicy/index.tsx` | `module_settings_ai_policy` | Source line SMS-2.html:79778; inventory created, implementation pending. |
-| `settings-startup-trace` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/StartupTrace/index.tsx` | `module_settings_startup_trace` | Source line SMS-2.html:79779; inventory created, implementation pending. |
-| `settings-batch-history` | runtime shell + legacy monolith | 🟡 PARTIAL | `components/modules/BatchHistory/index.tsx` | `module_settings_batch_history` | Source line SMS-2.html:79780; inventory created, implementation pending. |
+| `home` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Dashboard.tsx` + `components/modules/Home/` | `module_home` | Dashboard page is a full real-time analytics implementation with recharts. |
+| `dashboard-data-processing` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Dashboard.tsx` | `module_dashboard_data_processing` | Tab within the Dashboard page. |
+| `dashboard-analytical` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Dashboard.tsx` | `module_dashboard_analytical` | Tab within the Dashboard page. |
+| `dashboard-scholarship-status` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Dashboard.tsx` | `module_dashboard_scholarship_status` | Tab within the Dashboard page. |
+| `add-student` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/AddStudent.tsx` | `module_add_student` | Full student creation form. |
+| `registered-students` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Students.tsx` | `module_registered_students` | Data table with ribbon toolbar, search, pagination, CSV export. |
+| `partial-saved-students` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/StudentInformation.tsx` | `module_partial_saved_students` | Draft management via localStorage sync. |
+| `admissions` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Admissions.tsx` | `module_admissions` | Full admissions portal with pipeline stages, screening workflow. |
+| `certificates` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Certificates.tsx` | `module_certificates` | Template CRUD, request workflow, QR verification, bulk generation. |
+| `import-create` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_create` | Multi-step import wizard with file upload, batch details, mode selection. |
+| `import-map` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_map` | Schema mapping with auto-mapping, header registry, drift detection. |
+| `import-keying` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_keying` | Match strategy selection with fuzzy threshold slider. |
+| `import-duplicate-review` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_duplicate_review` | Duplicate group detection with per-group action overrides. |
+| `import-validation` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_validation` | Validation runtime with quality scoring, blockers, warnings. |
+| `import-preview` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_preview` | Per-row preview with action overrides and diff summaries. |
+| `import-transfer` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_import_transfer` | Commit engine with rollback snapshots and error reporting. |
+| `collegeInfo` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/InstituteSettings.tsx` | `module_collegeInfo` | Institute profile editor with branding and accreditation info. |
+| `courseInfo` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/CourseInformation.tsx` | `module_courseInfo` | Course management with CRUD, seat allocation. |
+| `userManagement` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/UserManagement.tsx` | `module_userManagement` | User directory with RBAC integration. |
+| `academics` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/ClassManagement.tsx` + `src/pages/SubjectManagement.tsx` | `module_academics` | Class and subject management with section assignments. |
+| `timetable` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Timetable.tsx` | `module_timetable` | Timetable with time slots, substitutions, teacher views. |
+| `homework` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Homework.tsx` | `module_homework` | Dedicated Homework page with assign, track, mark submitted. |
+| `assignments` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Assignments.tsx` | `module_assignments` | Assignment lifecycle with submissions and grading. |
+| `attendance` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Attendance.tsx` | `module_attendance` | Roll-call with present/absent/late cycling, cohort filters. |
+| `exams` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Exams.tsx` | `module_exams` | Full exam lifecycle: schedules, marks, results, transcripts, PDF generation. |
+| `videoRooms` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/VideoRooms.tsx` | `module_videoRooms` | Dedicated Video Rooms page with schedule, start/end, copy link. |
+| `quiz` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/QuizModule.tsx` | `module_quiz` | Quiz bank and quiz attempts. |
+| `people` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Staff.tsx` + `src/pages/Students.tsx` | `module_people` | Staff/student directory with search and detail views. |
+| `administration` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Administration.tsx` | `module_administration` | Dedicated Administration page with tasks & notices. |
+| `payroll` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/HR.tsx` | `module_payroll` | Payroll runs, items, and appraisal integration. |
+| `reception` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/ReceptionManagement.tsx` | `module_reception` | Visitor, call, and postal management. |
+| `fees` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Fees.tsx` | `module_fees` | Full fee management: structures, invoices, payments, concessions, reminders, ledgers, defaulters. |
+| `scholarships` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Scholarship.tsx` | `module_scholarships` | Scholarship applications, verification, approval, disbursement. |
+| `communication` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Comms.tsx` | `module_communication` | Announcements and polls with priority/audience badges. |
+| `chat` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Chat.tsx` | `module_chat` | Real-time messaging with threads and participants. |
+| `events` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Events.tsx` | `module_events` | Event calendar with holidays, birthdays, anniversaries. |
+| `media` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/MediaFileManagement.tsx` | `module_media` | Media uploads, video, document management. |
+| `hostel` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Hostel.tsx` | `module_hostel` | Room occupancy tracking with progress bars. |
+| `transport` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Transport.tsx` | `module_transport` | Route management with fare badges. |
+| `library` | legacy shell + bridge patch 7 | ✅ LIVE | `src/pages/Library.tsx` | `module_library` | Catalog, loans, reservations, fines management. |
+| `inventory` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/InventoryModule.tsx` | `module_inventory` | Products, purchases, sales, stock tracking. |
+| `taskManagement` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/TaskManagement.tsx` | `module_taskManagement` | Task CRUD with active/completed/snoozed views. |
+| `placement` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/PlacementCell.tsx` | `module_placement` | Jobs, recruiters, interview pipeline, analytics. |
+| `reportsAnalytics` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Reports.tsx` | `module_reportsAnalytics` | Multi-tab reports with charts and data tables. |
+| `alumni` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/AlumniModule.tsx` | `module_alumni` | Alumni directory with search, add/edit, pagination. |
+| `system` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/System.tsx` | `module_system` | Dedicated System page with status, cache mgmt, diagnostics. |
+| `settingsBackup` | legacy shell + bridge patch 7 + future module stubs | ✅ LIVE | `src/pages/Backups.tsx` + `src/pages/Settings.tsx` | `module_settingsBackup` | Backup management and settings configuration. |
+| `settings-header-registry` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/SettingsHeaders.tsx` | `module_settings_header_registry` | Header registry with custom fields and alias management. |
+| `settings-workspace-control` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Settings.tsx` | `module_settings_workspace_control` | Workspace sidebar/campus/language configuration. |
+| `settings-ai-policy` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Settings.tsx` | `module_settings_ai_policy` | AI confidence, fee/attendance risk, access rules. |
+| `settings-startup-trace` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Settings.tsx` | `module_settings_startup_trace` | Startup loader, animation, trace widget controls. |
+| `settings-batch-history` | runtime shell + legacy monolith | ✅ LIVE | `src/pages/Import.tsx` | `module_settings_batch_history` | Saved/previewed/transferred import batch history. |
+| `promotion-engine` | localStorage mock | ✅ LIVE | `src/pages/PromotionEngine.tsx` | `promotion_rules`, `promotion_runs` | Supabase-backed promotion with real eligibility checks. |
+| `monitoring-dashboard` | legacy monolith | ✅ LIVE | `api/monitoring` | `monitoring_overview` view | Unified student/attendance/exam/scoring projection. |
+| `scoring-engine` | legacy monolith | ✅ LIVE | `core/scoring/subjectiveToStandard.ts` | `audit_log` (scoring events) | Keyword-rubric scoring with 4 dimensions and composite index. |
+| `comms-engine` | localStorage only | ⚡ BRIDGE | `core/comms/service.ts` | `message_templates`, `message_campaigns`, `message_logs` | Template CRUD, campaign scheduling, `{{variable}}` expansion. |
+| `audit-service` | scattered writes | ✅ LIVE | `core/audit/service.ts` | `audit_log` | Centralized writeAuditEntry() with before/after snapshots. |
+| `import-batch-server` | IndexedDB only | ⚡ BRIDGE | `supabase/migrations/20260524170000_*` | `import_batches`, `import_files`, `import_rows`, `import_row_errors` | Server-side batch storage with RLS, complements client engine. |
+| `remark-templates` | inline only | ✅ LIVE | `core/academics/remarks.ts` | `remarks_templates` | Score-range-based template matching with {{variable}} expansion. |
