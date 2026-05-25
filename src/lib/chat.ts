@@ -12,6 +12,8 @@ export async function getThreads(): Promise<(ChatThread & { last_message?: strin
   const rows = (threads ?? []) as ChatThread[];
 
   const threadIds = rows.map((t) => t.id);
+  if (threadIds.length === 0) return rows.map((t) => ({ ...t, unread: 0 }));
+
   const { data: participants } = await supabase.from("thread_participants").select("thread_id,last_read_at").eq("user_id", auth.user?.id ?? "").in("thread_id", threadIds);
   const readMap = new Map((participants ?? []).map((p: any) => [p.thread_id, p.last_read_at]));
 

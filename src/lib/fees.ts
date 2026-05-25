@@ -218,6 +218,40 @@ const normalizeFeePaymentRow = (row: LiveFeePaymentRow, invoiceId: string | null
   };
 };
 
+type FeeLookupMaps = {
+  feeCategories: Map<string, string>;
+  classLevels: Map<string, string>;
+};
+
+async function loadFeeLookupMaps(): Promise<FeeLookupMaps> {
+  const [categoryRows, classLevelRows] = await Promise.all([
+    tableExists("fee_categories")
+      ? supabase.from("fee_categories").select("id,name")
+      : Promise.resolve({ data: [], error: null }),
+    tableExists("class_levels")
+      ? supabase.from("class_levels").select("id,label")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (categoryRows.error) throw categoryRows.error;
+  if (classLevelRows.error) throw classLevelRows.error;
+
+  return {
+    feeCategories: new Map((categoryRows.data ?? []).map((row: any) => [String(row.id), String(row.name ?? "")])),
+    classLevels: new Map((classLevelRows.data ?? []).map((row: any) => [String(row.id), String(row.label ?? "")])),
+  };
+}
+
+function enrichFeeStructureRow(row: Record<string, unknown>, lookups: FeeLookupMaps): LiveFeeStructureRow {
+  const feeCategoryId = String(row.fee_category_id ?? "");
+  const classLevelId = String(row.class_level_id ?? "");
+  return {
+    ...(row as LiveFeeStructureRow),
+    fee_categories: (row as any).fee_categories ?? (feeCategoryId ? { name: lookups.feeCategories.get(feeCategoryId) ?? null } : null),
+    class_levels: (row as any).class_levels ?? (classLevelId ? { label: lookups.classLevels.get(classLevelId) ?? null } : null),
+  };
+}
+
 async function resolveAcademicYearContext(academicYearId?: string | null): Promise<{ id: string; institutionId: string } | null> {
   if (!(await tableExists("academic_years"))) return null;
   if (academicYearId) {
@@ -337,25 +371,20 @@ async function buildInvoiceLookup() {
 
 export async function getFeeStructures(): Promise<FeeStructure[]> {
   if (!(await tableExists("fee_structures"))) return [];
-  const { data, error } = await supabase
-    .from("fee_structures")
-    .select("id,institution_id,fee_category_id,class_level_id,academic_year_id,amount,due_date,meta,created_at,updated_at,fee_categories(name),class_levels(label)")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("fee_structures").select("*");
   if (error) throw error;
+  const lookups = await loadFeeLookupMaps();
   return (data ?? [])
-    .map((row) => normalizeFeeStructureRow(row as unknown as LiveFeeStructureRow))
+    .map((row) => normalizeFeeStructureRow(enrichFeeStructureRow(row as Record<string, unknown>, lookups)))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getFeeStructure(id: string): Promise<FeeStructure | null> {
   if (!(await tableExists("fee_structures"))) return null;
-  const { data, error } = await supabase
-    .from("fee_structures")
-    .select("id,institution_id,fee_category_id,class_level_id,academic_year_id,amount,due_date,meta,created_at,updated_at,fee_categories(name),class_levels(label)")
-    .eq("id", id)
-    .single();
+  const { data, error } = await supabase.from("fee_structures").select("*").eq("id", id).single();
   if (error) throw error;
-  return normalizeFeeStructureRow(data as unknown as LiveFeeStructureRow);
+  const lookups = await loadFeeLookupMaps();
+  return normalizeFeeStructureRow(enrichFeeStructureRow(data as Record<string, unknown>, lookups));
 }
 
 export async function saveFeeStructure(
@@ -386,26 +415,26 @@ export async function saveFeeStructure(
     }),
   };
 
-  const selectClause = "id,institution_id,fee_category_id,class_level_id,academic_year_id,amount,due_date,meta,created_at,updated_at,fee_categories(name),class_levels(label)";
-
   if (s.id) {
     const { data, error } = await supabase
       .from("fee_structures")
       .update(payload)
       .eq("id", s.id)
-      .select(selectClause)
+      .select("*")
       .single();
     if (error) throw error;
-    return normalizeFeeStructureRow(data as unknown as LiveFeeStructureRow);
+    const lookups = await loadFeeLookupMaps();
+    return normalizeFeeStructureRow(enrichFeeStructureRow(data as Record<string, unknown>, lookups));
   }
 
   const { data, error } = await supabase
     .from("fee_structures")
     .insert(payload)
-    .select(selectClause)
+    .select("*")
     .single();
   if (error) throw error;
-  return normalizeFeeStructureRow(data as unknown as LiveFeeStructureRow);
+  const lookups = await loadFeeLookupMaps();
+  return normalizeFeeStructureRow(enrichFeeStructureRow(data as Record<string, unknown>, lookups));
 }
 
 export async function deleteFeeStructure(id: string): Promise<void> {
@@ -487,21 +516,20 @@ export async function getPaymentsForInvoice(invoiceId: string): Promise<FeePayme
 export async function getAllPayments(): Promise<FeePayment[]> {
   if (!(await tableExists("fee_payments"))) return [];
   const [rows, invoiceLookup] = await Promise.all([
-    supabase
-      .from("fee_payments")
-      .select("id,institution_id,student_id,academic_year_id,fee_category_id,amount_paid,payment_date,payment_method,transaction_reference,receipt_no,status,meta,created_by,created_at,updated_at")
-      .order("payment_date", { ascending: false }),
+    supabase.from("fee_payments").select("*"),
     buildInvoiceLookup(),
   ]);
 
   const { data, error } = rows;
   if (error) throw error;
-  return (data ?? []).map((row) => {
+  return (data ?? [])
+    .map((row) => {
     const live = row as unknown as LiveFeePaymentRow;
     const metaInvoiceId = readMetaString(live.meta, "invoice_id");
     const lookupKey = `${live.student_id}::${live.fee_category_id ?? ""}::${live.academic_year_id ?? ""}`;
     return normalizeFeePaymentRow(live, metaInvoiceId ?? invoiceLookup.get(lookupKey) ?? null);
-  });
+  })
+    .sort((a, b) => new Date(b.paid_at).getTime() - new Date(a.paid_at).getTime());
 }
 
 export async function recordPayment(
