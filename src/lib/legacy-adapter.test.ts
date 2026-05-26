@@ -65,13 +65,15 @@ describe("legacy adapter layer", () => {
     expect(buildLegacyAdapterReport().apiBridges).toBeGreaterThan(0);
   });
 
-  it("emits and subscribes to legacy adapter events", () => {
+  it("emits and subscribes to legacy adapter events", async () => {
+    bootstrapLegacyAdapterLayer();
     let calls = 0;
     const unsubscribe = subscribeLegacyAdapterEvents(() => {
       calls += 1;
     });
 
     emitLegacyAdapterEvent("legacy:registry-change", { source: "test" });
+    await new Promise((r) => setTimeout(r, 0));
     unsubscribe();
 
     expect(calls).toBeGreaterThanOrEqual(1);

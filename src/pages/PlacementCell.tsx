@@ -158,16 +158,16 @@ export default function PlacementCell() {
           <DialogHeader><DialogTitle>{jEditId ? "Edit" : "New"} Job</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Title</Label><Input value={jTitle} onChange={(e) => setJTitle(e.target.value)} /></div>
-              <div><Label className="text-xs">Company Name</Label><Input value={jCompany} onChange={(e) => setJCompany(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="jobTitle">Title</Label><Input id="jobTitle" name="jobTitle" value={jTitle} onChange={(e) => setJTitle(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="jobCompany">Company Name</Label><Input id="jobCompany" name="jobCompany" value={jCompany} onChange={(e) => setJCompany(e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Location</Label><Input value={jLoc} onChange={(e) => setJLoc(e.target.value)} /></div>
-              <div><Label className="text-xs">Vacancy</Label><Input type="number" value={jVacancy} onChange={(e) => setJVacancy(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="jobLocation">Location</Label><Input id="jobLocation" name="jobLocation" value={jLoc} onChange={(e) => setJLoc(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="jobVacancy">Vacancy</Label><Input id="jobVacancy" name="jobVacancy" type="number" value={jVacancy} onChange={(e) => setJVacancy(e.target.value)} /></div>
             </div>
-            <div><Label className="text-xs">Description</Label><Textarea value={jDesc} onChange={(e) => setJDesc(e.target.value)} rows={2} /></div>
-            <div><Label className="text-xs">Requirements</Label><Textarea value={jReq} onChange={(e) => setJReq(e.target.value)} rows={2} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Salary</Label><Input value={jSalary} onChange={(e) => setJSalary(e.target.value)} placeholder="e.g. ₹5LPA" /></div><div><Label className="text-xs">Deadline</Label><Input type="date" value={jDeadline} onChange={(e) => setJDeadline(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="jobDesc">Description</Label><Textarea id="jobDesc" name="jobDesc" value={jDesc} onChange={(e) => setJDesc(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="jobReq">Requirements</Label><Textarea id="jobReq" name="jobReq" value={jReq} onChange={(e) => setJReq(e.target.value)} rows={2} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="jobSalary">Salary</Label><Input id="jobSalary" name="jobSalary" value={jSalary} onChange={(e) => setJSalary(e.target.value)} placeholder="e.g. ₹5LPA" /></div><div><Label className="text-xs" htmlFor="jobDeadline">Deadline</Label><Input id="jobDeadline" name="jobDeadline" type="date" value={jDeadline} onChange={(e) => setJDeadline(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setJOpen(false)}>Cancel</Button><Button onClick={handleJobSave} disabled={!jTitle || !jCompany}>{jEditId ? "Update" : "Create"}</Button></DialogFooter>
         </DialogContent>
@@ -177,9 +177,9 @@ export default function PlacementCell() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Recruiter</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Company Name</Label><Input value={cName} onChange={(e) => setCName(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Industry</Label><Input value={cIndustry} onChange={(e) => setCIndustry(e.target.value)} /></div><div><Label className="text-xs">Website</Label><Input value={cWebsite} onChange={(e) => setCWebsite(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Contacts (comma separated)</Label><Input value={cContacts} onChange={(e) => setCContacts(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="companyName">Company Name</Label><Input id="companyName" name="companyName" value={cName} onChange={(e) => setCName(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="companyIndustry">Industry</Label><Input id="companyIndustry" name="companyIndustry" value={cIndustry} onChange={(e) => setCIndustry(e.target.value)} /></div><div><Label className="text-xs" htmlFor="companyWebsite">Website</Label><Input id="companyWebsite" name="companyWebsite" value={cWebsite} onChange={(e) => setCWebsite(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="companyContacts">Contacts (comma separated)</Label><Input id="companyContacts" name="companyContacts" value={cContacts} onChange={(e) => setCContacts(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setCOpen(false)}>Cancel</Button><Button disabled={!cName} onClick={() => { createCompany({ name: cName, industry: cIndustry, website: cWebsite, contacts: cContacts, past_drives: 0, offers_made: 0 }); refreshCompanies(); setCOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
@@ -188,7 +188,7 @@ export default function PlacementCell() {
       <Dialog open={regOpen} onOpenChange={setRegOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Register Student</DialogTitle></DialogHeader>
-          <div><Label className="text-xs">Student Name</Label><Input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full name" /></div>
+          <div><Label className="text-xs" htmlFor="studentName">Student Name</Label><Input id="studentName" name="studentName" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full name" /></div>
           <DialogFooter><Button variant="outline" onClick={() => setRegOpen(false)}>Cancel</Button><Button disabled={!studentName} onClick={() => { registerStudent(regJobId, studentName); refreshRegs(); setRegOpen(false); toast.success("Registered"); }}>Register</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -197,9 +197,9 @@ export default function PlacementCell() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Interview Stage</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Stage</Label><Select value={ivStage} onValueChange={setIvStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label className="text-xs">Status</Label><Select value={ivStatus} onValueChange={setIvStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="passed">Passed</SelectItem><SelectItem value="failed">Failed</SelectItem><SelectItem value="pending">Pending</SelectItem></SelectContent></Select></div>
-            <div><Label className="text-xs">Feedback</Label><Textarea value={ivFeedback} onChange={(e) => setIvFeedback(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="ivStage">Stage</Label><Select name="ivStage" value={ivStage} onValueChange={setIvStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label className="text-xs" htmlFor="ivStatus">Status</Label><Select name="ivStatus" value={ivStatus} onValueChange={setIvStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="passed">Passed</SelectItem><SelectItem value="failed">Failed</SelectItem><SelectItem value="pending">Pending</SelectItem></SelectContent></Select></div>
+            <div><Label className="text-xs" htmlFor="ivFeedback">Feedback</Label><Textarea id="ivFeedback" name="ivFeedback" value={ivFeedback} onChange={(e) => setIvFeedback(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setIvOpen(false)}>Cancel</Button><Button onClick={() => { addInterviewStage(ivRegId, ivStage); updateInterviewStage(getInterviews(ivRegId).length > 0 ? getInterviews(ivRegId)[getInterviews(ivRegId).length - 1].id : "", { status: ivStatus, feedback: ivFeedback, conducted_at: new Date().toISOString() }); refreshInterviews(); setIvOpen(false); toast.success("Stage added"); }}>Add</Button></DialogFooter>
         </DialogContent>

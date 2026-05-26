@@ -10,19 +10,15 @@ export const APP_DB_NAME = "smsImportDB";
 export const APP_DB_VERSION = 1;
 export const BATCH_STORE_NAME = "importBatches";
 
-let db: IDBDatabase | null = null;
+let dbInit: Promise<IDBDatabase> | null = null;
 
-export function getBatchDb(): IDBDatabase | null {
-  return db;
+export function getBatchDb(): Promise<IDBDatabase | null> {
+  return dbInit ?? Promise.resolve(null);
 }
 
 export function setupDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (db) {
-      resolve(db);
-      return;
-    }
-
+  if (dbInit) return dbInit;
+  dbInit = new Promise((resolve, reject) => {
     const request = indexedDB.open(APP_DB_NAME, APP_DB_VERSION);
 
     request.onupgradeneeded = (e) => {
@@ -37,13 +33,11 @@ export function setupDatabase(): Promise<IDBDatabase> {
       }
     };
 
-    request.onsuccess = () => {
-      db = request.result;
-      resolve(db);
-    };
-
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => { dbInit = null; reject(request.error); };
+    request.onblocked = () => { dbInit = null; reject(new Error("IndexedDB blocked")); };
   });
+  return dbInit;
 }
 
 export function createImportBatch(
@@ -55,6 +49,7 @@ export function createImportBatch(
     sourceRows: Record<string, string>[];
     importHeaders: string[];
     defaultImportType: string;
+    transferRule: string | null;
     matchStrategy: string;
     keyingConfig: Partial<ImportBatch["keyingConfig"]>;
     matchKeyConfig: Partial<ImportBatch["matchKeyConfig"]>;
@@ -75,6 +70,7 @@ export function createImportBatch(
     meta.batchName || `Import Batch ${new Date().toLocaleString()}`,
   );
   const batchDescription = normalizeText(meta.batchDescription || "");
+  const transferRule = meta.transferRule ?? (meta.defaultImportType || null);
   const defaultImportType = normalizeImportDefaultType(
     meta.defaultImportType || "newentry",
   );
@@ -106,6 +102,7 @@ export function createImportBatch(
     startedAt: null,
     completedAt: null,
     defaultImportType,
+    transferRule,
     matchStrategy,
     keyingConfig,
     matchKeyConfig: matchKeyConfig!,
@@ -142,7 +139,7 @@ export function createImportBatch(
 export async function saveImportBatches(
   list: ImportBatch[],
 ): Promise<void> {
-  const database = db || (await setupDatabase());
+  const database = await setupDatabase();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(BATCH_STORE_NAME, "readwrite");
     const store = tx.objectStore(BATCH_STORE_NAME);
@@ -163,7 +160,7 @@ export async function saveImportBatches(
 }
 
 export async function loadImportBatchesFromDB(): Promise<ImportBatch[]> {
-  const database = db || (await setupDatabase());
+  const database = await setupDatabase();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(BATCH_STORE_NAME, "readonly");
     const store = tx.objectStore(BATCH_STORE_NAME);
@@ -180,7 +177,7 @@ export async function loadImportBatchesFromDB(): Promise<ImportBatch[]> {
 export async function getImportBatchById(
   batchId: string,
 ): Promise<ImportBatch | null> {
-  const database = db || (await setupDatabase());
+  const database = await setupDatabase();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(BATCH_STORE_NAME, "readonly");
     const store = tx.objectStore(BATCH_STORE_NAME);
@@ -197,7 +194,7 @@ export async function getImportBatchById(
 export async function deleteImportBatch(
   batchId: string,
 ): Promise<void> {
-  const database = db || (await setupDatabase());
+  const database = await setupDatabase();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(BATCH_STORE_NAME, "readwrite");
     const store = tx.objectStore(BATCH_STORE_NAME);

@@ -7,7 +7,8 @@ import { useErpWorkspace } from "@/stores/erpWorkspace";
 import { useActivityTrace } from "@/stores/activityTrace";
 import { getFocusModeRuntime } from "@/lib/focus-mode";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export function WorkspaceFab() {
   const open = useShell((s) => s.fabOpen);
@@ -23,6 +24,23 @@ export function WorkspaceFab() {
   const { setOpen: setTraceOpen, events } = useActivityTrace();
   const focusRuntime = getFocusModeRuntime(focusMode);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { setOpen(false); }, [pathname, setOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (toggleRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [open, setOpen]);
 
   const items = [
     {
@@ -90,9 +108,10 @@ export function WorkspaceFab() {
   ];
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+    <>
+      <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
-        <div className="pointer-events-auto flex w-[min(17rem,calc(100vw-1rem))] flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 sm:w-[min(18rem,calc(100vw-1.5rem))]">
+        <div ref={panelRef} className="pointer-events-auto flex w-[min(17rem,calc(100vw-1rem))] flex-col gap-1.5 rounded-2xl border bg-popover/95 p-2 shadow-elegant backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 sm:w-[min(18rem,calc(100vw-1.5rem))]">
           {items.map((it) => (
             <button
               key={it.label}
@@ -115,6 +134,7 @@ export function WorkspaceFab() {
       )}
 
       <Button
+        ref={toggleRef}
         size="icon"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
@@ -127,5 +147,6 @@ export function WorkspaceFab() {
         {open ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
       </Button>
     </div>
+    </>
   );
 }

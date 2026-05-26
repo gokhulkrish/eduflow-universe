@@ -62,8 +62,8 @@ export default function ReceptionManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Check In Visitor</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs">Contact</Label><Input value={contact} onChange={(e) => setContact(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Purpose</Label><Input value={purpose} onChange={(e) => setPurpose(e.target.value)} /></div><div><Label className="text-xs">Host</Label><Input value={host} onChange={(e) => setHost(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="visitorName">Name</Label><Input id="visitorName" name="visitorName" value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="visitorContact">Contact</Label><Input id="visitorContact" name="visitorContact" value={contact} onChange={(e) => setContact(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="visitorPurpose">Purpose</Label><Input id="visitorPurpose" name="visitorPurpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} /></div><div><Label className="text-xs" htmlFor="visitorHost">Host</Label><Input id="visitorHost" name="visitorHost" value={host} onChange={(e) => setHost(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), name, contact, purpose, host, in_time: new Date().toISOString(), out_time: "", status: "checked-in" }); ss(items); refresh(); setOpen(false); toast.success("Checked in"); }}>Check In</Button></DialogFooter>
         </DialogContent>

@@ -76,11 +76,7 @@ export async function bootstrapImportEngine(): Promise<void> {
   if (runtime.initialized) return;
   if (initPromise) return initPromise;
 
-  runtime.initializing = true;
-  runtime.initError = null;
-  emit();
-
-  initPromise = (async () => {
+  const promise = (async () => {
     await setupDatabase();
     await loadInitialModules();
     runtime.initialized = true;
@@ -95,6 +91,11 @@ export async function bootstrapImportEngine(): Promise<void> {
       initPromise = null;
       emit();
     });
+
+  runtime.initializing = true;
+  runtime.initError = null;
+  initPromise = promise;
+  emit();
 
   return initPromise;
 }

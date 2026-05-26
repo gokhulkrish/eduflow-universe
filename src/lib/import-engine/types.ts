@@ -94,6 +94,7 @@ export interface ImportBatch {
   startedAt: string | null;
   completedAt: string | null;
   defaultImportType: ImportTransferMode;
+  transferRule: string | null;
   matchStrategy: ImportMatchStrategy;
   importHeaders: string[];
   sourceRows: Record<string, string>[];

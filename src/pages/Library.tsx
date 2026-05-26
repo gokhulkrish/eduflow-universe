@@ -148,8 +148,8 @@ export default function Library() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Reservation</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Book Title</Label><Input value={resBook} onChange={(e) => setResBook(e.target.value)} /></div>
-            <div><Label className="text-xs">Student Name</Label><Input value={resStudent} onChange={(e) => setResStudent(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="resBookTitle">Book Title</Label><Input id="resBookTitle" name="resBookTitle" value={resBook} onChange={(e) => setResBook(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="resStudentName">Student Name</Label><Input id="resStudentName" name="resStudentName" value={resStudent} onChange={(e) => setResStudent(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={addReservation} disabled={!resBook || !resStudent}>Add</Button></DialogFooter>
         </DialogContent>

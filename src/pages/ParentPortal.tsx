@@ -70,7 +70,7 @@ export default function ParentPortal() {
       <PageHeader title="Student & Guardian Portal" subtitle="Student overview, attendance, marks & fees" icon={<Heart className="h-6 w-6" />} />
 
       <div className="mb-6 max-w-xs">
-        <Select value={selectedChild} onValueChange={setSelectedChild}>
+        <Select name="selectedChild" value={selectedChild} onValueChange={setSelectedChild}>
           <SelectTrigger><SelectValue placeholder="Select your child" /></SelectTrigger>
           <SelectContent>
             {(students ?? []).map((s) => (

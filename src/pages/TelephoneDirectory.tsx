@@ -28,7 +28,7 @@ export default function TelephoneDirectory() {
     <div>
       <PageHeader title="Telephone Directory" subtitle="Staff & department contacts" icon={<Phone className="h-6 w-6" />} />
       <div className="flex gap-3 mb-4">
-        <div className="relative flex-1"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, or department..." className="pl-9 h-9 text-xs" /></div>
+        <div className="relative flex-1"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input id="contactSearch" name="contactSearch" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, phone, or department..." className="pl-9 h-9 text-xs" /></div>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow shrink-0" onClick={() => { setName(""); setRole(""); setPhone(""); setEmail(""); setDept(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Contact</Button>
       </div>
       <div className="space-y-2">
@@ -52,9 +52,9 @@ export default function TelephoneDirectory() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs">Role</Label><Input value={role} onChange={(e) => setRole(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div><div><Label className="text-xs">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Department</Label><Select value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Academic">Academic</SelectItem><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Finance">Finance</SelectItem><SelectItem value="Transport">Transport</SelectItem><SelectItem value="Library">Library</SelectItem><SelectItem value="Management">Management</SelectItem></SelectContent></Select></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="contactName">Name</Label><Input id="contactName" name="contactName" value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="contactRole">Role</Label><Input id="contactRole" name="contactRole" value={role} onChange={(e) => setRole(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="contactPhone">Phone</Label><Input id="contactPhone" name="contactPhone" value={phone} onChange={(e) => setPhone(e.target.value)} /></div><div><Label className="text-xs" htmlFor="contactEmail">Email</Label><Input id="contactEmail" name="contactEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="contactDept">Department</Label><Select name="contactDept" value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Academic">Academic</SelectItem><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Finance">Finance</SelectItem><SelectItem value="Transport">Transport</SelectItem><SelectItem value="Library">Library</SelectItem><SelectItem value="Management">Management</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !phone} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, role, phone, email, department: dept }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

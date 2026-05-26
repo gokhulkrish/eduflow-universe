@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -50,8 +51,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
     if (row.action === "skip") { skipped++; continue; }
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
-      const { data: student } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
-      if (!student) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` }); continue; }
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
 
       const hostelName = row.mapped.hostelName || row.sourceRow.hostelName || "";
       const roomNumber = row.mapped.roomNumber || row.sourceRow.roomNumber || "";
@@ -71,13 +71,13 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 
       if (row.action === "insert") {
         const { data: result, error } = await (supabase.from("hostel_allocations") as any).insert({
-          hostel_room_id: roomId, student_id: student.id,
+          hostel_room_id: roomId, student_id: studentId,
           allocated_from: allocatedFrom, allocated_to: allocatedTo, status: "active",
         }).select().single();
         if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
         else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       } else if (row.action === "update") {
-        const { data: existing } = await supabase.from("hostel_allocations").select("id").eq("student_id", student.id).maybeSingle();
+        const { data: existing } = await supabase.from("hostel_allocations").select("id").eq("student_id", studentId).maybeSingle();
         if (existing) {
           const { error } = await (supabase.from("hostel_allocations") as any).update({
             hostel_room_id: roomId, allocated_from: allocatedFrom, allocated_to: allocatedTo,
@@ -86,7 +86,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
           else { updated++; rowResults.push({ rowKey: row.rowKey, id: existing.id, action: "updated" }); }
         } else {
           const { data: result, error } = await (supabase.from("hostel_allocations") as any).insert({
-            hostel_room_id: roomId, student_id: student.id,
+            hostel_room_id: roomId, student_id: studentId,
             allocated_from: allocatedFrom, allocated_to: allocatedTo, status: "active",
           }).select().single();
           if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
@@ -94,7 +94,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         }
       }
     } catch (err) {
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });
+      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error") });
     }
   }
   emitAppSync("sms.hostel.v1");

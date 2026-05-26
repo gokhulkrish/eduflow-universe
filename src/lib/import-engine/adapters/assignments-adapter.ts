@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -54,8 +55,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
     if (row.action === "skip") { skipped++; continue; }
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
-      const { data: student } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
-      if (!student) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` }); continue; }
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
 
       const title = row.mapped.title || row.sourceRow.title || "";
       const subject = row.mapped.subject || row.sourceRow.subject || "";
@@ -81,27 +81,27 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 
       if (row.action === "insert") {
         const { data: result, error } = await (supabase.from("submissions") as any).insert({
-          assignment_id: assignmentId, student_id: student.id,
+          assignment_id: assignmentId, student_id: studentId,
           content: null, file_url: null, status: subStatus, marks, feedback,
         }).select().single();
         if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
         else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       } else if (row.action === "update") {
-        const { data: existingSub } = await supabase.from("submissions").select("id").eq("assignment_id", assignmentId).eq("student_id", student.id).maybeSingle();
+        const { data: existingSub } = await supabase.from("submissions").select("id").eq("assignment_id", assignmentId).eq("student_id", studentId).maybeSingle();
         if (existingSub) {
           const { error } = await (supabase.from("submissions") as any).update({ marks, feedback, status: subStatus }).eq("id", existingSub.id);
           if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
           else { updated++; rowResults.push({ rowKey: row.rowKey, id: existingSub.id, action: "updated" }); }
         } else {
           const { data: result, error } = await (supabase.from("submissions") as any).insert({
-            assignment_id: assignmentId, student_id: student.id, status: subStatus, marks, feedback,
+            assignment_id: assignmentId, student_id: studentId, status: subStatus, marks, feedback,
           }).select().single();
           if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
           else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
         }
       }
     } catch (err) {
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });
+      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error") });
     }
   }
   emitAppSync("sms.assignments.v1");

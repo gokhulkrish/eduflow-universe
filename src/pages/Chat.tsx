@@ -99,7 +99,7 @@ export default function Chat() {
                 </div>
               </ScrollArea>
               <div className="flex gap-2 border-t p-3">
-                <Input value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="Type a message..." onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && msgText.trim() && sendMut.mutate()} />
+                <Input id="msgText" name="msgText" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="Type a message..." onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && msgText.trim() && sendMut.mutate()} />
                 <Button
                   size="icon"
                   className="rounded-xl shrink-0"
@@ -120,7 +120,7 @@ export default function Chat() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Thread</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Thread Name</Label><Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. B.Com Sem 4 - Finance" /></div>
+            <div><Label className="text-xs" htmlFor="newTitle">Thread Name</Label><Input id="newTitle" name="newTitle" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. B.Com Sem 4 - Finance" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>

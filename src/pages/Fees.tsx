@@ -348,10 +348,10 @@ export default function Fees() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)}
+                <Input id="feeSearch" name="feeSearch" value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search invoices…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
-              <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
+              <Select name="invoiceStatusFilter" value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
                 <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
@@ -624,7 +624,7 @@ export default function Fees() {
           <Card className="glass p-4">
             <div className="mb-4 flex items-center gap-2">
               <Search className="h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by student name or admission no…"
+              <Input id="feeRecordSearch" name="feeRecordSearch" placeholder="Search by student name or admission no…"
                 className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9 flex-1" />
             </div>
             {feeRecords.length === 0 ? (
@@ -669,7 +669,7 @@ export default function Fees() {
         <TabsContent value="ledger">
           <Card className="glass p-4">
             <div className="mb-4 flex items-center gap-3">
-              <Select value={ledgerStudentFilter} onValueChange={setLedgerStudentFilter}>
+              <Select name="ledgerStudentFilter" value={ledgerStudentFilter} onValueChange={setLedgerStudentFilter}>
                 <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="All students" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All students</SelectItem>
@@ -798,13 +798,13 @@ export default function Fees() {
           <DialogHeader><DialogTitle>{editingStruct ? "Edit Fee Structure" : "New Fee Structure"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Name</Label>
-              <Input value={structDraft.name} onChange={(e) => setStructDraft({ ...structDraft, name: e.target.value })} placeholder="Tuition Fee" />
+              <Label className="text-xs" htmlFor="structName">Name</Label>
+              <Input id="structName" name="structName" value={structDraft.name} onChange={(e) => setStructDraft({ ...structDraft, name: e.target.value })} placeholder="Tuition Fee" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Grade</Label>
-                <Select value={structDraft.grade} onValueChange={(v: string) => setStructDraft({ ...structDraft, grade: v })}>
+                <Label className="text-xs" htmlFor="structGrade">Grade</Label>
+                <Select name="structGrade" value={structDraft.grade} onValueChange={(v: string) => setStructDraft({ ...structDraft, grade: v })}>
                   <SelectTrigger><SelectValue placeholder="All grades" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All grades</SelectItem>
@@ -815,8 +815,8 @@ export default function Fees() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Frequency</Label>
-                <Select value={structDraft.frequency} onValueChange={(v: string) => setStructDraft({ ...structDraft, frequency: v })}>
+                <Label className="text-xs" htmlFor="structFrequency">Frequency</Label>
+                <Select name="structFrequency" value={structDraft.frequency} onValueChange={(v: string) => setStructDraft({ ...structDraft, frequency: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="annual">Annual</SelectItem>
@@ -830,13 +830,13 @@ export default function Fees() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Amount (₹)</Label>
-                <Input type="number" min={0} value={structDraft.amount || ""}
+                <Label className="text-xs" htmlFor="structAmount">Amount (₹)</Label>
+                <Input id="structAmount" name="structAmount" type="number" min={0} value={structDraft.amount || ""}
                   onChange={(e) => setStructDraft({ ...structDraft, amount: Number(e.target.value) })} />
               </div>
               <div>
-                <Label className="text-xs">Due Day</Label>
-                <Input type="number" min={1} max={31} value={structDraft.due_day ?? ""}
+                <Label className="text-xs" htmlFor="structDueDay">Due Day</Label>
+                <Input id="structDueDay" name="structDueDay" type="number" min={1} max={31} value={structDraft.due_day ?? ""}
                   onChange={(e) => setStructDraft({ ...structDraft, due_day: Number(e.target.value) || null })} />
               </div>
             </div>
@@ -854,8 +854,8 @@ export default function Fees() {
           <DialogHeader><DialogTitle>New Invoice</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Student</Label>
-              <Select value={invStudentId} onValueChange={setInvStudentId}>
+              <Label className="text-xs" htmlFor="invStudentId">Student</Label>
+              <Select name="invStudentId" value={invStudentId} onValueChange={setInvStudentId}>
                 <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
                 <SelectContent>
                   {studentOptions.map((s) => (
@@ -865,8 +865,8 @@ export default function Fees() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Fee Structure (optional, sets amount)</Label>
-              <Select value={invStructureId} onValueChange={(v) => {
+              <Label className="text-xs" htmlFor="invStructureId">Fee Structure (optional, sets amount)</Label>
+              <Select name="invStructureId" value={invStructureId} onValueChange={(v) => {
                 setInvStructureId(v);
                 if (v !== "all") {
                   const str = structures.find((s) => s.id === v);
@@ -883,12 +883,12 @@ export default function Fees() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Amount (₹)</Label>
-              <Input type="number" min={0} value={invAmount || ""} onChange={(e) => setInvAmount(Number(e.target.value))} />
+              <Label className="text-xs" htmlFor="invAmount">Amount (₹)</Label>
+              <Input id="invAmount" name="invAmount" type="number" min={0} value={invAmount || ""} onChange={(e) => setInvAmount(Number(e.target.value))} />
             </div>
             <div>
-              <Label className="text-xs">Due Date</Label>
-              <Input type="date" value={invDueDate} onChange={(e) => setInvDueDate(e.target.value)} />
+              <Label className="text-xs" htmlFor="invDueDate">Due Date</Label>
+              <Input id="invDueDate" name="invDueDate" type="date" value={invDueDate} onChange={(e) => setInvDueDate(e.target.value)} />
             </div>
             <Button className="w-full rounded-xl bg-gradient-primary shadow-glow" onClick={handleCreateInvoice} disabled={createInvoiceMut.isPending}>
               {createInvoiceMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
@@ -909,20 +909,20 @@ export default function Fees() {
                 <p className="text-muted-foreground text-xs">Outstanding: ₹{calculateOutstanding(paymentInvoice).toLocaleString()}</p>
               </div>
               <div>
-                <Label className="text-xs">Amount (₹)</Label>
-                <Input type="number" min={0} value={paymentAmount || ""}
+                <Label className="text-xs" htmlFor="paymentAmount">Amount (₹)</Label>
+                <Input id="paymentAmount" name="paymentAmount" type="number" min={0} value={paymentAmount || ""}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))} />
               </div>
               <div>
-                <Label className="text-xs">Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Label className="text-xs" htmlFor="paymentMethod">Payment Method</Label>
+                <Select name="paymentMethod" value={paymentMethod} onValueChange={setPaymentMethod}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{paymentMethods.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Reference (optional)</Label>
-                <Input value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} placeholder="Transaction ID / Cheque no." />
+                <Label className="text-xs" htmlFor="paymentRef">Reference (optional)</Label>
+                <Input id="paymentRef" name="paymentRef" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} placeholder="Transaction ID / Cheque no." />
               </div>
               <Button className="w-full rounded-xl bg-gradient-primary shadow-glow" onClick={handleRecordPayment} disabled={recordPaymentMut.isPending}>
                 {recordPaymentMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
@@ -968,8 +968,8 @@ export default function Fees() {
               <p className="text-sm">Refund for <strong>{refundInvoice.invoice_no}</strong></p>
               <p className="text-xs text-muted-foreground">Paid: ₹{Number(refundInvoice.amount_paid).toLocaleString()} · Max refund: ₹{Number(refundInvoice.amount_paid).toLocaleString()}</p>
               <div>
-                <Label className="text-xs">Refund Amount (₹)</Label>
-                <Input type="number" min={0} max={Number(refundInvoice.amount_paid)} value={refundAmount || ""}
+                <Label className="text-xs" htmlFor="refundAmount">Refund Amount (₹)</Label>
+                <Input id="refundAmount" name="refundAmount" type="number" min={0} max={Number(refundInvoice.amount_paid)} value={refundAmount || ""}
                   onChange={(e) => setRefundAmount(Number(e.target.value))} />
               </div>
               <Button className="w-full rounded-xl bg-gradient-primary shadow-glow"
@@ -992,13 +992,13 @@ export default function Fees() {
               <p className="text-sm">Concession for <strong>{concessionInvoice.invoice_no}</strong></p>
               <p className="text-xs text-muted-foreground">Invoice amount: ₹{Number(concessionInvoice.amount).toLocaleString()} · Paid: ₹{Number(concessionInvoice.amount_paid).toLocaleString()}</p>
               <div>
-                <Label className="text-xs">Concession Amount (₹)</Label>
-                <Input type="number" min={0} value={concessionAmount || ""}
+                <Label className="text-xs" htmlFor="concessionAmount">Concession Amount (₹)</Label>
+                <Input id="concessionAmount" name="concessionAmount" type="number" min={0} value={concessionAmount || ""}
                   onChange={(e) => setConcessionAmount(Number(e.target.value))} />
               </div>
               <div>
-                <Label className="text-xs">Type</Label>
-                <Select value={concessionType} onValueChange={setConcessionType}>
+                <Label className="text-xs" htmlFor="concessionType">Type</Label>
+                <Select name="concessionType" value={concessionType} onValueChange={setConcessionType}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="scholarship">Scholarship</SelectItem>
@@ -1010,8 +1010,8 @@ export default function Fees() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Reason</Label>
-                <Input value={concessionReason} onChange={(e) => setConcessionReason(e.target.value)} placeholder="e.g. 50% sibling discount" />
+                <Label className="text-xs" htmlFor="concessionReason">Reason</Label>
+                <Input id="concessionReason" name="concessionReason" value={concessionReason} onChange={(e) => setConcessionReason(e.target.value)} placeholder="e.g. 50% sibling discount" />
               </div>
               <Button className="w-full rounded-xl bg-gradient-primary shadow-glow"
                 onClick={() => saveConcessionMut.mutate({
@@ -1040,8 +1040,8 @@ export default function Fees() {
               <p className="text-sm">Reminder for <strong>{reminderStudent.student_name}</strong></p>
               <p className="text-xs text-muted-foreground">Total outstanding: ₹{reminderStudent.outstanding.toLocaleString()} · {reminderStudent.invoice_count} overdue invoice(s)</p>
               <div>
-                <Label className="text-xs">Channel</Label>
-                <Select value={reminderChannel} onValueChange={setReminderChannel}>
+                <Label className="text-xs" htmlFor="reminderChannel">Channel</Label>
+                <Select name="reminderChannel" value={reminderChannel} onValueChange={setReminderChannel}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="email">Email</SelectItem>

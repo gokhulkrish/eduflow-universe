@@ -55,9 +55,9 @@ export default function MediaFileManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Media</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">File Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Type</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="image">Image</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="audio">Audio</SelectItem><SelectItem value="document">Document</SelectItem></SelectContent></Select></div><div><Label className="text-xs">Size</Label><Input value={size} onChange={(e) => setSize(e.target.value)} placeholder="e.g. 2.4 MB" /></div></div>
-            <div><Label className="text-xs">URL</Label><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /></div>
+            <div><Label className="text-xs" htmlFor="mediaFileName">File Name</Label><Input id="mediaFileName" name="mediaFileName" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="mediaType">Type</Label><Select name="mediaType" value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="image">Image</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="audio">Audio</SelectItem><SelectItem value="document">Document</SelectItem></SelectContent></Select></div><div><Label className="text-xs" htmlFor="mediaSize">Size</Label><Input id="mediaSize" name="mediaSize" value={size} onChange={(e) => setSize(e.target.value)} placeholder="e.g. 2.4 MB" /></div></div>
+            <div><Label className="text-xs" htmlFor="mediaUrl">URL</Label><Input id="mediaUrl" name="mediaUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !url} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, type, url, size, uploaded_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

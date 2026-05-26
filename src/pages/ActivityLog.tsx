@@ -21,7 +21,7 @@ export default function ActivityLog() {
   return (
     <div>
       <PageHeader title="Activity Log" subtitle="System-wide audit trail" icon={<Activity className="h-6 w-6" />} />
-      <div className="relative mb-4"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search activity..." className="pl-9 h-9 text-xs" /></div>
+      <div className="relative mb-4"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input id="search-activity" name="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search activity..." className="pl-9 h-9 text-xs" /></div>
       <Table>
         <TableHeader className=""><TableRow><TableHead className="text-xs">User</TableHead><TableHead className="text-xs">Action</TableHead><TableHead className="text-xs">Resource</TableHead><TableHead className="text-xs">Detail</TableHead><TableHead className="text-xs">Time</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
         <TableBody>

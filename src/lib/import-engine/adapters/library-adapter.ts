@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -96,11 +97,9 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         }
         if (!bookId) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Book not found: ${title}` }); continue; }
 
-        let studentId: string | null = null;
-        if (admissionNo) {
-          const { data: s } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
-          if (s) studentId = s.id;
-        }
+        const studentId = admissionNo
+          ? await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "")
+          : null;
 
         const { data: result, error } = await (supabase.from("library_issues") as any).insert({
           library_book_id: bookId, student_id: studentId, staff_id: staffId || null,
@@ -110,7 +109,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       }
     } catch (err) {
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });
+      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error") });
     }
   }
   emitAppSync("sms.library.v1");

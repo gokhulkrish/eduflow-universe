@@ -42,6 +42,8 @@ export function CommandPalette() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id="command-palette-search"
+            name="commandPaletteSearch"
             ref={inputRef}
             className="pl-9 h-11 text-sm border-0 shadow-none focus-visible:ring-0"
             placeholder="Search modules, pages, actions..."

@@ -15,7 +15,7 @@ export async function tableExists(table: PublicTable): Promise<boolean> {
   if (pending) return pending;
 
   const probe = (async () => {
-    const { error } = await supabase.from(table).select("id", { count: "exact", head: true });
+    const { error } = await supabase.from(table).select("id", { head: true });
     if (!error) return true;
     if (isMissingSupabaseTableError(error)) return false;
     throw error;

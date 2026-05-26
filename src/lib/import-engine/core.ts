@@ -1,5 +1,12 @@
 import type { ImportMatchConfig, ImportMatchStrategy, ImportTransferMode } from "./types";
 
+export function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+}
+
 export function makeBatchId(): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 9);
@@ -14,10 +21,23 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
+const ruleToMode: Record<string, ImportTransferMode> = {
+  "new entry only": "newentry",
+  "update existing only": "update",
+  "insert new, ignore existing": "newentry",
+  "update if blank": "update",
+  "overwrite always (safe)": "update",
+  "overwrite including blanks": "update",
+  "reject if changed": "skip",
+  "skip if changed": "skip",
+  newentry: "newentry",
+  update: "update",
+  upsert: "upsert",
+  skip: "skip",
+};
+
 export function normalizeImportDefaultType(value: string | null | undefined): ImportTransferMode {
-  const safe = String(value || "").toLowerCase().trim();
-  const valid: ImportTransferMode[] = ["newentry", "update", "upsert", "skip"];
-  return valid.includes(safe as ImportTransferMode) ? (safe as ImportTransferMode) : "newentry";
+  return ruleToMode[String(value || "").toLowerCase().trim()] ?? "newentry";
 }
 
 export function normalizeImportMatchConfig(

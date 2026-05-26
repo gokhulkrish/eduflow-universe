@@ -38,6 +38,7 @@ export default function AddStudent() {
   const navigate = useNavigate();
   const { studentId } = useParams();
   const [values, setValues] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
   const [registrySettings, setRegistrySettings] = useState(() => loadHeaderRegistrySettings());
   const [customFields, setCustomFields] = useState(() => loadCustomImportFields());
   const studentQuery = useQuery({
@@ -73,12 +74,16 @@ export default function AddStudent() {
     toast.success("Header registry refreshed");
   };
   const save = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await saveStudentRecord(values);
       toast.success("Student saved to register");
       setTimeout(() => navigate("/students"), 600);
     } catch (error) {
       toast.error(formatDataError(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -159,8 +164,9 @@ export default function AddStudent() {
         <Button variant="outline" onClick={reset} className="rounded-xl">
           <RotateCcw className="mr-2 h-4 w-4" /> Reset
         </Button>
-        <Button onClick={save} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
-          <Save className="mr-2 h-4 w-4" /> Save Student
+        <Button onClick={save} disabled={submitting} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {submitting ? "Saving…" : "Save Student"}
         </Button>
       </StickyActionBar>
     </div>

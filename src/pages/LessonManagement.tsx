@@ -63,10 +63,10 @@ export default function LessonManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Lesson Plan</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Subject</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} /></div><div><Label className="text-xs">Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Objectives</Label><Textarea value={objectives} onChange={(e) => setObjectives(e.target.value)} rows={2} /></div>
-            <div><Label className="text-xs">Materials/Resources</Label><Textarea value={materials} onChange={(e) => setMaterials(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="lessonTitle">Title</Label><Input id="lessonTitle" name="lessonTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="lessonSubject">Subject</Label><Input id="lessonSubject" name="lessonSubject" value={subject} onChange={(e) => setSubject(e.target.value)} /></div><div><Label className="text-xs" htmlFor="lessonTopic">Topic</Label><Input id="lessonTopic" name="lessonTopic" value={topic} onChange={(e) => setTopic(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="lessonObjectives">Objectives</Label><Textarea id="lessonObjectives" name="lessonObjectives" value={objectives} onChange={(e) => setObjectives(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="lessonMaterials">Materials/Resources</Label><Textarea id="lessonMaterials" name="lessonMaterials" value={materials} onChange={(e) => setMaterials(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !subject} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), title, subject, class_id: "", topic, objectives, materials, status: "draft", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
         </DialogContent>

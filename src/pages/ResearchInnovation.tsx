@@ -38,7 +38,7 @@ export default function ResearchInnovation() {
         <Card className="p-4"><p className="text-[10px] text-muted-foreground">Total Grants</p><p className="text-2xl font-bold">${(items.reduce((s, r) => s + (r.grantAmount || 0), 0)).toLocaleString()}</p></Card>
       </div>
       <div className="flex gap-3 mb-4">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects..." className="flex-1 h-9 text-xs" />
+        <Input id="researchSearch" name="researchSearch" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects..." className="flex-1 h-9 text-xs" />
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setTitle(""); setPi(""); setAgency(""); setAmount(""); setStage(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Project</Button>
       </div>
       <TablePagination {...pag} />
@@ -63,9 +63,9 @@ export default function ResearchInnovation() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Research Project</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Project Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div><div><Label className="text-xs">Principal Investigator</Label><Input value={pi} onChange={(e) => setPi(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Funding Agency</Label><Input value={agency} onChange={(e) => setAgency(e.target.value)} /></div><div><Label className="text-xs">Grant Amount ($)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Stage</Label><Select value={stage} onValueChange={setStage}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Proposal">Proposal</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ongoing">Ongoing</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Published">Published</SelectItem><SelectItem value="Patented">Patented</SelectItem></SelectContent></Select></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="researchTitle">Project Title</Label><Input id="researchTitle" name="researchTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div><div><Label className="text-xs" htmlFor="researchPi">Principal Investigator</Label><Input id="researchPi" name="researchPi" value={pi} onChange={(e) => setPi(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="researchAgency">Funding Agency</Label><Input id="researchAgency" name="researchAgency" value={agency} onChange={(e) => setAgency(e.target.value)} /></div><div><Label className="text-xs" htmlFor="researchAmount">Grant Amount ($)</Label><Input id="researchAmount" name="researchAmount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="researchStage">Stage</Label><Select name="researchStage" value={stage} onValueChange={setStage}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Proposal">Proposal</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ongoing">Ongoing</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Published">Published</SelectItem><SelectItem value="Patented">Patented</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), researchTitle: title, principalInvestigator: pi, fundingAgency: agency, grantAmount: Number(amount) || 0, researchStage: stage }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

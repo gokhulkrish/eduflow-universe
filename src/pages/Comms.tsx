@@ -110,11 +110,11 @@ export default function Comms() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Announcement</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={aTitle} onChange={(e) => setATitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Message</Label><Textarea value={aBody} onChange={(e) => setABody(e.target.value)} rows={3} /></div>
+            <div><Label className="text-xs" htmlFor="aTitle">Title</Label><Input id="aTitle" name="aTitle" value={aTitle} onChange={(e) => setATitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="aBody">Message</Label><Textarea id="aBody" name="aBody" value={aBody} onChange={(e) => setABody(e.target.value)} rows={3} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Audience</Label><Select value={aAudience} onValueChange={setAAudience}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="students">Students</SelectItem><SelectItem value="staff">Staff</SelectItem><SelectItem value="parents">Parents</SelectItem></SelectContent></Select></div>
-              <div><Label className="text-xs">Priority</Label><Select value={aPriority} onValueChange={setAPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="normal">Normal</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="aAudience">Audience</Label><Select name="aAudience" value={aAudience} onValueChange={setAAudience}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="students">Students</SelectItem><SelectItem value="staff">Staff</SelectItem><SelectItem value="parents">Parents</SelectItem></SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="aPriority">Priority</Label><Select name="aPriority" value={aPriority} onValueChange={setAPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="normal">Normal</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div>
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setAOpen(false)}>Cancel</Button><Button disabled={!aTitle || !aBody} onClick={() => { createAnnouncement({ title: aTitle, body: aBody, audience: aAudience, priority: aPriority, author: "Current User", views: 0 }); refreshAnns(); setAOpen(false); toast.success("Sent"); }}>Send</Button></DialogFooter>
@@ -125,8 +125,8 @@ export default function Comms() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Create Poll</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Question</Label><Input value={pQ} onChange={(e) => setPQ(e.target.value)} /></div>
-            <div><Label className="text-xs">Options (comma-separated)</Label><Textarea value={pOpts} onChange={(e) => setPOpts(e.target.value)} rows={3} placeholder="Option 1, Option 2, Option 3" /></div>
+            <div><Label className="text-xs" htmlFor="pQ">Question</Label><Input id="pQ" name="pQ" value={pQ} onChange={(e) => setPQ(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="pOpts">Options (comma-separated)</Label><Textarea id="pOpts" name="pOpts" value={pOpts} onChange={(e) => setPOpts(e.target.value)} rows={3} placeholder="Option 1, Option 2, Option 3" /></div>
             <div className="flex items-center gap-2"><Switch checked={pActive} onCheckedChange={setPActive} id="pActive" /><Label htmlFor="pActive" className="text-xs">Active immediately</Label></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setPOpen(false)}>Cancel</Button><Button disabled={!pQ || !pOpts} onClick={() => { const opts = pOpts.split(",").map((s) => s.trim()).filter(Boolean); createPoll({ question: pQ, options: opts, active: pActive }); refreshPolls(); setPOpen(false); toast.success("Poll created"); }}>Create</Button></DialogFooter>

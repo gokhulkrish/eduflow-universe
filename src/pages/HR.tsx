@@ -372,24 +372,24 @@ export default function HR() {
           <DialogHeader><DialogTitle>New Leave Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Staff</Label>
-              <Select value={leaveStaffId} onValueChange={setLeaveStaffId}>
+              <Label className="text-xs" htmlFor="leaveStaff">Staff</Label>
+              <Select name="leaveStaff" value={leaveStaffId} onValueChange={setLeaveStaffId}>
                 <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
                 <SelectContent>{(staff ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.first_name} {s.last_name ?? ""}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Leave Type</Label>
-              <Select value={leaveTypeId} onValueChange={setLeaveTypeId}>
+              <Label className="text-xs" htmlFor="leaveType">Leave Type</Label>
+              <Select name="leaveType" value={leaveTypeId} onValueChange={setLeaveTypeId}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent>{(leaveTypes ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.days_per_year}d)</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Start Date</Label><Input type="date" value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)} /></div>
-              <div><Label className="text-xs">End Date</Label><Input type="date" value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="leaveStart">Start Date</Label><Input id="leaveStart" name="leaveStart" type="date" value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="leaveEnd">End Date</Label><Input id="leaveEnd" name="leaveEnd" type="date" value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)} /></div>
             </div>
-            <div><Label className="text-xs">Reason</Label><Textarea value={leaveReason} onChange={(e) => setLeaveReason(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="leaveReason">Reason</Label><Textarea id="leaveReason" name="leaveReason" value={leaveReason} onChange={(e) => setLeaveReason(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLeaveOpen(false)}>Cancel</Button>
@@ -405,12 +405,12 @@ export default function HR() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Payroll Run</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Name</Label><Input value={payName} onChange={(e) => setPayName(e.target.value)} placeholder="e.g. May 2026" /></div>
+            <div><Label className="text-xs" htmlFor="payName">Name</Label><Input id="payName" name="payName" value={payName} onChange={(e) => setPayName(e.target.value)} placeholder="e.g. May 2026" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Period Start</Label><Input type="date" value={payStart} onChange={(e) => setPayStart(e.target.value)} /></div>
-              <div><Label className="text-xs">Period End</Label><Input type="date" value={payEnd} onChange={(e) => setPayEnd(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="payStart">Period Start</Label><Input id="payStart" name="payStart" type="date" value={payStart} onChange={(e) => setPayStart(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="payEnd">Period End</Label><Input id="payEnd" name="payEnd" type="date" value={payEnd} onChange={(e) => setPayEnd(e.target.value)} /></div>
             </div>
-            <div><Label className="text-xs">Payment Date (optional)</Label><Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="payDate">Payment Date (optional)</Label><Input id="payDate" name="payDate" type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>

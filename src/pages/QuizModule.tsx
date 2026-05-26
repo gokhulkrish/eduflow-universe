@@ -84,10 +84,10 @@ export default function QuizModule() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Create Quiz</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="flex gap-3"><div className="flex-1"><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div><div className="w-20"><Label className="text-xs">Minutes</Label><Input type="number" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Question</Label><Input value={qText} onChange={(e) => setQText(e.target.value)} /></div>
-            <div><Label className="text-xs">Options (comma-separated)</Label><Input value={opts} onChange={(e) => setOpts(e.target.value)} placeholder="A, B, C, D" /></div>
-            <div><Label className="text-xs">Correct Option Index (0-based)</Label><Input type="number" value={correct} onChange={(e) => setCorrect(e.target.value)} /></div>
+            <div className="flex gap-3"><div className="flex-1"><Label className="text-xs" htmlFor="quizTitle">Title</Label><Input id="quizTitle" name="quizTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div><div className="w-20"><Label className="text-xs" htmlFor="quizTimeLimit">Minutes</Label><Input id="quizTimeLimit" name="quizTimeLimit" type="number" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="quizQuestion">Question</Label><Input id="quizQuestion" name="quizQuestion" value={qText} onChange={(e) => setQText(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="quizOptions">Options (comma-separated)</Label><Input id="quizOptions" name="quizOptions" value={opts} onChange={(e) => setOpts(e.target.value)} placeholder="A, B, C, D" /></div>
+            <div><Label className="text-xs" htmlFor="quizCorrect">Correct Option Index (0-based)</Label><Input id="quizCorrect" name="quizCorrect" type="number" value={correct} onChange={(e) => setCorrect(e.target.value)} /></div>
             <Button size="sm" variant="outline" className="rounded-lg w-full text-xs" disabled={!qText || !opts} onClick={() => {
               toast.success("Question added (will be saved with quiz)");
             }}>Add Question</Button>

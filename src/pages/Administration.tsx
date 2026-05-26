@@ -148,15 +148,15 @@ export default function Administration() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>New Admin Task</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Title</Label><Input value={tTitle} onChange={(e) => setTTitle(e.target.value)} /></div>
-            <div><Label>Description</Label><Textarea value={tDesc} onChange={(e) => setTDesc(e.target.value)} /></div>
+            <div><Label htmlFor="tTitle">Title</Label><Input id="tTitle" name="title" value={tTitle} onChange={(e) => setTTitle(e.target.value)} /></div>
+            <div><Label htmlFor="tDesc">Description</Label><Textarea id="tDesc" name="description" value={tDesc} onChange={(e) => setTDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Assignee</Label><Input value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} /></div>
-              <div><Label>Priority</Label><Select value={tPriority} onValueChange={(v) => setTPriority(v as Task["priority"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label htmlFor="tAssignee">Assignee</Label><Input id="tAssignee" name="assignee" value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} /></div>
+              <div><Label htmlFor="tPriority">Priority</Label><Select value={tPriority} onValueChange={(v) => setTPriority(v as Task["priority"])}><SelectTrigger id="tPriority" name="priority"><SelectValue /></SelectTrigger><SelectContent>{PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Category</Label><Input value={tCat} onChange={(e) => setTCat(e.target.value)} /></div>
-              <div><Label>Due Date</Label><Input type="date" value={tDue} onChange={(e) => setTDue(e.target.value)} /></div>
+              <div><Label htmlFor="tCat">Category</Label><Input id="tCat" name="category" value={tCat} onChange={(e) => setTCat(e.target.value)} /></div>
+              <div><Label htmlFor="tDue">Due Date</Label><Input id="tDue" name="dueDate" type="date" value={tDue} onChange={(e) => setTDue(e.target.value)} /></div>
             </div>
           </div>
           <DialogFooter className="mt-2"><Button className="rounded-xl bg-gradient-primary shadow-glow" onClick={handleCreateTask}>Create</Button></DialogFooter>
@@ -166,9 +166,9 @@ export default function Administration() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Post Notice</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Title</Label><Input value={nTitle} onChange={(e) => setNTitle(e.target.value)} /></div>
-            <div><Label>Content</Label><Textarea value={nContent} onChange={(e) => setNContent(e.target.value)} /></div>
-            <div><Label>Audience</Label><Select value={nAudience} onValueChange={setNAudience}><SelectTrigger><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="All">All</SelectItem><SelectItem value="Faculty">Faculty</SelectItem><SelectItem value="Staff">Staff</SelectItem><SelectItem value="Students">Students</SelectItem><SelectItem value="Parents">Parents</SelectItem></SelectContent></Select></div>
+            <div><Label htmlFor="nTitle">Title</Label><Input id="nTitle" name="title" value={nTitle} onChange={(e) => setNTitle(e.target.value)} /></div>
+            <div><Label htmlFor="nContent">Content</Label><Textarea id="nContent" name="content" value={nContent} onChange={(e) => setNContent(e.target.value)} /></div>
+            <div><Label htmlFor="nAudience">Audience</Label><Select value={nAudience} onValueChange={setNAudience}><SelectTrigger id="nAudience" name="audience"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="All">All</SelectItem><SelectItem value="Faculty">Faculty</SelectItem><SelectItem value="Staff">Staff</SelectItem><SelectItem value="Students">Students</SelectItem><SelectItem value="Parents">Parents</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter className="mt-2"><Button className="rounded-xl bg-gradient-primary shadow-glow" onClick={handleCreateNotice}>Post</Button></DialogFooter>
         </DialogContent>

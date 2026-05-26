@@ -29,7 +29,7 @@ export default function TaskManagement() {
     <div>
       <PageHeader title="Task Management" subtitle="Assign & track tasks" icon={<CheckSquare className="h-6 w-6" />} />
       <div className="flex gap-3 mb-4">
-        <Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-36 h-9"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="in-progress">In Progress</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select>
+        <Select name="taskFilter" value={filter} onValueChange={setFilter}><SelectTrigger className="w-36 h-9"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="in-progress">In Progress</SelectItem><SelectItem value="completed">Completed</SelectItem></SelectContent></Select>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow ml-auto" onClick={() => { setTitle(""); setDesc(""); setAssignee(""); setPriority("medium"); setDue(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New Task</Button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -60,10 +60,10 @@ export default function TaskManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Task</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Assignee</Label><Input value={assignee} onChange={(e) => setAssignee(e.target.value)} /></div><div><Label className="text-xs">Due Date</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Priority</Label><Select value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></div>
+            <div><Label className="text-xs" htmlFor="taskTitle">Title</Label><Input id="taskTitle" name="taskTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="taskDesc">Description</Label><Textarea id="taskDesc" name="taskDesc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="taskAssignee">Assignee</Label><Input id="taskAssignee" name="taskAssignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} /></div><div><Label className="text-xs" htmlFor="taskDue">Due Date</Label><Input id="taskDue" name="taskDue" type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="taskPriority">Priority</Label><Select name="taskPriority" value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !assignee} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), title, description: desc, assignee, priority, status: "pending", due_date: due ? new Date(due).toISOString() : "", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
         </DialogContent>

@@ -47,17 +47,19 @@ const SidebarItemRow = memo(function SidebarItemRow({
   isActive: boolean;
   isActionActive: boolean;
 }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+  const handleClick = () => { if (isMobile) setOpenMobile(false); };
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-        <NavLink to={item.url} className="flex items-center gap-3">
+        <NavLink to={item.url} className="flex items-center gap-3" onClick={handleClick}>
           <item.icon className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="truncate">{item.title}</span>}
         </NavLink>
       </SidebarMenuButton>
       {item.action && !collapsed && (
         <SidebarMenuAction asChild showOnHover>
-          <NavLink to={item.action.href} title={item.action.label} className={isActionActive ? "text-foreground" : ""}>
+          <NavLink to={item.action.href} title={item.action.label} className={isActionActive ? "text-foreground" : ""} onClick={handleClick}>
             <item.action.icon className="h-4 w-4" />
           </NavLink>
         </SidebarMenuAction>

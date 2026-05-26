@@ -54,7 +54,7 @@ export default function UserManagement() {
 
         <TabsContent value="users">
           <div className="flex justify-between mb-4 gap-3">
-            <Input placeholder="Search users…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs h-9 rounded-xl" />
+            <Input id="userSearch" name="userSearch" placeholder="Search users…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs h-9 rounded-xl" />
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setUName(""); setUEmail(""); setURole(""); setUDept(""); setUOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add User</Button>
           </div>
           <div className="grid gap-4 sm:grid-cols-3 mb-6">
@@ -105,8 +105,8 @@ export default function UserManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add User</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Name</Label><Input value={uName} onChange={(e) => setUName(e.target.value)} /></div><div><Label className="text-xs">Email</Label><Input type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Role</Label><Select value={uRole} onValueChange={setURole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs">Department</Label><Input value={uDept} onChange={(e) => setUDept(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="userName">Name</Label><Input id="userName" name="userName" value={uName} onChange={(e) => setUName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="userEmail">Email</Label><Input id="userEmail" name="userEmail" type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="userRole">Role</Label><Select name="userRole" value={uRole} onValueChange={setURole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="userDept">Department</Label><Input id="userDept" name="userDept" value={uDept} onChange={(e) => setUDept(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setUOpen(false)}>Cancel</Button><Button onClick={() => { us([...ul(), { id: crypto.randomUUID(), name: uName, email: uEmail, role: uRole, department: uDept, status: "active", created: new Date().toISOString() }]); ru(); setUOpen(false); toast.success("Added"); }} disabled={!uName || !uEmail || !uRole}>Add</Button></DialogFooter>
         </DialogContent>
@@ -116,7 +116,7 @@ export default function UserManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Role</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Role Name</Label><Input value={roleName} onChange={(e) => setRoleName(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="roleName">Role Name</Label><Input id="roleName" name="roleName" value={roleName} onChange={(e) => setRoleName(e.target.value)} /></div>
             <div><Label className="text-xs">Permissions</Label><div className="flex flex-wrap gap-1 mt-1">{PERMISSIONS.map((p) => <Badge key={p} className={`cursor-pointer text-[9px] ${rolePerms.includes(p) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`} onClick={() => setRolePerms(rolePerms.includes(p) ? rolePerms.filter((x) => x !== p) : [...rolePerms, p])}>{p}</Badge>)}</div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setRoleOpen(false)}>Cancel</Button><Button onClick={() => { ros([...rol(), { id: crypto.randomUUID(), name: roleName, permissions: rolePerms }]); rr(); setRoleOpen(false); toast.success("Role created"); }} disabled={!roleName}>Create</Button></DialogFooter>

@@ -55,9 +55,9 @@ export default function NoticeBoard() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Notice</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Body</Label><Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} /></div>
-            <div><Label className="text-xs">Priority</Label><select className="w-full h-9 rounded-md border px-3 text-xs" value={priority} onChange={(e) => setPriority(e.target.value)}><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+            <div><Label className="text-xs" htmlFor="noticeTitle">Title</Label><Input id="noticeTitle" name="noticeTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="noticeBody">Body</Label><Textarea id="noticeBody" name="noticeBody" value={body} onChange={(e) => setBody(e.target.value)} rows={3} /></div>
+            <div><Label className="text-xs" htmlFor="noticePriority">Priority</Label><select id="noticePriority" name="noticePriority" className="w-full h-9 rounded-md border px-3 text-xs" value={priority} onChange={(e) => setPriority(e.target.value)}><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !body} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), title, body, priority, pinned: false, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
         </DialogContent>

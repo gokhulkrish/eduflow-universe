@@ -395,6 +395,7 @@ export default function Migration() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
+                      id={`patch-switch-${patch.key}`}
                       checked={patch.enabled}
                       disabled={patch.source === "environment"}
                       onCheckedChange={() => handleToggle(patch.key, patch.label)}
@@ -1330,6 +1331,7 @@ export default function Migration() {
                         <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
                       </div>
                       <Switch
+                        id={`cutover-switch-${item.key}`}
                         checked={Boolean(cutoverDraft?.[item.key])}
                         onCheckedChange={(checked) => setCutoverDraft((current) => (current ? { ...current, [item.key]: checked } : current))}
                         disabled={!cutoverDraft}

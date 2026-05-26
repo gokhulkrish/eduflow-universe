@@ -52,9 +52,9 @@ export default function LeaveMaster() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Leave Type</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Leave Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div><Label className="text-xs">Max Days Per Year</Label><Input type="number" value={days} onChange={(e) => setDays(e.target.value)} /></div>
-            <div className="flex gap-4"><label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> Paid</label><label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={cf} onChange={(e) => setCf(e.target.checked)} /> Carry Forward</label></div>
+            <div><Label className="text-xs" htmlFor="leaveName">Leave Name</Label><Input id="leaveName" name="leaveName" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="maxDays">Max Days Per Year</Label><Input id="maxDays" name="maxDays" type="number" value={days} onChange={(e) => setDays(e.target.value)} /></div>
+            <div className="flex gap-4"><label className="flex items-center gap-2 text-xs"><input type="checkbox" id="paid" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> Paid</label><label className="flex items-center gap-2 text-xs"><input type="checkbox" id="carryForward" checked={cf} onChange={(e) => setCf(e.target.checked)} /> Carry Forward</label></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !days} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, days: Number(days), paid, carry_forward: cf }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

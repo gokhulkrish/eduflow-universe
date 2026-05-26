@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -69,17 +70,7 @@ async function commitRows(
 
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
-      const { data: student } = await supabase
-        .from("students")
-        .select("id")
-        .eq("admission_no", admissionNo)
-        .maybeSingle();
-
-      if (!student) {
-        failed++;
-        errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` });
-        continue;
-      }
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
 
       const amountPaid = parseFloat(row.mapped.amountPaid || "0");
       if (isNaN(amountPaid) || amountPaid <= 0) {
@@ -95,7 +86,7 @@ async function commitRows(
 
       if (row.action === "insert") {
         const { error: insertError } = await (supabase.from("fee_payments") as any).insert({
-          student_id: student.id,
+          student_id: studentId,
           amount_paid: amountPaid,
           payment_date: paymentDate,
           payment_method: paymentMethod,
@@ -115,7 +106,7 @@ async function commitRows(
         const { data: existingPayments } = await supabase
           .from("fee_payments")
           .select("id")
-          .eq("student_id", student.id)
+          .eq("student_id", studentId)
           .eq("transaction_reference", transactionReference)
           .maybeSingle();
 
@@ -137,7 +128,7 @@ async function commitRows(
           }
         } else {
           const { error: insertError } = await (supabase.from("fee_payments") as any).insert({
-            student_id: student.id,
+            student_id: studentId,
             amount_paid: amountPaid,
             payment_date: paymentDate,
             payment_method: paymentMethod,
@@ -159,7 +150,7 @@ async function commitRows(
       failed++;
       errors.push({
         rowNumber: row.sourceRowIndex,
-        message: err instanceof Error ? err.message : "Unknown error",
+        message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error"),
       });
     }
   }

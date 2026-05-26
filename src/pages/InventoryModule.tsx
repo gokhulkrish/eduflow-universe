@@ -38,7 +38,7 @@ export default function InventoryModule() {
         <Card className="p-4"><p className="text-[10px] text-muted-foreground">Categories</p><p className="text-2xl font-bold">{new Set(items.map((i) => i.category)).size}</p></Card>
       </div>
       <div className="flex gap-3 mb-4">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search items..." className="flex-1 h-9 text-xs" />
+        <Input id="invSearch" name="invSearch" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search items..." className="flex-1 h-9 text-xs" />
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setName(""); setCat(""); setQty(""); setMinStock(""); setUnit(""); setLoc(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
       </div>
       <TablePagination {...pag} />
@@ -74,9 +74,9 @@ export default function InventoryModule() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Inventory Item</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Item Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs">Category</Label><Input value={cat} onChange={(e) => setCat(e.target.value)} placeholder="e.g. Stationery" /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Quantity</Label><Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div><div><Label className="text-xs">Min Stock</Label><Input type="number" value={minStock} onChange={(e) => setMinStock(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Unit</Label><Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. pcs, kg" /></div><div><Label className="text-xs">Location</Label><Input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="e.g. Store Room A" /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemName">Item Name</Label><Input id="itemName" name="itemName" value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="itemCat">Category</Label><Input id="itemCat" name="itemCat" value={cat} onChange={(e) => setCat(e.target.value)} placeholder="e.g. Stationery" /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemQty">Quantity</Label><Input id="itemQty" name="itemQty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div><div><Label className="text-xs" htmlFor="itemMinStock">Min Stock</Label><Input id="itemMinStock" name="itemMinStock" type="number" value={minStock} onChange={(e) => setMinStock(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemUnit">Unit</Label><Input id="itemUnit" name="itemUnit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. pcs, kg" /></div><div><Label className="text-xs" htmlFor="itemLocation">Location</Label><Input id="itemLocation" name="itemLocation" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="e.g. Store Room A" /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !cat} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

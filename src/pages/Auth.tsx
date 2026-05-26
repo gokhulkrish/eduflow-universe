@@ -68,17 +68,17 @@ export default function Auth() {
           <form onSubmit={submit} className="mt-5 space-y-3">
             {mode === "signup" && (
               <div className="space-y-1.5">
-                <Label>Full name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" maxLength={80} />
+                <Label htmlFor="name">Full name</Label>
+                <Input id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" maxLength={80} />
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gct.ac.in" maxLength={255} required />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gct.ac.in" maxLength={255} required />
             </div>
             <div className="space-y-1.5">
-              <Label>Password</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" maxLength={72} required />
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" maxLength={72} required />
             </div>
             <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-glow hover:opacity-90">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "signin" ? "Sign in" : "Create account"}

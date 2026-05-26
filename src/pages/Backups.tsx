@@ -82,8 +82,8 @@ export default function Backups() {
             <CardHeader><CardTitle className="text-sm">Auto-Backup Schedule</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                <Label className="text-xs">Frequency</Label>
-                <Select value={schedule} onValueChange={(v) => { setSchedule(v); setScheduleState(v); toast.success(`Schedule set to ${v}`); }}>
+                <Label className="text-xs" htmlFor="frequency">Frequency</Label>
+                <Select name="frequency" value={schedule} onValueChange={(v) => { setSchedule(v); setScheduleState(v); toast.success(`Schedule set to ${v}`); }}>
                   <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="never">Never (manual only)</SelectItem>
@@ -112,7 +112,7 @@ export default function Backups() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Create Backup</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Backup Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Pre-term backup" /></div>
+            <div><Label className="text-xs" htmlFor="backup-name">Backup Name</Label><Input id="backup-name" name="backup-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Pre-term backup" /></div>
             <div className="flex items-center gap-2"><Switch checked={encrypted} onCheckedChange={setEncrypted} id="encrypt" /><Label htmlFor="encrypt" className="text-xs">Encrypt backup</Label></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { createBackup(name, encrypted); refresh(); setOpen(false); toast.success(encrypted ? "Encrypted backup created" : "Backup created"); }}>Create</Button></DialogFooter>

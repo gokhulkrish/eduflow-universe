@@ -65,7 +65,7 @@ export function ActivityTraceDrawer() {
 
         <div className="space-y-3 border-b px-5 py-3">
           <div className="flex gap-2">
-            <Select value={filter} onValueChange={(v) => setFilter(v as TraceCategory | "all")}>
+            <Select name="traceFilter" value={filter} onValueChange={(v) => setFilter(v as TraceCategory | "all")}>
               <SelectTrigger className="h-9 flex-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
@@ -86,6 +86,8 @@ export function ActivityTraceDrawer() {
             </Button>
           </div>
           <Input
+            id="trace-search"
+            name="traceSearch"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search title, detail, section, or source"

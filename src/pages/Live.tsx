@@ -83,15 +83,15 @@ export default function Live() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>{editId ? "Edit" : "Schedule"} Session</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="liveTitle">Title</Label><Input id="liveTitle" name="liveTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="liveDesc">Description</Label><Textarea id="liveDesc" name="liveDesc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-              <div><Label className="text-xs">Start Time</Label><Input type="time" value={start} onChange={(e) => setStart(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="liveDate">Date</Label><Input id="liveDate" name="liveDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="liveStart">Start Time</Label><Input id="liveStart" name="liveStart" type="time" value={start} onChange={(e) => setStart(e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">End Time</Label><Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
-              <div><Label className="text-xs">Meeting URL</Label><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://meet.google.com/..." /></div>
+              <div><Label className="text-xs" htmlFor="liveEnd">End Time</Label><Input id="liveEnd" name="liveEnd" type="time" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="liveUrl">Meeting URL</Label><Input id="liveUrl" name="liveUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://meet.google.com/..." /></div>
             </div>
           </div>
           <DialogFooter>

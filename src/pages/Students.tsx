@@ -379,7 +379,7 @@ export default function Students() {
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, admission no, email…"
+              <Input id="studentSearch" name="studentSearch" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, admission no, email…"
                 className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
             </div>
             {selected.size > 0 && <Badge variant="secondary" className="bg-primary/15 text-primary">{selected.size} selected</Badge>}
@@ -416,7 +416,7 @@ export default function Students() {
           <table className="min-w-max w-full text-sm">
             <thead className="">
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="w-8 py-3 pl-2"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
+                <th className="w-8 py-3 pl-2"><Checkbox id="selectAll" checked={allChecked} onCheckedChange={toggleAll} /></th>
                 <th className="py-3">Student</th>
                 <th className="py-3">Admission</th>
                 <th className="py-3">Cohort</th>
@@ -434,7 +434,7 @@ export default function Students() {
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <td className="py-3 pl-2">
-                    <Checkbox checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} />
+                    <Checkbox id={`student-${s.id}`} checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} />
                   </td>
                   <td className="py-3">
                     <div className="flex items-center gap-3">

@@ -491,10 +491,10 @@ export default function Exams() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={search} onChange={(e) => setSearch(e.target.value)}
+                <Input id="examSearch" name="examSearch" value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search exams…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
-              <Select value={cohortFilter} onValueChange={setCohortFilter}>
+              <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
                 <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
@@ -573,17 +573,17 @@ export default function Exams() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={qSearch} onChange={(e) => setQSearch(e.target.value)}
+                <Input id="qSearch" name="qSearch" value={qSearch} onChange={(e) => setQSearch(e.target.value)}
                   placeholder="Search questions…" className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9" />
               </div>
-              <Select value={qSubjectFilter} onValueChange={setQSubjectFilter}>
+              <Select name="qSubjectFilter" value={qSubjectFilter} onValueChange={setQSubjectFilter}>
                 <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All subjects" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All subjects</SelectItem>
                   {subjects.map((sub) => <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={qDiffFilter} onValueChange={(v) => setQDiffFilter(v as Difficulty | "all")}>
+              <Select name="qDiffFilter" value={qDiffFilter} onValueChange={(v) => setQDiffFilter(v as Difficulty | "all")}>
                 <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Difficulty" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
@@ -771,7 +771,7 @@ export default function Exams() {
                           </Badge>
                         )}
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <Input
+                          <Input id={"marks-" + student.id} name={"marks-" + student.id}
                             type="number" min={0} max={markEntryExam.max_marks}
                             value={markValues[student.id] ?? ""}
                             onChange={(e) => setMarkValues((v) => ({ ...v, [student.id]: e.target.value }))}
@@ -988,7 +988,7 @@ export default function Exams() {
         <TabsContent value="transcripts">
           <Card className="glass p-5">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={transcriptStudentFilter} onValueChange={setTranscriptStudentFilter}>
+              <Select name="transcriptStudentFilter" value={transcriptStudentFilter} onValueChange={setTranscriptStudentFilter}>
               <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="All students" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All students</SelectItem>
@@ -997,7 +997,7 @@ export default function Exams() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={transcriptYearFilter} onValueChange={setTranscriptYearFilter}>
+              <Select name="transcriptYearFilter" value={transcriptYearFilter} onValueChange={setTranscriptYearFilter}>
               <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Academic year" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All years</SelectItem>
@@ -1092,47 +1092,47 @@ export default function Exams() {
           <div className="space-y-2">
             <div className="grid gap-1.5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label className="text-[10px]">Title</Label>
-                <Input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Midterm Exam 2025-26" className="h-8 text-sm" />
+                <Label className="text-[10px]" htmlFor="examTitle">Title</Label>
+                <Input id="examTitle" name="examTitle" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Midterm Exam 2025-26" className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Type</Label>
-                <Select value={draft.exam_type} onValueChange={(v: string) => setDraft({ ...draft, exam_type: v as ExamType })}>
+              <div><Label className="text-[10px]" htmlFor="examType">Type</Label>
+                <Select name="examType" value={draft.exam_type} onValueChange={(v: string) => setDraft({ ...draft, exam_type: v as ExamType })}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>{EXAM_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Subject</Label>
-                <Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} placeholder="Mathematics" className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examSubject">Subject</Label>
+                <Input id="examSubject" name="examSubject" value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} placeholder="Mathematics" className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Grade</Label>
-                <Select value={draft.grade} onValueChange={(v: string) => setDraft({ ...draft, grade: v })}>
+              <div><Label className="text-[10px]" htmlFor="examGrade">Grade</Label>
+                <Select name="examGrade" value={draft.grade} onValueChange={(v: string) => setDraft({ ...draft, grade: v })}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{cohortOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Section</Label>
-                <Select value={draft.section} onValueChange={(v: string) => setDraft({ ...draft, section: v })}>
+              <div><Label className="text-[10px]" htmlFor="examSection">Section</Label>
+                <Select name="examSection" value={draft.section} onValueChange={(v: string) => setDraft({ ...draft, section: v })}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Date</Label>
-                <Input type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examDate">Date</Label>
+                <Input id="examDate" name="examDate" type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Start</Label>
-                <Input type="time" value={draft.start_time} onChange={(e) => setDraft({ ...draft, start_time: e.target.value })} className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examStart">Start</Label>
+                <Input id="examStart" name="examStart" type="time" value={draft.start_time} onChange={(e) => setDraft({ ...draft, start_time: e.target.value })} className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">End</Label>
-                <Input type="time" value={draft.end_time} onChange={(e) => setDraft({ ...draft, end_time: e.target.value })} className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examEnd">End</Label>
+                <Input id="examEnd" name="examEnd" type="time" value={draft.end_time} onChange={(e) => setDraft({ ...draft, end_time: e.target.value })} className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Max</Label>
-                <Input type="number" value={draft.max_marks} onChange={(e) => setDraft({ ...draft, max_marks: Number(e.target.value) })} className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examMaxMarks">Max</Label>
+                <Input id="examMaxMarks" name="examMaxMarks" type="number" value={draft.max_marks} onChange={(e) => setDraft({ ...draft, max_marks: Number(e.target.value) })} className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Pass</Label>
-                <Input type="number" value={draft.pass_marks} onChange={(e) => setDraft({ ...draft, pass_marks: Number(e.target.value) })} className="h-8 text-sm" />
+              <div><Label className="text-[10px]" htmlFor="examPassMarks">Pass</Label>
+                <Input id="examPassMarks" name="examPassMarks" type="number" value={draft.pass_marks} onChange={(e) => setDraft({ ...draft, pass_marks: Number(e.target.value) })} className="h-8 text-sm" />
               </div>
-              <div><Label className="text-[10px]">Status</Label>
-                <Select value={draft.status} onValueChange={(v: string) => setDraft({ ...draft, status: v as ExamStatus })}>
+              <div><Label className="text-[10px]" htmlFor="examStatus">Status</Label>
+                <Select name="examStatus" value={draft.status} onValueChange={(v: string) => setDraft({ ...draft, status: v as ExamStatus })}>
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
@@ -1143,8 +1143,8 @@ export default function Exams() {
                 </Select>
               </div>
             </div>
-            <div><Label className="text-[10px]">Description</Label>
-              <Textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={1} className="min-h-[36px] text-sm" />
+            <div><Label className="text-[10px]" htmlFor="examDescription">Description</Label>
+              <Textarea id="examDescription" name="examDescription" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} rows={1} className="min-h-[36px] text-sm" />
             </div>
             <Button className="w-full rounded-xl bg-gradient-primary shadow-glow h-8 text-xs" onClick={handleSaveSchedule} disabled={saveScheduleMut.isPending}>
               {saveScheduleMut.isPending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Save className="mr-2 h-3 w-3" />}
@@ -1160,20 +1160,20 @@ export default function Exams() {
           <DialogHeader className="mb-0"><DialogTitle className="text-base">{editingQ ? "Edit Question" : "New Question"}</DialogTitle></DialogHeader>
           <div className="space-y-1.5">
             <div className="grid gap-1 sm:grid-cols-2">
-              <div><Label className="text-[10px]">Subject</Label>
-                <Select value={qDraft.subject_id} onValueChange={(v: string) => setQDraft({ ...qDraft, subject_id: v })}>
+              <div><Label className="text-[10px]" htmlFor="qSubject">Subject</Label>
+                <Select name="qSubject" value={qDraft.subject_id} onValueChange={(v: string) => setQDraft({ ...qDraft, subject_id: v })}>
                   <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{subjects.map((sub) => <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Grade</Label>
-                <Select value={qDraft.grade} onValueChange={(v: string) => setQDraft({ ...qDraft, grade: v })}>
+              <div><Label className="text-[10px]" htmlFor="qGrade">Grade</Label>
+                <Select name="qGrade" value={qDraft.grade} onValueChange={(v: string) => setQDraft({ ...qDraft, grade: v })}>
                   <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{cohortOptions.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Type</Label>
-                <Select value={qDraft.question_type} onValueChange={(v: string) => {
+              <div><Label className="text-[10px]" htmlFor="qType">Type</Label>
+                <Select name="qType" value={qDraft.question_type} onValueChange={(v: string) => {
                   const qt = v as QuestionType;
                   setQDraft({ ...qDraft, question_type: qt, options: qt === "mcq" ? { A: "", B: "", C: "", D: "" } : null });
                 }}>
@@ -1181,30 +1181,30 @@ export default function Exams() {
                   <SelectContent>{QUESTION_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Difficulty</Label>
-                <Select value={qDraft.difficulty} onValueChange={(v: string) => setQDraft({ ...qDraft, difficulty: v as Difficulty })}>
+              <div><Label className="text-[10px]" htmlFor="qDifficulty">Difficulty</Label>
+                <Select name="qDifficulty" value={qDraft.difficulty} onValueChange={(v: string) => setQDraft({ ...qDraft, difficulty: v as Difficulty })}>
                   <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{DIFFICULTIES.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label className="text-[10px]">Marks</Label>
-                <Input type="number" min={0.5} step={0.5} value={qDraft.marks}
+              <div><Label className="text-[10px]" htmlFor="qMarks">Marks</Label>
+                <Input id="qMarks" name="qMarks" type="number" min={0.5} step={0.5} value={qDraft.marks}
                   onChange={(e) => setQDraft({ ...qDraft, marks: Number(e.target.value) })} className="h-7 text-xs" />
               </div>
-              <div><Label className="text-[10px]">Topic</Label>
-                <Input value={qDraft.topic} onChange={(e) => setQDraft({ ...qDraft, topic: e.target.value })} placeholder="e.g. Algebra" className="h-7 text-xs" />
+              <div><Label className="text-[10px]" htmlFor="qTopic">Topic</Label>
+                <Input id="qTopic" name="qTopic" value={qDraft.topic} onChange={(e) => setQDraft({ ...qDraft, topic: e.target.value })} placeholder="e.g. Algebra" className="h-7 text-xs" />
               </div>
             </div>
-            <div><Label className="text-[10px]">Question</Label>
-              <Textarea value={qDraft.question_text} onChange={(e) => setQDraft({ ...qDraft, question_text: e.target.value })} rows={2} className="min-h-[32px] text-xs" />
+            <div><Label className="text-[10px]" htmlFor="qText">Question</Label>
+              <Textarea id="qText" name="qText" value={qDraft.question_text} onChange={(e) => setQDraft({ ...qDraft, question_text: e.target.value })} rows={2} className="min-h-[32px] text-xs" />
             </div>
             {qDraft.question_type === "mcq" && (
               <div className="space-y-1">
-                <Label className="text-[10px]">Options</Label>
+                <Label className="text-[10px]" htmlFor="option-A">Options</Label>
                 {["A", "B", "C", "D"].map((key) => (
                   <div key={key} className="flex items-center gap-1">
                     <span className="w-4 text-[10px] font-semibold text-muted-foreground">{key}.</span>
-                    <Input value={(qDraft.options as Record<string, string>)?.[key] ?? ""}
+                    <Input id={"option-" + key} name={"option-" + key} value={(qDraft.options as Record<string, string>)?.[key] ?? ""}
                       onChange={(e) => setQDraft({
                         ...qDraft,
                         options: { ...(qDraft.options as Record<string, string> ?? {}), [key]: e.target.value },
@@ -1224,12 +1224,12 @@ export default function Exams() {
               </div>
             )}
             {qDraft.question_type !== "mcq" && (
-              <div><Label className="text-[10px]">Correct Answer</Label>
-                <Textarea value={qDraft.correct_answer} onChange={(e) => setQDraft({ ...qDraft, correct_answer: e.target.value })} rows={1} className="min-h-[28px] text-xs" />
+              <div><Label className="text-[10px]" htmlFor="qCorrectAnswer">Correct Answer</Label>
+                <Textarea id="qCorrectAnswer" name="qCorrectAnswer" value={qDraft.correct_answer} onChange={(e) => setQDraft({ ...qDraft, correct_answer: e.target.value })} rows={1} className="min-h-[28px] text-xs" />
               </div>
             )}
-            <div><Label className="text-[10px]">Explanation</Label>
-              <Textarea value={qDraft.explanation ?? ""} onChange={(e) => setQDraft({ ...qDraft, explanation: e.target.value })} rows={1} className="min-h-[28px] text-xs" />
+            <div><Label className="text-[10px]" htmlFor="qExplanation">Explanation</Label>
+              <Textarea id="qExplanation" name="qExplanation" value={qDraft.explanation ?? ""} onChange={(e) => setQDraft({ ...qDraft, explanation: e.target.value })} rows={1} className="min-h-[28px] text-xs" />
             </div>
             <Button className="w-full rounded-xl bg-gradient-primary shadow-glow h-7 text-xs" onClick={handleSaveQuestion} disabled={saveQuestionMut.isPending}>
               {saveQuestionMut.isPending ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Save className="mr-1.5 h-3 w-3" />}
@@ -1276,8 +1276,8 @@ export default function Exams() {
           <DialogHeader><DialogTitle>Issue Transcript</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Student</Label>
-              <Select value={issueStudentId} onValueChange={setIssueStudentId}>
+              <Label className="text-xs" htmlFor="issueStudentId">Student</Label>
+              <Select name="issueStudentId" value={issueStudentId} onValueChange={setIssueStudentId}>
                 <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
                 <SelectContent>
                   {students.map((s) => (
@@ -1287,8 +1287,8 @@ export default function Exams() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Academic Year</Label>
-              <Select value={issueYear} onValueChange={setIssueYear}>
+              <Label className="text-xs" htmlFor="issueYear">Academic Year</Label>
+              <Select name="issueYear" value={issueYear} onValueChange={setIssueYear}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="2025-26">2025-26</SelectItem>

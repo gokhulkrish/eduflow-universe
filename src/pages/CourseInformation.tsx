@@ -102,10 +102,10 @@ export default function CourseInformation() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Course Mapping</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Course Name</Label><Input value={mCourse} onChange={(e) => setMCourse(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="mCourse">Course Name</Label><Input id="mCourse" name="mCourse" value={mCourse} onChange={(e) => setMCourse(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Program</Label><Select value={mProgram} onValueChange={setMProgram}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label className="text-xs">Section</Label><Select value={mSec} onValueChange={setMSec}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="mProgram">Program</Label><Select name="mProgram" value={mProgram} onValueChange={setMProgram}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="mSec">Section</Label><Select name="mSec" value={mSec} onValueChange={setMSec}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setMOpen(false)}>Cancel</Button><Button onClick={() => { const n: Mapping = { id: crypto.randomUUID(), course: mCourse, grade: mProgram, section: mSec }; const next = [...mappings, n]; ms(next); rm(); setMOpen(false); toast.success("Mapped"); }} disabled={!mCourse || !mProgram}>Save</Button></DialogFooter>
@@ -116,8 +116,8 @@ export default function CourseInformation() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Sanctioned Seats</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Course</Label><Input value={sCourse} onChange={(e) => setSCourse(e.target.value)} /></div><div><Label className="text-xs">Program</Label><Select value={sProgram} onValueChange={setSProgram}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Total Seats</Label><Input type="number" value={sTotal} onChange={(e) => setSTotal(e.target.value)} /></div><div><Label className="text-xs">Filled</Label><Input type="number" value={sFilled} onChange={(e) => setSFilled(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="sCourse">Course</Label><Input id="sCourse" name="sCourse" value={sCourse} onChange={(e) => setSCourse(e.target.value)} /></div><div><Label className="text-xs" htmlFor="sProgram">Program</Label><Select name="sProgram" value={sProgram} onValueChange={setSProgram}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="sTotal">Total Seats</Label><Input id="sTotal" name="sTotal" type="number" value={sTotal} onChange={(e) => setSTotal(e.target.value)} /></div><div><Label className="text-xs" htmlFor="sFilled">Filled</Label><Input id="sFilled" name="sFilled" type="number" value={sFilled} onChange={(e) => setSFilled(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setSOpen(false)}>Cancel</Button><Button onClick={() => { const n: Seat = { id: crypto.randomUUID(), course: sCourse, grade: sProgram, total: Number(sTotal) || 0, filled: Number(sFilled) || 0 }; const next = [...seats, n]; ss(next); rs(); setSOpen(false); toast.success("Saved"); }} disabled={!sCourse || !sProgram || !sTotal}>Save</Button></DialogFooter>
         </DialogContent>

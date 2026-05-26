@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Hand,
   KeyRound,
+  Loader2,
   Plus,
   RefreshCw,
   Save,
@@ -130,6 +131,7 @@ import {
   type ImportMode,
   type ImportMappingTemplate,
   IMPORT_MODE_CONFIGS,
+  ensureImportHeaders,
   getImportSchemaDriftReport,
   buildGenericPreview,
   type ImportSchemaDriftReport,
@@ -234,6 +236,11 @@ export default function Import() {
   const pipelineRef = useRef<ImportPipelineState>(createImportPipelineState());
   const importInitRef = useRef(false);
   const savedBatchesRef = useRef(savedBatches);
+  const processedFileSignatureRef = useRef<string | null>(null);
+  const profilesRef = useRef(profiles);
+  profilesRef.current = profiles;
+  const registrySettingsRef = useRef(registrySettings);
+  registrySettingsRef.current = registrySettings;
   const validationAuditSignatureRef = useRef<string>("");
   savedBatchesRef.current = savedBatches;
   const importFormStateRef = useRef({
@@ -275,7 +282,14 @@ export default function Import() {
   };
 
   const toImportTransferRule = (mode: string): ImportTransferRule => {
-    return (importTransferRules.includes(mode as ImportTransferRule) ? mode : "Update If Blank") as ImportTransferRule;
+    if (importTransferRules.includes(mode as ImportTransferRule)) return mode as ImportTransferRule;
+    const modeToRule: Record<string, ImportTransferRule> = {
+      newentry: "New Entry Only",
+      update: "Update Existing Only",
+      upsert: "Upsert",
+      skip: "Insert New, Ignore Existing",
+    };
+    return modeToRule[mode] ?? "Update If Blank";
   };
 
   const toImportMatchDesign = (strategy: string): ImportMatchStrategy => {
@@ -314,6 +328,7 @@ export default function Import() {
       setLoadingExisting(true);
       setExistingError(null);
       try {
+        await bootstrapImportEngine();
         const mod = getModule(moduleId);
         if (!mod) throw new Error(`Module "${moduleId}" not found`);
         const records = await mod.adapter.loadExistingRecords();
@@ -353,9 +368,9 @@ export default function Import() {
     if (mod?.matchStrategies?.length && !mod.matchStrategies.some((s) => s.id === design)) {
       setDesign(mod.matchStrategies[0].id as ImportMatchStrategy);
     }
-    setGroupOverrides({});
-    setActionOverrides({});
-  }, [design, moduleId]);
+    if (Object.keys(groupOverrides).length > 0) setGroupOverrides({});
+    if (Object.keys(actionOverrides).length > 0) setActionOverrides({});
+  }, [design, moduleId, groupOverrides, actionOverrides]);
 
   useEffect(() => {
     let alive = true;
@@ -386,6 +401,7 @@ export default function Import() {
 
     const run = async () => {
       if (!file) {
+        processedFileSignatureRef.current = null;
         resetImportEngineSession("file-cleared");
         setParsedFile(null);
         setParseError(null);
@@ -401,20 +417,31 @@ export default function Import() {
       setCommitResult(null);
 
       try {
-        const previousRuntime = getImportEngineRuntimeSnapshot();
         const signature = getImportFileSignature(file);
+        if (processedFileSignatureRef.current === signature) return;
+        processedFileSignatureRef.current = signature;
+
+        const previousRuntime = getImportEngineRuntimeSnapshot();
         if (previousRuntime.activeFileSignature !== signature) {
           setImportRuntimeActiveBatch(null);
         }
 
         const parsed = await parseImportFileCached(file);
         if (!alive) return;
-        setParsedFile(parsed);
         const form = importFormStateRef.current;
-        const activeProfile = profiles.find((profile) => profile.id === registrySettings.activeProfileId) ?? null;
+        try {
+          await ensureImportHeaders(form.moduleId, parsed.headers, file.name);
+        } catch {
+          // header creation is best-effort
+        }
+        setParsedFile(parsed);
+        const updatedCustomFields = loadCustomImportFields();
+        setCustomFields(updatedCustomFields);
+        const { activeProfileId } = registrySettingsRef.current;
+        const activeProfile = profilesRef.current.find((profile) => profile.id === activeProfileId) ?? null;
         setSelectedProfileId(activeProfile?.id ?? "");
         const mappingTemplateMatch = findImportMappingTemplate(parsed.headers, form.moduleId, {
-          customFieldIds: customFields.map((field) => field.id),
+          customFieldIds: updatedCustomFields.map((field) => field.id),
         });
         setRecoveredMappingTemplate(mappingTemplateMatch?.template ?? null);
 
@@ -423,7 +450,7 @@ export default function Import() {
           ? Object.fromEntries(parsed.headers.map((h) => [h, "ignore" as ImportTargetBinding]))
           : (activeProfile?.mapping as Record<string, ImportTargetBinding> | undefined) ??
             mappingTemplateMatch?.template.mapping;
-        const autoMappingReport = buildAutoMappingReport(parsed.headers, customFields, {
+        const autoMappingReport = buildAutoMappingReport(parsed.headers, updatedCustomFields, {
           preferredBindings,
         });
         setMapping(autoMappingReport.mapping);
@@ -448,7 +475,8 @@ export default function Import() {
             sourceRows: parsed.rows,
             importHeaders: parsed.headers,
             defaultImportType:
-              form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : "newentry",
+              form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : form.rule === "Upsert" ? "upsert" : "newentry",
+            transferRule: form.rule,
             matchStrategy: form.design,
           });
 
@@ -460,7 +488,8 @@ export default function Import() {
         engineBatch.importHeaders = [...parsed.headers];
         engineBatch.rowCount = parsed.rows.length;
         engineBatch.defaultImportType =
-          form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : "newentry";
+          form.rule === "Update Existing Only" ? "update" : form.rule === "New Entry Only" ? "newentry" : form.rule === "Upsert" ? "upsert" : "newentry";
+        engineBatch.transferRule = form.rule;
         engineBatch.matchStrategy = form.design;
         engineBatch.mappingLines = parsed.headers.map((h) => {
           const target = autoMappingReport.mapping[h];
@@ -504,7 +533,7 @@ export default function Import() {
     return () => {
       alive = false;
     };
-  }, [file, customFields, profiles, registrySettings.activeProfileId]);
+  }, [file]);
 
   const resolvedMapping = useMemo(() => {
     if (!parsedFile) return mapping;
@@ -541,7 +570,7 @@ export default function Import() {
     setBatchDescription(batch.batchDescription);
     setModuleId(batch.moduleId || "students");
     setMode(batch.mode || "hybrid");
-    setRule(toImportTransferRule(batch.defaultImportType));
+    setRule(batch.transferRule as ImportTransferRule ?? toImportTransferRule(batch.defaultImportType));
     setDesign(batch.matchStrategy);
     setThreshold(88);
     setMapping(
@@ -571,21 +600,28 @@ export default function Import() {
     }
   };
 
-  const preview = useMemo<ImportPreviewState | null>(() => {
-    if (!parsedFile) return null;
+  const [preview, setPreview] = useState<ImportPreviewState | null>(null);
+
+  useEffect(() => {
+    if (!parsedFile || step < 2) {
+      if (preview !== null) setPreview(null);
+      return;
+    }
     const mod = getModule(moduleId);
     if (mod?.fieldGroups && moduleId !== "students") {
-      return buildGenericPreview(parsedFile, resolvedMapping, mod.fieldGroups, customFields) as unknown as ImportPreviewState;
+      setPreview(buildGenericPreview(parsedFile, resolvedMapping, mod.fieldGroups, customFields) as unknown as ImportPreviewState);
+    } else {
+      setPreview(buildImportPreview(parsedFile, resolvedMapping, existingRows, {
+        design: design as any,
+        threshold,
+        rule,
+        customFields,
+        groupOverrides,
+        actionOverrides,
+      }));
     }
-    return buildImportPreview(parsedFile, resolvedMapping, existingRows, {
-      design: design as any,
-      threshold,
-      rule,
-      customFields,
-      groupOverrides,
-      actionOverrides,
-    });
-  }, [actionOverrides, customFields, design, existingRows, groupOverrides, moduleId, parsedFile, resolvedMapping, rule, threshold]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionOverrides, customFields, design, existingRows, groupOverrides, moduleId, parsedFile, resolvedMapping, rule, threshold, step]);
 
   const activeRegistryProfile = useMemo(
     () =>
@@ -992,6 +1028,22 @@ export default function Import() {
     setValidationRuntimeSnapshot(result.snapshot);
   }, [preview, validationBatch]);
 
+  if (!getModule(moduleId)) {
+    return (
+      <div>
+        <PageHeader title="Import Pipeline" subtitle="Loading module..." icon={<Upload className="h-6 w-6" />} />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              {loadingBatches ? "Initializing import engine..." : `Module "${moduleId}" not available.`}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
@@ -1072,26 +1124,30 @@ export default function Import() {
             <div className="grid gap-5 lg:grid-cols-2">
               <div className="space-y-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label>Batch Name</Label>
+                  <Label htmlFor="batch-name">Batch Name</Label>
                   <Input
+                    id="batch-name"
+                    name="batchName"
                     value={batchName}
                     onChange={(event) => setBatchName(event.target.value)}
                     placeholder={parsedFile ? getDefaultBatchName(parsedFile.fileName) : "Example: Scholarship Intake"}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label>Description</Label>
+                  <Label htmlFor="batch-description">Description</Label>
                   <Textarea
+                    id="batch-description"
+                    name="batchDescription"
                     rows={4}
                     value={batchDescription}
                     onChange={(event) => setBatchDescription(event.target.value)}
                     placeholder="Source, purpose, or migration notes"
                   />
                 </div>
-                <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-                  <Label>Module</Label>
+                <fieldset className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                  <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Module</legend>
                   <p className="text-xs text-muted-foreground mb-3">Choose which data type you are importing.</p>
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
                     {modules.map((mod) => {
                       const IconComponent =
                         ["Users", "UserRound", "GraduationCap", "Building2", "BedDouble"].includes(mod.icon) ? Users :
@@ -1103,6 +1159,8 @@ export default function Import() {
                         <button
                           key={mod.id}
                           type="button"
+                          role="radio"
+                          aria-checked={moduleId === mod.id}
                           onClick={() => setModuleId(mod.id)}
                           className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors ${
                             moduleId === mod.id
@@ -1117,11 +1175,11 @@ export default function Import() {
                       );
                     })}
                   </div>
-                </div>
-                <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-                  <Label>Import Mode</Label>
+                </fieldset>
+                <fieldset className="rounded-2xl border border-border/60 bg-card/60 p-4">
+                  <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Import Mode</legend>
                   <p className="text-xs text-muted-foreground mb-3">Controls the level of automation and user interaction.</p>
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
                     {(["auto", "hybrid", "manual"] as ImportMode[]).map((modeKey) => {
                       const config = IMPORT_MODE_CONFIGS[modeKey];
                       const IconComponent =
@@ -1132,6 +1190,8 @@ export default function Import() {
                         <button
                           key={modeKey}
                           type="button"
+                          role="radio"
+                          aria-checked={mode === modeKey}
                           onClick={() => setMode(modeKey)}
                           className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors ${
                             mode === modeKey
@@ -1146,19 +1206,19 @@ export default function Import() {
                       );
                     })}
                   </div>
-                </div>
+                </fieldset>
                 <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <Label>Transfer Rule</Label>
+                      <Label htmlFor="rule">Transfer Rule</Label>
                       <p className="text-xs text-muted-foreground">Controls how incoming values replace existing values.</p>
                     </div>
                     <Badge variant="secondary" className="bg-primary/10 text-primary">
                       {rule}
                     </Badge>
                   </div>
-                  <Select value={rule} onValueChange={(value) => setRule(value as ImportTransferRule)}>
-                    <SelectTrigger className="mt-3">
+                  <Select name="rule" value={rule} onValueChange={(value) => setRule(value as ImportTransferRule)}>
+                    <SelectTrigger id="rule" className="mt-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1171,9 +1231,9 @@ export default function Import() {
                   </Select>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-                  <Label>Match Design</Label>
-                  <Select value={design} onValueChange={(value) => setDesign(value as ImportMatchStrategy)}>
-                    <SelectTrigger className="mt-3">
+                  <Label htmlFor="design">Match Design</Label>
+                  <Select name="design" value={design} onValueChange={(value) => setDesign(value as ImportMatchStrategy)}>
+                    <SelectTrigger id="design" className="mt-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1192,6 +1252,8 @@ export default function Import() {
                       <Badge variant="secondary">{threshold}%</Badge>
                     </div>
                     <Slider
+                      id="fuzzy-threshold"
+                      name="threshold"
                       value={[threshold]}
                       min={70}
                       max={100}
@@ -1204,12 +1266,14 @@ export default function Import() {
               </div>
 
               <div>
-                <Label className="mb-2 block">Upload Source File</Label>
+                <Label htmlFor="source-file" className="mb-2 block">Upload Source File</Label>
                 <label className="flex h-56 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-secondary/40 transition-colors hover:border-primary hover:bg-primary/5">
                   <Upload className="h-8 w-8 text-primary" />
                   <p className="text-sm font-semibold">{file ? file.name : "Drop UMIS Excel or CSV here"}</p>
                   <p className="text-xs text-muted-foreground">.xlsx · .xls · .csv</p>
                   <input
+                    id="source-file"
+                    name="sourceFile"
                     type="file"
                     className="hidden"
                     accept=".xlsx,.xls,.csv"
@@ -1408,14 +1472,14 @@ export default function Import() {
                       className="grid gap-3 rounded-xl border border-border/60 bg-card/60 p-3 lg:grid-cols-[1fr_auto_1fr]"
                     >
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Source Column</p>
+                        <label htmlFor={`map-${header}`} className="text-[10px] uppercase tracking-wider text-muted-foreground">Source Column</label>
                         <p className="mt-1 font-mono text-sm">{header}</p>
                       </div>
                       <div className="flex items-center justify-center">
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      <Select value={mapping[header] ?? "ignore"} onValueChange={(value) => handleMappingChange(header, value)}>
-                        <SelectTrigger>
+                      <Select name={`mapping[${header}]`} value={mapping[header] ?? "ignore"} onValueChange={(value) => handleMappingChange(header, value)}>
+                        <SelectTrigger id={`map-${header}`}>
                           <SelectValue placeholder="Ignore column" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1513,6 +1577,7 @@ export default function Import() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{group.rows.length} row(s)</Badge>
                         <Select
+                          name={`groupOverrides[${group.identityKey}]`}
                           value={groupOverrides[group.identityKey] ?? "keep-first"}
                           onValueChange={(value) =>
                             setGroupOverrides((current) => ({
@@ -1752,6 +1817,7 @@ export default function Import() {
                           ) : null}
                         </div>
                         <Select
+                          name={`actionOverrides[${row.rowKey}]`}
                           value={actionOverrides[row.rowKey] ?? row.action}
                           onValueChange={(value) =>
                             setActionOverrides((current) => ({
@@ -1904,11 +1970,15 @@ export default function Import() {
             <div className="mt-3 space-y-3">
               <div className="grid gap-2 sm:grid-cols-2">
                 <Input
+                  id="profile-name"
+                  name="profileName"
                   value={profileDraft.name}
                   onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))}
                   placeholder={activeRegistryProfile ? activeRegistryProfile.name : "Preset name"}
                 />
                 <Input
+                  id="profile-description"
+                  name="profileDescription"
                   value={profileDraft.description}
                   onChange={(event) => setProfileDraft((current) => ({ ...current, description: event.target.value }))}
                   placeholder="Optional note"
@@ -1966,19 +2036,24 @@ export default function Import() {
                 Reload
               </Button>
             </div>
-            <div className="mt-3 space-y-3">
+              <div className="mt-3 space-y-3">
               <div className="grid gap-2">
                 <Input
+                  id="custom-field-key"
+                  name="customFieldKey"
                   value={customFieldDraft.key}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, key: event.target.value }))}
                   placeholder="key (e.g. house_code)"
                 />
                 <Input
+                  id="custom-field-label"
+                  name="customFieldLabel"
                   value={customFieldDraft.label}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, label: event.target.value }))}
                   placeholder="Label"
                 />
                 <Select
+                  name="customFieldType"
                   value={customFieldDraft.type}
                   onValueChange={(value) => setCustomFieldDraft((current) => ({ ...current, type: value as ImportCustomFieldDefinition["type"] }))}
                 >
@@ -1994,23 +2069,31 @@ export default function Import() {
                   </SelectContent>
                 </Select>
                 <Textarea
+                  id="custom-field-options"
+                  name="customFieldOptions"
                   rows={3}
                   value={customFieldDraft.options}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, options: event.target.value }))}
                   placeholder="Options, one per line or comma separated"
                 />
                 <Input
+                  id="custom-field-default-value"
+                  name="customFieldDefaultValue"
                   value={customFieldDraft.defaultValue}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, defaultValue: event.target.value }))}
                   placeholder="Default value"
                 />
                 <Textarea
+                  id="custom-field-aliases"
+                  name="customFieldAliases"
                   rows={2}
                   value={customFieldDraft.aliases}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, aliases: event.target.value }))}
                   placeholder="Aliases, one per line or comma separated"
                 />
                 <Textarea
+                  id="custom-field-notes"
+                  name="customFieldNotes"
                   rows={2}
                   value={customFieldDraft.notes}
                   onChange={(event) => setCustomFieldDraft((current) => ({ ...current, notes: event.target.value }))}

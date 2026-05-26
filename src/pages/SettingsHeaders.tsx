@@ -419,12 +419,12 @@ export default function SettingsHeaders() {
             </div>
             <div className="mt-4 grid gap-3 xl:grid-cols-3">
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Search</Label>
-                <Input value={explorerQuery} onChange={(event) => setExplorerQuery(event.target.value)} placeholder="Search headers, notes, aliases..." />
+                <Label className="text-xs" htmlFor="explorerSearch">Search</Label>
+                <Input id="explorerSearch" name="explorerSearch" value={explorerQuery} onChange={(event) => setExplorerQuery(event.target.value)} placeholder="Search headers, notes, aliases..." />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Module Scope</Label>
-                <Select value={explorerModuleScope} onValueChange={(value) => setExplorerModuleScope(value as typeof explorerModuleScope)}>
+                <Label className="text-xs" htmlFor="explorerModuleScope">Module Scope</Label>
+                <Select name="explorerModuleScope" value={explorerModuleScope} onValueChange={(value) => setExplorerModuleScope(value as typeof explorerModuleScope)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All modules" />
                   </SelectTrigger>
@@ -436,8 +436,8 @@ export default function SettingsHeaders() {
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Status</Label>
-                <Select value={explorerStatusScope} onValueChange={(value) => setExplorerStatusScope(value as typeof explorerStatusScope)}>
+                <Label className="text-xs" htmlFor="explorerStatusScope">Status</Label>
+                <Select name="explorerStatusScope" value={explorerStatusScope} onValueChange={(value) => setExplorerStatusScope(value as typeof explorerStatusScope)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
@@ -514,16 +514,16 @@ export default function SettingsHeaders() {
               <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
                 <div className="grid gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Key</Label>
-                    <Input value={customFieldDraft.key} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, key: event.target.value }))} placeholder="house_code" />
+                    <Label className="text-xs" htmlFor="cfKey">Key</Label>
+                    <Input id="cfKey" name="cfKey" value={customFieldDraft.key} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, key: event.target.value }))} placeholder="house_code" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Label</Label>
-                    <Input value={customFieldDraft.label} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, label: event.target.value }))} placeholder="House Code" />
+                    <Label className="text-xs" htmlFor="cfLabel">Label</Label>
+                    <Input id="cfLabel" name="cfLabel" value={customFieldDraft.label} onChange={(event) => setCustomFieldDraft((current) => ({ ...current, label: event.target.value }))} placeholder="House Code" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Type</Label>
-                    <Select
+                    <Label className="text-xs" htmlFor="cfType">Type</Label>
+                    <Select name="cfType"
                       value={customFieldDraft.type}
                       onValueChange={(value) => setCustomFieldDraft((current) => ({ ...current, type: value as ImportCustomFieldDefinition["type"] }))}
                     >
@@ -540,8 +540,10 @@ export default function SettingsHeaders() {
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Options</Label>
+                    <Label className="text-xs" htmlFor="cfOptions">Options</Label>
                     <Textarea
+                      id="cfOptions"
+                      name="cfOptions"
                       rows={3}
                       value={customFieldDraft.options}
                       onChange={(event) => setCustomFieldDraft((current) => ({ ...current, options: event.target.value }))}
@@ -549,16 +551,20 @@ export default function SettingsHeaders() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Default Value</Label>
+                    <Label className="text-xs" htmlFor="cfDefault">Default Value</Label>
                     <Input
+                      id="cfDefault"
+                      name="cfDefault"
                       value={customFieldDraft.defaultValue}
                       onChange={(event) => setCustomFieldDraft((current) => ({ ...current, defaultValue: event.target.value }))}
                       placeholder="Optional default"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Aliases</Label>
+                    <Label className="text-xs" htmlFor="cfAliases">Aliases</Label>
                     <Textarea
+                      id="cfAliases"
+                      name="cfAliases"
                       rows={2}
                       value={customFieldDraft.aliases}
                       onChange={(event) => setCustomFieldDraft((current) => ({ ...current, aliases: event.target.value }))}
@@ -566,8 +572,10 @@ export default function SettingsHeaders() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Notes</Label>
+                    <Label className="text-xs" htmlFor="cfNotes">Notes</Label>
                     <Textarea
+                      id="cfNotes"
+                      name="cfNotes"
                       rows={3}
                       value={customFieldDraft.notes}
                       onChange={(event) => setCustomFieldDraft((current) => ({ ...current, notes: event.target.value }))}
@@ -651,7 +659,7 @@ export default function SettingsHeaders() {
                     <Badge variant="secondary" className="text-[10px]">{section.fields.length} fields</Badge>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <Switch checked={section.enabled} onCheckedChange={(checked) => updateSection(section.key, { enabled: checked })} />
+                    <Switch id={`module-${section.key}`} checked={section.enabled} onCheckedChange={(checked) => updateSection(section.key, { enabled: checked })} />
                     <span className="text-xs text-muted-foreground">{section.enabled ? "Visible" : "Hidden"}</span>
                   </div>
                 </Card>
@@ -675,7 +683,7 @@ export default function SettingsHeaders() {
                   
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch checked={section.enabled} onCheckedChange={(checked) => updateSection(section.key, { enabled: checked })} />
+                  <Switch id={`group-${section.key}`} checked={section.enabled} onCheckedChange={(checked) => updateSection(section.key, { enabled: checked })} />
                   {section.source === "core" ? (
                     <div className="flex items-center gap-1">
                       <Button
@@ -706,12 +714,12 @@ export default function SettingsHeaders() {
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Section Label</Label>
-                  <Input value={registrySettings.sectionLabels[section.key] ?? section.title} onChange={(event) => updateSection(section.key, { title: event.target.value })} />
+                  <Label className="text-xs" htmlFor={`label-${section.key}`}>Section Label</Label>
+                  <Input id={`label-${section.key}`} name={section.key} value={registrySettings.sectionLabels[section.key] ?? section.title} onChange={(event) => updateSection(section.key, { title: event.target.value })} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Description</Label>
-                  <Textarea value={registrySettings.sectionDescriptions[section.key] ?? section.description ?? ""} onChange={(event) => updateSection(section.key, { description: event.target.value })} rows={3} />
+                  <Label className="text-xs" htmlFor={`desc-${section.key}`}>Description</Label>
+                  <Textarea id={`desc-${section.key}`} name={`desc-${section.key}`} value={registrySettings.sectionDescriptions[section.key] ?? section.description ?? ""} onChange={(event) => updateSection(section.key, { description: event.target.value })} rows={3} />
                 </div>
               </div>
             </Card>
@@ -730,8 +738,8 @@ export default function SettingsHeaders() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label className="text-xs">Primary Key</Label>
-                <Select
+                <Label className="text-xs" htmlFor="primaryKey">Primary Key</Label>
+                <Select name="primaryKey"
                   value={registrySettings.defaultBinding}
                   onValueChange={(value) => setRegistrySettings((current) => ({ ...current, defaultBinding: value as ImportTargetBinding }))}
                 >
@@ -880,16 +888,16 @@ export default function SettingsHeaders() {
               <p className="text-sm font-semibold mb-3">New Filter Preset</p>
               <div className="grid gap-3 md:grid-cols-4">
                 <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Name</Label>
-                  <Input value={filterDraftName} onChange={(e) => setFilterDraftName(e.target.value)} placeholder="e.g. Active Students" />
+                  <Label className="text-xs" htmlFor="filterName">Name</Label>
+                  <Input id="filterName" name="filterName" value={filterDraftName} onChange={(e) => setFilterDraftName(e.target.value)} placeholder="e.g. Active Students" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Field</Label>
-                  <Input value={filterDraftField} onChange={(e) => setFilterDraftField(e.target.value)} placeholder="e.g. status" />
+                  <Label className="text-xs" htmlFor="filterField">Field</Label>
+                  <Input id="filterField" name="filterField" value={filterDraftField} onChange={(e) => setFilterDraftField(e.target.value)} placeholder="e.g. status" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Operator</Label>
-                  <Select value={filterDraftOperator} onValueChange={(v) => setFilterDraftOperator(v as FilterCondition["operator"])}>
+                  <Label className="text-xs" htmlFor="filterOperator">Operator</Label>
+                  <Select name="filterOperator" value={filterDraftOperator} onValueChange={(v) => setFilterDraftOperator(v as FilterCondition["operator"])}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -905,9 +913,9 @@ export default function SettingsHeaders() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Value</Label>
+                  <Label className="text-xs" htmlFor="filterValue">Value</Label>
                   <div className="flex gap-1 items-end">
-                    <Input value={filterDraftValue} onChange={(e) => setFilterDraftValue(e.target.value)} placeholder="e.g. active" />
+                    <Input id="filterValue" name="filterValue" value={filterDraftValue} onChange={(e) => setFilterDraftValue(e.target.value)} placeholder="e.g. active" />
                     <Button size="sm" className="rounded-lg" onClick={handleSaveFilterPreset} disabled={!filterDraftName || !filterDraftField || !filterDraftValue}>
                       <Plus className="mr-1 h-3 w-3" /> Add
                     </Button>

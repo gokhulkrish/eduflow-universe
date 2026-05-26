@@ -72,8 +72,8 @@ export default function ScoringWorkspace() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Observation Input</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div><Label className="text-xs">Student ID (optional)</Label><Input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="s-001" className="h-8 text-xs" /></div>
-                <div><Label className="text-xs">Observation Text</Label><Textarea value={observationText} onChange={(e) => setObservationText(e.target.value)} placeholder="Describe student behavior, participation, and effort..." className="min-h-[120px] text-xs" /></div>
+                <div><Label className="text-xs" htmlFor="scoringStudentId">Student ID (optional)</Label><Input id="scoringStudentId" name="scoringStudentId" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="s-001" className="h-8 text-xs" /></div>
+                <div><Label className="text-xs" htmlFor="scoringObservation">Observation Text</Label><Textarea id="scoringObservation" name="scoringObservation" value={observationText} onChange={(e) => setObservationText(e.target.value)} placeholder="Describe student behavior, participation, and effort..." className="min-h-[120px] text-xs" /></div>
                 <Button onClick={handleEvaluate} disabled={evaluateObs.isPending || !observationText.trim()} size="sm"><Send className="h-3 w-3 mr-1" />Evaluate</Button>
               </CardContent>
             </Card>
@@ -116,7 +116,7 @@ export default function ScoringWorkspace() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Batch Observation Evaluation</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div><Label className="text-xs">One observation per line</Label><Textarea value={batchText} onChange={(e) => setBatchText(e.target.value)} placeholder={`Student is very participative and completes homework on time\nStudent is disruptive in class and needs improvement\nStudent shows good behavior but needs to participate more`} className="min-h-[150px] text-xs" /></div>
+              <div><Label className="text-xs" htmlFor="scoringBatch">One observation per line</Label><Textarea id="scoringBatch" name="scoringBatch" value={batchText} onChange={(e) => setBatchText(e.target.value)} placeholder={`Student is very participative and completes homework on time\nStudent is disruptive in class and needs improvement\nStudent shows good behavior but needs to participate more`} className="min-h-[150px] text-xs" /></div>
               <Button onClick={handleBatchEvaluate} disabled={batchEval.isPending || !batchText.trim()} size="sm"><UserCheck className="h-3 w-3 mr-1" />Evaluate All</Button>
               {batchResults.length > 0 && (
                 <Table>

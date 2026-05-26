@@ -53,8 +53,8 @@ export default function HolidayManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Holiday</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Holiday Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label className="text-xs">Type</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem><SelectItem value="national">National</SelectItem></SelectContent></Select></div></div>
+            <div><Label className="text-xs" htmlFor="holidayName">Holiday Name</Label><Input id="holidayName" name="holidayName" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="holidayDate">Date</Label><Input id="holidayDate" name="holidayDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label className="text-xs" htmlFor="holidayType">Type</Label><Select name="holidayType" value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem><SelectItem value="national">National</SelectItem></SelectContent></Select></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !date} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, date: new Date(date).toISOString(), type }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

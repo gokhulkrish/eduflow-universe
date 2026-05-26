@@ -59,6 +59,8 @@ export function Topbar() {
       <div className="relative ml-2 hidden flex-1 max-w-md md:block">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          id="topbar-search"
+          name="topbarSearch"
           placeholder="Search students, classes, fees…"
           className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9 pr-16 focus-visible:ring-primary/40"
         />

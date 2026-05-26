@@ -96,9 +96,9 @@ export default function Scholarship() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Scheme</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Name</Label><Input value={scName} onChange={(e) => setScName(e.target.value)} /></div><div><Label className="text-xs">Provider</Label><Input value={scProv} onChange={(e) => setScProv(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Amount (₹)</Label><Input type="number" value={scAmt} onChange={(e) => setScAmt(e.target.value)} /></div>
-            <div><Label className="text-xs">Eligibility Criteria</Label><Input value={scCrit} onChange={(e) => setScCrit(e.target.value)} placeholder="e.g. Grade 10+, 90%+" /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="schemeName">Name</Label><Input id="schemeName" name="schemeName" value={scName} onChange={(e) => setScName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="schemeProvider">Provider</Label><Input id="schemeProvider" name="schemeProvider" value={scProv} onChange={(e) => setScProv(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="schemeAmount">Amount (₹)</Label><Input id="schemeAmount" name="schemeAmount" type="number" value={scAmt} onChange={(e) => setScAmt(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="schemeCriteria">Eligibility Criteria</Label><Input id="schemeCriteria" name="schemeCriteria" value={scCrit} onChange={(e) => setScCrit(e.target.value)} placeholder="e.g. Grade 10+, 90%+" /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setScOpen(false)}>Cancel</Button><Button onClick={() => { ss([...sl(), { id: crypto.randomUUID(), name: scName, provider: scProv, amount: Number(scAmt) || 0, criteria: scCrit }]); rs(); setScOpen(false); toast.success("Scheme created"); }} disabled={!scName || !scProv || !scAmt}>Create</Button></DialogFooter>
         </DialogContent>
@@ -108,8 +108,8 @@ export default function Scholarship() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Scholarship Application</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Student</Label><Input value={apStudent} onChange={(e) => setApStudent(e.target.value)} /></div><div><Label className="text-xs">Scheme</Label><Select value={apScheme} onValueChange={setApScheme}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{schemes.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent></Select></div></div>
-            <div><Label className="text-xs">Amount (₹)</Label><Input type="number" value={apAmt} onChange={(e) => setApAmt(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="appStudent">Student</Label><Input id="appStudent" name="appStudent" value={apStudent} onChange={(e) => setApStudent(e.target.value)} /></div><div><Label className="text-xs" htmlFor="appScheme">Scheme</Label><Select name="appScheme" value={apScheme} onValueChange={setApScheme}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{schemes.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent></Select></div></div>
+            <div><Label className="text-xs" htmlFor="appAmount">Amount (₹)</Label><Input id="appAmount" name="appAmount" type="number" value={apAmt} onChange={(e) => setApAmt(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button><Button onClick={() => { aps([...apl(), { id: crypto.randomUUID(), student: apStudent, scheme: apScheme, amount: Number(apAmt) || 0, status: "pending", applied: new Date().toISOString() }]); ra(); setApOpen(false); toast.success("Applied"); }} disabled={!apStudent || !apScheme || !apAmt}>Apply</Button></DialogFooter>
         </DialogContent>

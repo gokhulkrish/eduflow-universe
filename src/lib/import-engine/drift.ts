@@ -1,5 +1,9 @@
 import type { ImportModuleFieldGroup } from "./types";
 import { getModule } from "./module-registry";
+import { normalizeKey, generateId } from "./core";
+import { loadCustomImportFields } from "@/lib/student-import";
+import { writeStoredJson } from "@/lib/state-normalization";
+import { emitAppSync } from "@/lib/app-sync";
 
 export interface ImportSchemaDriftEntry {
   header: string;
@@ -151,4 +155,65 @@ export function getImportSchemaDriftReport(
     hasDrift,
     summary,
   };
+}
+
+const headerCreatePromises = new Map<string, Promise<void>>();
+
+export async function ensureImportHeaders(
+  moduleId: string,
+  headers: string[],
+  sourceRef?: string,
+): Promise<void> {
+  const mod = getModule(moduleId);
+  if (!mod) return;
+
+  const { fieldGroups } = mod;
+  const existing = loadCustomImportFields();
+
+  const toCreate = headers.filter((header) => {
+    if (getFieldByKeyOrAlias(header, fieldGroups)) return false;
+    const h = header.toLowerCase().trim();
+    return !existing.some((f) =>
+      [f.key, f.label, ...f.aliases].filter(Boolean).map((s) => s.toLowerCase().trim()).includes(h),
+    );
+  });
+
+  if (!toCreate.length) return;
+
+  const dedupKey = `${moduleId}:fields:${toCreate.map((h) => normalizeKey(h)).join(",")}`;
+  const pending = headerCreatePromises.get(dedupKey);
+  if (pending) return pending;
+
+  const promise = (async () => {
+    const now = new Date().toISOString();
+    const list = loadCustomImportFields();
+    for (const header of toCreate) {
+      const key = normalizeKey(header) || `field_${headers.indexOf(header)}`;
+      const match = (s: string) => s.toLowerCase().trim();
+      if (list.some((f) => [f.key, f.label, ...f.aliases].filter(Boolean).map(match).includes(match(header)))) continue;
+      const id = generateId();
+      list.push({
+        id,
+        key,
+        label: header.trim(),
+        type: "text" as const,
+        options: [],
+        defaultValue: "",
+        aliases: [header.trim()],
+        notes: sourceRef ? `Auto-created from import: ${sourceRef}` : "Auto-created from import",
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    writeStoredJson("sms.import.custom-fields.v1", list);
+    emitAppSync("sms.import.custom-fields.v1");
+  })();
+
+  headerCreatePromises.set(dedupKey, promise);
+  try {
+    await promise;
+  } finally {
+    headerCreatePromises.delete(dedupKey);
+  }
 }

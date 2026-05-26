@@ -3,9 +3,10 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { emitAppSync } from "@/lib/app-sync";
-import { studentRegisterSyncKey } from "@/lib/student-records";
+import { ensureStudentExists, studentRegisterSyncKey } from "@/lib/student-records";
 import { tableExists, tablesExist } from "@/lib/supabase-health";
 import { trackFetchedHeader } from "@/lib/header-registry";
+import { generateId } from "@/lib/import-engine/core";
 
 export const importTransferRules = [
   "New Entry Only",
@@ -16,6 +17,7 @@ export const importTransferRules = [
   "Overwrite Including Blanks",
   "Reject If Changed",
   "Skip If Changed",
+  "Upsert",
 ] as const;
 
 export type ImportTransferRule = (typeof importTransferRules)[number];
@@ -602,7 +604,7 @@ export function saveCustomImportField(
 ) {
   const now = new Date().toISOString();
   const fields = loadCustomImportFields();
-  const id = field.id || crypto.randomUUID();
+    const id = field.id || generateId();
   const next = {
     id,
     key: clean(field.key) || id,
@@ -640,7 +642,7 @@ export function saveImportProfile(
 ) {
   const now = new Date().toISOString();
   const profiles = loadImportProfiles();
-  const id = profile.id || crypto.randomUUID();
+  const id = profile.id || generateId();
   const existing = profiles.find((item) => item.id === id) ?? null;
   const next = {
     id,
@@ -906,7 +908,7 @@ const getExistingMatch = (
     if (design === "registration_only") {
       if (admission && admission === existingAdmission) {
         score = 100;
-        reason = "Admission number matched";
+        reason = "Registration number matched";
       }
     } else if (design === "umis_only") {
       if (umis && umis === existingUmis) {
@@ -922,25 +924,38 @@ const getExistingMatch = (
         reason = "Exact name + DOB match";
       }
     } else if (design === "fuzzy_name_dob") {
-      const nameScore = similarity(name, existingName);
-      const dobScore = dob && existingDob && dob === existingDob ? 1 : 0;
-      score = Math.round(nameScore * 80 + dobScore * 20);
-      if (score >= 60) reason = `Fuzzy name + DOB match (${score}%)`;
+      if (name && dob && name === existingName && dob === existingDob) {
+        score = 100;
+        reason = "Exact name + DOB match";
+      }
+    } else if (design === "reg_or_name_dob") {
+      if (admission && admission === existingAdmission) {
+        score = 100;
+        reason = "Registration number matched";
+      } else if (name && dob && name === existingName && dob === existingDob) {
+        score = 97;
+        reason = "Exact name + DOB match";
+      } else if (umis && umis === existingUmis) {
+        score = 95;
+        reason = "UMIS matched";
+      } else if (emis && emis === existingEmis) {
+        score = 93;
+        reason = "EMIS matched";
+      }
     } else {
       const regScore = admission && admission === existingAdmission ? 100 : 0;
       const umisScore = umis && umis === existingUmis ? 99 : 0;
       const emisScore = emis && emis === existingEmis ? 98 : 0;
-      const nameScore = similarity(name, existingName);
-      const dobScore = dob && existingDob && dob === existingDob ? 1 : 0;
-      score = Math.max(regScore, umisScore, emisScore, Math.round(nameScore * 80 + dobScore * 20));
+      const nameDobScore = name && dob && name === existingName && dob === existingDob ? 97 : 0;
+      score = Math.max(regScore, umisScore, emisScore, nameDobScore);
       if (score === regScore && regScore) reason = "Admission number matched";
       else if (score === umisScore && umisScore) reason = "UMIS matched";
       else if (score === emisScore && emisScore) reason = "EMIS matched";
-      else if (score >= 60) reason = `Name + DOB similarity ${score}%`;
+      else if (score === nameDobScore && nameDobScore) reason = "Exact name + DOB match";
     }
 
     if (!score) continue;
-    if (score < threshold * 100) continue;
+    if (score < threshold) continue;
     if (!best || score > best.score) best = { row: existing, score, reason: reason || "Potential match" };
   }
 
@@ -975,10 +990,6 @@ const deriveMappedRow = (
     const split = splitFullName(mapped.fullName);
     mapped.firstName = split.firstName;
     if (!mapped.lastName) mapped.lastName = split.lastName;
-  }
-
-  if (!mapped.admissionNo) {
-    mapped.admissionNo = mapped.umisId || mapped.emisId || "";
   }
 
   return { mapped, customValues };
@@ -1030,6 +1041,8 @@ const resolveDefaultAction = (
       return changed ? "review" : "skip";
     case "Skip If Changed":
       return changed ? "skip" : "update";
+    case "Upsert":
+      return changed ? "update" : "skip";
     default:
       return "review";
   }
@@ -1072,9 +1085,27 @@ const pickTextValue = (
   existingValue: string | null | undefined,
   rule: ImportTransferRule
 ) => {
-  if (rule === "Overwrite Including Blanks") return sourceValue || null;
-  if (rule === "Update If Blank") return existingValue || sourceValue || null;
-  return sourceValue || existingValue || null;
+  const hasSource = !!clean(sourceValue);
+  switch (rule) {
+    case "New Entry Only":
+    case "Insert New, Ignore Existing":
+      return existingValue ?? (sourceValue || null);
+    case "Update Existing Only":
+      return hasSource ? sourceValue : (existingValue || null);
+    case "Update If Blank":
+      return existingValue || sourceValue || null;
+    case "Overwrite Always (Safe)":
+      return hasSource ? sourceValue : (existingValue || null);
+    case "Overwrite Including Blanks":
+      return sourceValue || null;
+    case "Reject If Changed":
+    case "Skip If Changed":
+      return existingValue ?? (sourceValue || null);
+    case "Upsert":
+      return hasSource ? sourceValue : existingValue || null;
+    default:
+      return sourceValue || existingValue || null;
+  }
 };
 
 const pickNumberValue = (
@@ -1082,13 +1113,31 @@ const pickNumberValue = (
   existingValue: number | null | undefined,
   rule: ImportTransferRule
 ) => {
-  if (rule === "Overwrite Including Blanks") {
-    const next = clean(sourceValue).replace(/[^0-9.-]/g, "");
-    return next ? Number(next) : null;
+  const hasSource = !!clean(sourceValue);
+  const parsed = hasSource ? Number(clean(sourceValue)) : NaN;
+  const validNumber = !isNaN(parsed);
+  switch (rule) {
+    case "New Entry Only":
+    case "Insert New, Ignore Existing":
+      return existingValue ?? (validNumber ? parsed : null);
+    case "Update Existing Only":
+      return validNumber ? parsed : (existingValue ?? null);
+    case "Update If Blank":
+      return existingValue ?? (validNumber ? parsed : null);
+    case "Overwrite Always (Safe)":
+      return validNumber ? parsed : (existingValue ?? null);
+    case "Overwrite Including Blanks": {
+      const next = clean(sourceValue).replace(/[^0-9.-]/g, "");
+      return next ? Number(next) : null;
+    }
+    case "Reject If Changed":
+    case "Skip If Changed":
+      return existingValue ?? (validNumber ? parsed : null);
+    case "Upsert":
+      return validNumber ? parsed : (existingValue ?? null);
+    default:
+      return validNumber ? parsed : (existingValue ?? null);
   }
-  if (rule === "Update If Blank") return existingValue ?? (clean(sourceValue) ? Number(sourceValue) : null);
-  if (clean(sourceValue)) return Number(sourceValue);
-  return existingValue ?? null;
 };
 
 const pickBooleanValue = (
@@ -1096,14 +1145,28 @@ const pickBooleanValue = (
   existingValue: boolean,
   rule: ImportTransferRule
 ) => {
-  if (rule === "Overwrite Including Blanks") {
-    const normalized = normalizeLoose(sourceValue);
-    if (!normalized) return false;
-    return ["yes", "y", "true", "1", "active"].includes(normalized);
+  const hasSource = !!clean(sourceValue);
+  const boolFromSource = ["yes", "y", "true", "1", "active"].includes(normalizeLoose(sourceValue));
+  switch (rule) {
+    case "New Entry Only":
+    case "Insert New, Ignore Existing":
+      return existingValue;
+    case "Update Existing Only":
+      return hasSource ? boolFromSource : existingValue;
+    case "Update If Blank":
+      return existingValue || boolFromSource;
+    case "Overwrite Always (Safe)":
+      return hasSource ? boolFromSource : existingValue;
+    case "Overwrite Including Blanks":
+      return hasSource ? boolFromSource : false;
+    case "Reject If Changed":
+    case "Skip If Changed":
+      return existingValue;
+    case "Upsert":
+      return hasSource ? boolFromSource : existingValue;
+    default:
+      return hasSource ? boolFromSource : existingValue;
   }
-  if (rule === "Update If Blank") return existingValue || ["yes", "y", "true", "1", "active"].includes(normalizeLoose(sourceValue));
-  if (!clean(sourceValue)) return existingValue;
-  return ["yes", "y", "true", "1", "active"].includes(normalizeLoose(sourceValue));
 };
 
 export function buildImportPreview(
@@ -1121,6 +1184,9 @@ export function buildImportPreview(
 ): ImportPreviewState {
   const mappedRows = parsed.rows.map((sourceRow, index) => {
     const { mapped, customValues } = deriveMappedRow(sourceRow, mapping, options.customFields ?? []);
+    if (!mapped.admissionNo && options.design !== "registration_only") {
+      mapped.admissionNo = mapped.umisId || mapped.emisId || "";
+    }
     const displayName = [mapped.firstName, mapped.lastName].filter(Boolean).join(" ") || mapped.fullName || mapped.admissionNo || `Row ${index + 2}`;
     const identityKey = buildIdentityKey(mapped, options.design);
     const validationIssues = validateRow(mapped);
@@ -1336,6 +1402,16 @@ const buildStudentPayload = (
   } as TablesUpdate<"students">;
 };
 
+const MAX_INT = 2147483647;
+const MIN_INT = -2147483648;
+const toPgInteger = (value: string | undefined): number | null => {
+  if (!value) return null;
+  const num = Number(value);
+  if (!Number.isInteger(num)) return null;
+  if (num < MIN_INT || num > MAX_INT) return null;
+  return num;
+};
+
 const buildEnrollmentPayload = (
   row: ImportPreviewRow,
   studentId: string,
@@ -1358,7 +1434,7 @@ const buildEnrollmentPayload = (
     section_label: source.section || row.existing?.section || null,
     stream: source.stream || row.existing?.stream || null,
     house: source.house || row.existing?.house || null,
-    roll_number: source.roll ? Number(source.roll) : row.existing?.roll_number ?? null,
+    roll_number: source.roll ? toPgInteger(source.roll) : row.existing?.roll_number ?? null,
     status: (source.status || "active").toLowerCase() as TablesInsert<"enrollments">["status"],
     meta: {
       import: importMeta,
@@ -1377,7 +1453,7 @@ const buildEnrollmentPayload = (
       section_label: row.existing?.section || source.section || null,
       stream: row.existing?.stream || source.stream || null,
       house: row.existing?.house || source.house || null,
-      roll_number: row.existing?.roll_number != null ? row.existing.roll_number : (source.roll ? Number(source.roll) : null),
+      roll_number: row.existing?.roll_number != null ? row.existing.roll_number : (source.roll ? toPgInteger(source.roll) : null),
       status: row.existing?.enrollment_status || (source.status || "active").toLowerCase(),
       meta: { import: importMeta } as Json,
     } as TablesUpdate<"enrollments">;
@@ -1396,7 +1472,7 @@ const buildEnrollmentPayload = (
     section_label: source.section || row.existing?.section || null,
     stream: source.stream || row.existing?.stream || null,
     house: source.house || row.existing?.house || null,
-    roll_number: source.roll ? Number(source.roll) : (row.existing?.roll_number ?? null),
+    roll_number: source.roll ? toPgInteger(source.roll) : (row.existing?.roll_number ?? null),
     status: (source.status || row.existing?.enrollment_status || "active").toLowerCase() as TablesUpdate<"enrollments">["status"],
     meta: { import: importMeta } as Json,
   } as TablesUpdate<"enrollments">;
@@ -1420,6 +1496,8 @@ export async function commitImportRows(
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
   const result: ImportCommitResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [] };
+  const auditLogReady = await tableExists("audit_log");
+  const auditEntries: TablesInsert<"audit_log">[] = [];
 
   for (const row of rows) {
     if (row.action === "skip" || row.action === "review" || row.validationIssues.length) {
@@ -1428,48 +1506,21 @@ export async function commitImportRows(
     }
 
     try {
-      if (row.action === "insert" || !row.existing) {
-        const studentPayload = buildStudentPayload(row, userId, options.rule) as TablesInsert<"students">;
-        const { data: student, error: studentError } = await supabase
-          .from("students")
-          .insert(studentPayload)
-          .select("*")
-          .single();
-        if (studentError) throw studentError;
-
-        const enrollmentPayload = buildEnrollmentPayload(row, student.id, null, options.rule) as TablesInsert<"enrollments">;
-        const { error: enrollmentError } = await supabase.from("enrollments").insert(enrollmentPayload);
-        if (enrollmentError) throw enrollmentError;
-
-        if (await tableExists("audit_log")) {
-          await supabase.from("audit_log").insert({
-            actor: userId,
-            action: "student.imported",
-            entity: "students",
-            entity_id: student.id,
-            metadata: {
-              fileName: options.fileName,
-              batchName: options.batchName,
-              description: options.description ?? null,
-              rowKey: row.rowKey,
-            },
-          });
-        }
-
-      result.inserted += 1;
-      continue;
-      }
+      const admissionNo = row.mapped.admissionNo || row.sourceRow?.admissionNo || "";
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.mapped.firstName || "");
 
       const studentPayload = buildStudentPayload(row, userId, options.rule) as TablesUpdate<"students">;
-      const { error: studentError } = await supabase.from("students").update(studentPayload).eq("id", row.existing.student_id);
+      const { error: studentError } = await supabase.from("students").update(studentPayload).eq("id", studentId);
       if (studentError) throw studentError;
 
-      const enrollmentPayload = buildEnrollmentPayload(row, row.existing.student_id, row.existing.enrollment_id, options.rule);
-      if (row.existing.enrollment_id) {
+      const { data: existingEnrollment, error: enrollmentSelectError } = await supabase.from("enrollments").select("id").eq("student_id", studentId).maybeSingle();
+      if (enrollmentSelectError) throw enrollmentSelectError;
+      const enrollmentPayload = buildEnrollmentPayload(row, studentId, existingEnrollment?.id ?? null, options.rule);
+      if (existingEnrollment) {
         const { error: enrollmentError } = await supabase
           .from("enrollments")
           .update(enrollmentPayload as TablesUpdate<"enrollments">)
-          .eq("id", row.existing.enrollment_id);
+          .eq("id", existingEnrollment.id);
         if (enrollmentError) throw enrollmentError;
       } else {
         const { error: enrollmentError } = await supabase
@@ -1478,12 +1529,13 @@ export async function commitImportRows(
         if (enrollmentError) throw enrollmentError;
       }
 
-      if (await tableExists("audit_log")) {
-        await supabase.from("audit_log").insert({
+      const isNew = !row.existing || row.existing.student_id !== studentId;
+      if (auditLogReady) {
+        auditEntries.push({
           actor: userId,
-          action: "student.import.updated",
+          action: isNew ? "student.imported" : "student.import.updated",
           entity: "students",
-          entity_id: row.existing.student_id,
+          entity_id: studentId,
           metadata: {
             fileName: options.fileName,
             batchName: options.batchName,
@@ -1493,18 +1545,29 @@ export async function commitImportRows(
         });
       }
 
-      result.updated += 1;
+      if (isNew) result.inserted += 1;
+      else result.updated += 1;
+      continue;
     } catch (error) {
       result.failed += 1;
+      const errMsg =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null
+            ? ((error as Record<string, unknown>).message ?? (error as Record<string, unknown>).toString?.() ?? "Unknown import error")
+            : "Unknown import error";
       result.errors.push({
         rowNumber: row.sourceRowIndex + 2,
-        message: error instanceof Error ? error.message : "Unknown import error",
+        message: errMsg,
       });
     }
   }
 
-  try {
-    if (await tableExists("audit_log")) {
+  if (auditLogReady) {
+    if (auditEntries.length) {
+      await supabase.from("audit_log").insert(auditEntries).select("id").maybeSingle();
+    }
+    try {
       await supabase.from("audit_log").insert({
         actor: userId,
         action: "student.import.batch.completed",
@@ -1523,9 +1586,9 @@ export async function commitImportRows(
           failed: result.failed,
         },
       });
+    } catch {
+      // batch completed logging is best-effort
     }
-  } catch {
-    // The import has already completed; history logging is best-effort.
   }
 
   emitAppSync(studentRegisterSyncKey);

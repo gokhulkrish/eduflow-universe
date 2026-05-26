@@ -125,12 +125,12 @@ export default function AccountManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Transaction</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Description</Label><Input value={txDesc} onChange={(e) => setTxDesc(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="txDesc">Description</Label><Input id="txDesc" name="description" value={txDesc} onChange={(e) => setTxDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Type</Label><Select value={txType} onValueChange={(v) => setTxType(v as "income"|"expense")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent></Select></div>
-              <div><Label className="text-xs">Category</Label><Select value={txCat} onValueChange={setTxCat}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="txType">Type</Label><Select value={txType} onValueChange={(v) => setTxType(v as "income"|"expense")}><SelectTrigger id="txType" name="txType"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="txCat">Category</Label><Select value={txCat} onValueChange={setTxCat}><SelectTrigger id="txCat" name="txCat"><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
             </div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Amount (₹)</Label><Input type="number" value={txAmt} onChange={(e) => setTxAmt(e.target.value)} /></div><div><Label className="text-xs">Reference</Label><Input value={txRef} onChange={(e) => setTxRef(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="txAmt">Amount (₹)</Label><Input id="txAmt" name="amount" type="number" value={txAmt} onChange={(e) => setTxAmt(e.target.value)} /></div><div><Label className="text-xs" htmlFor="txRef">Reference</Label><Input id="txRef" name="reference" value={txRef} onChange={(e) => setTxRef(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setTxOpen(false)}>Cancel</Button><Button onClick={() => { createTransaction({ date: new Date().toISOString(), description: txDesc, category: txCat, type: txType, amount: Number(txAmt) || 0, reference: txRef }); refreshTxs(); setTxOpen(false); toast.success("Added"); }} disabled={!txDesc || !txCat || !txAmt}>Add</Button></DialogFooter>
         </DialogContent>
@@ -140,9 +140,9 @@ export default function AccountManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Budget</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Category</Label><Select value={bgCat} onValueChange={setBgCat}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Allocated (₹)</Label><Input type="number" value={bgAlloc} onChange={(e) => setBgAlloc(e.target.value)} /></div><div><Label className="text-xs">Spent (₹)</Label><Input type="number" value={bgSpent} onChange={(e) => setBgSpent(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Fiscal Year</Label><Input value={bgYear} onChange={(e) => setBgYear(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="bgCat">Category</Label><Select value={bgCat} onValueChange={setBgCat}><SelectTrigger id="bgCat" name="bgCat"><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="bgAlloc">Allocated (₹)</Label><Input id="bgAlloc" name="allocated" type="number" value={bgAlloc} onChange={(e) => setBgAlloc(e.target.value)} /></div><div><Label className="text-xs" htmlFor="bgSpent">Spent (₹)</Label><Input id="bgSpent" name="spent" type="number" value={bgSpent} onChange={(e) => setBgSpent(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="bgYear">Fiscal Year</Label><Input id="bgYear" name="fiscalYear" value={bgYear} onChange={(e) => setBgYear(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setBgOpen(false)}>Cancel</Button><Button onClick={() => { const existing = budgets.find((b) => b.category === bgCat && b.fiscal_year === bgYear); if (existing) { updateBudget(existing.id, { allocated: Number(bgAlloc) || 0, spent: Number(bgSpent) || 0 }); } else { createBudget({ category: bgCat, allocated: Number(bgAlloc) || 0, spent: Number(bgSpent) || 0, fiscal_year: bgYear }); } refreshBudgets(); setBgOpen(false); toast.success("Saved"); }} disabled={!bgCat || !bgAlloc}>Save</Button></DialogFooter>
         </DialogContent>

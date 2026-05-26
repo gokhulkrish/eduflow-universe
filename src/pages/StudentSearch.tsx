@@ -55,20 +55,21 @@ export default function StudentSearch() {
             <div className="relative sm:col-span-2">
               <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="studentSearchInput"
                 placeholder="Search by name, admission number, grade, section…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="rounded-xl pl-9"
               />
             </div>
-            <Select value={cohortFilter} onValueChange={setCohortFilter}>
+            <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
               <SelectTrigger><SelectValue placeholder="All Cohorts" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cohorts</SelectItem>
                 {cohortOptions.map((cohort) => <SelectItem key={cohort ?? ""} value={cohort ?? ""}>{cohort}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select name="statusFilter" value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue placeholder="All Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>

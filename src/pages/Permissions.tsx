@@ -528,7 +528,7 @@ export default function Permissions() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-0 w-full sm:min-w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search modules, roles, or access levels" className="pl-9" />
+            <Input id="permSearch" name="permSearch" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search modules, roles, or access levels" className="pl-9" />
           </div>
           <div className="flex flex-wrap gap-1.5">
             {CAPABILITY_LEVELS.map((l) => (

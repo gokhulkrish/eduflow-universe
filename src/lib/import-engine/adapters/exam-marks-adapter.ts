@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -55,8 +56,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
     if (row.action === "skip") { skipped++; continue; }
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
-      const { data: student } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
-      if (!student) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` }); continue; }
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
 
       const examTitle = row.mapped.examTitle || row.sourceRow.examTitle || "";
       const subject = row.mapped.subject || row.sourceRow.subject || "";
@@ -75,7 +75,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 
       if (row.action === "insert") {
         const payload: Record<string, unknown> = {
-          student_id: student.id,
+          student_id: studentId,
           marks_obtained: marksObtained,
           grade,
           remarks: remarks || "",
@@ -87,7 +87,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       } else if (row.action === "update") {
         const { data: existing } = await (supabase.from("exam_marks") as any)
-          .select("id").eq("student_id", student.id).maybeSingle();
+          .select("id").eq("student_id", studentId).maybeSingle();
         if (existing) {
           const { error } = await (supabase.from("exam_marks") as any)
             .update({ marks_obtained: marksObtained, grade, remarks: remarks || "" })
@@ -96,7 +96,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
           else { updated++; rowResults.push({ rowKey: row.rowKey, id: existing.id, action: "updated" }); }
         } else {
           const payload: Record<string, unknown> = {
-            student_id: student.id,
+            student_id: studentId,
             marks_obtained: marksObtained,
             grade,
             remarks: remarks || "",
@@ -110,7 +110,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
       }
     } catch (err) {
       failed++;
-      errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : "Unknown error" });
+      errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error") });
     }
   }
 

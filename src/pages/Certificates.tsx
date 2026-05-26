@@ -247,7 +247,7 @@ export default function Certificates() {
             <CardHeader><CardTitle className="text-sm">Verify Certificate</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Input placeholder="Enter QR token" value={qrToken} onChange={(e) => setQrToken(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleVerify()} />
+                <Input id="qrToken" name="qrToken" placeholder="Enter QR token" value={qrToken} onChange={(e) => setQrToken(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleVerify()} />
                 <Button onClick={handleVerify} disabled={qrLoading} className="w-full rounded-xl sm:w-auto sm:shrink-0">
                   {qrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   Verify
@@ -316,8 +316,8 @@ export default function Certificates() {
             <CardHeader><CardTitle className="text-sm">Bulk Generate Certificates</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-xs">Template</Label>
-                <Select value={bulkTplId} onValueChange={setBulkTplId}>
+                <Label className="text-xs" htmlFor="bulkTemplate">Template</Label>
+                <Select name="bulkTemplate" value={bulkTplId} onValueChange={setBulkTplId}>
                   <SelectTrigger><SelectValue placeholder="Select template" /></SelectTrigger>
                   <SelectContent>
                     {(templates ?? []).filter((t) => t.active).map((t) => (
@@ -327,8 +327,8 @@ export default function Certificates() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Purpose (optional)</Label>
-                <Input value={bulkPurpose} onChange={(e) => setBulkPurpose(e.target.value)} placeholder="e.g. Transfer certificate" />
+                <Label className="text-xs" htmlFor="bulkPurpose">Purpose (optional)</Label>
+                <Input id="bulkPurpose" name="bulkPurpose" value={bulkPurpose} onChange={(e) => setBulkPurpose(e.target.value)} placeholder="e.g. Transfer certificate" />
               </div>
               <div>
                 <Label className="text-xs">Select Students ({bulkStudentIds.length} selected)</Label>
@@ -336,7 +336,7 @@ export default function Certificates() {
                   <div className="p-2 space-y-1">
                     {(students ?? []).map((s) => (
                       <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50 cursor-pointer">
-                        <input type="checkbox" checked={bulkStudentIds.includes(s.id)} onChange={() => setBulkStudentIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} className="rounded" />
+                        <input type="checkbox" name="studentSelect" checked={bulkStudentIds.includes(s.id)} onChange={() => setBulkStudentIds((prev) => prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id])} className="rounded" />
                         <span className="font-medium">{s.display_name}</span>
                         <span className="text-[10px] text-muted-foreground">{s.admission_no}</span>
                       </label>
@@ -368,17 +368,17 @@ export default function Certificates() {
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label className="text-xs">Code</Label>
-                <Input value={tplCode} onChange={(e) => setTplCode(e.target.value)} placeholder="e.g. BONAFIDE" />
+                <Label className="text-xs" htmlFor="tplCode">Code</Label>
+                <Input id="tplCode" name="tplCode" value={tplCode} onChange={(e) => setTplCode(e.target.value)} placeholder="e.g. BONAFIDE" />
               </div>
               <div>
-                <Label className="text-xs">Name</Label>
-                <Input value={tplName} onChange={(e) => setTplName(e.target.value)} placeholder="e.g. Bonafide Certificate" />
+                <Label className="text-xs" htmlFor="tplName">Name</Label>
+                <Input id="tplName" name="tplName" value={tplName} onChange={(e) => setTplName(e.target.value)} placeholder="e.g. Bonafide Certificate" />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Body (HTML template)</Label>
-              <Textarea value={tplBody} onChange={(e) => setTplBody(e.target.value)} rows={8} placeholder="<p>This is to certify that {{student_name}}...</p>" className="font-mono text-xs" />
+              <Label className="text-xs" htmlFor="tplBody">Body (HTML template)</Label>
+              <Textarea id="tplBody" name="tplBody" value={tplBody} onChange={(e) => setTplBody(e.target.value)} rows={8} placeholder="<p>This is to certify that {{student_name}}...</p>" className="font-mono text-xs" />
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="tplActive" checked={tplActive} onChange={(e) => setTplActive(e.target.checked)} className="rounded" />
@@ -401,8 +401,8 @@ export default function Certificates() {
           <DialogHeader><DialogTitle>New Certificate Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Template</Label>
-              <Select value={reqTplId} onValueChange={setReqTplId}>
+              <Label className="text-xs" htmlFor="reqTemplate">Template</Label>
+              <Select name="reqTemplate" value={reqTplId} onValueChange={setReqTplId}>
                 <SelectTrigger><SelectValue placeholder="Select template" /></SelectTrigger>
                 <SelectContent>
                   {(templates ?? []).filter((t) => t.active).map((t) => (
@@ -412,8 +412,8 @@ export default function Certificates() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Student</Label>
-              <Select value={reqStudentId} onValueChange={setReqStudentId}>
+              <Label className="text-xs" htmlFor="reqStudent">Student</Label>
+              <Select name="reqStudent" value={reqStudentId} onValueChange={setReqStudentId}>
                 <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
                 <SelectContent>
                   {(students ?? []).map((s) => (
@@ -423,8 +423,8 @@ export default function Certificates() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Purpose (optional)</Label>
-              <Input value={reqPurpose} onChange={(e) => setReqPurpose(e.target.value)} placeholder="e.g. GCT application" />
+              <Label className="text-xs" htmlFor="reqPurpose">Purpose (optional)</Label>
+              <Input id="reqPurpose" name="reqPurpose" value={reqPurpose} onChange={(e) => setReqPurpose(e.target.value)} placeholder="e.g. GCT application" />
             </div>
           </div>
           <DialogFooter>
@@ -444,8 +444,8 @@ export default function Certificates() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
             <div>
-              <Label className="text-xs">Reason</Label>
-              <Textarea value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} rows={3} placeholder="e.g. Issued in error" />
+              <Label className="text-xs" htmlFor="revokeReason">Reason</Label>
+              <Textarea id="revokeReason" name="revokeReason" value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} rows={3} placeholder="e.g. Issued in error" />
             </div>
           </div>
           <DialogFooter>

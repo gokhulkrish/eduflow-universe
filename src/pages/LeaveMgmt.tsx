@@ -138,8 +138,8 @@ export default function LeaveMgmt() {
             <CardHeader><CardTitle className="text-sm">Leave Usage</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center">
-                <Label className="text-xs">Filter by Department</Label>
-                <Select value={deptFilter} onValueChange={(v) => setDeptFilter(v)}>
+                <Label className="text-xs" htmlFor="filterDept">Filter by Department</Label>
+                <Select name="filterDept" value={deptFilter} onValueChange={(v) => setDeptFilter(v)}>
                   <SelectTrigger className="h-7 w-full sm:w-[180px]"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
@@ -173,10 +173,10 @@ export default function LeaveMgmt() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Apply Leave</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Employee Name</Label><Input value={emp} onChange={(e) => setEmp(e.target.value)} /></div><div><Label className="text-xs">Department</Label><Select value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div></div>
-            <div><Label className="text-xs">Leave Type</Label><Select value={type} onValueChange={setType}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t} value={t}>{t} ({getRemaining(emp || "x", type || t)} left)</SelectItem>)}</SelectContent></Select></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Start</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div><div><Label className="text-xs">End</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Reason</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} /></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs" htmlFor="empName">Employee Name</Label><Input id="empName" name="empName" value={emp} onChange={(e) => setEmp(e.target.value)} /></div><div><Label className="text-xs" htmlFor="leaveDept">Department</Label><Select name="leaveDept" value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEPARTMENTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div></div>
+            <div><Label className="text-xs" htmlFor="leaveType">Leave Type</Label><Select name="leaveType" value={type} onValueChange={setType}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t} value={t}>{t} ({getRemaining(emp || "x", type || t)} left)</SelectItem>)}</SelectContent></Select></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs" htmlFor="leaveStart">Start</Label><Input id="leaveStart" name="leaveStart" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div><div><Label className="text-xs" htmlFor="leaveEnd">End</Label><Input id="leaveEnd" name="leaveEnd" type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="leaveReason">Reason</Label><Textarea id="leaveReason" name="leaveReason" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={handleCreate} disabled={!emp || !type || !start || !end}>Apply</Button></DialogFooter>
         </DialogContent>
@@ -186,8 +186,8 @@ export default function LeaveMgmt() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Holiday</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Holiday Name</Label><Input value={holName} onChange={(e) => setHolName(e.target.value)} /></div>
-            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs">Date</Label><Input type="date" value={holDate} onChange={(e) => setHolDate(e.target.value)} /></div><div><Label className="text-xs">Type</Label><Select value={holType} onValueChange={setHolType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem></SelectContent></Select></div></div>
+            <div><Label className="text-xs" htmlFor="holidayName">Holiday Name</Label><Input id="holidayName" name="holidayName" value={holName} onChange={(e) => setHolName(e.target.value)} /></div>
+            <div className="grid gap-3 sm:grid-cols-2"><div><Label className="text-xs" htmlFor="holidayDate">Date</Label><Input id="holidayDate" name="holidayDate" type="date" value={holDate} onChange={(e) => setHolDate(e.target.value)} /></div><div><Label className="text-xs" htmlFor="holidayType">Type</Label><Select name="holidayType" value={holType} onValueChange={setHolType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem></SelectContent></Select></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setHolOpen(false)}>Cancel</Button><Button disabled={!holName || !holDate} onClick={() => { addHoliday({ name: holName, date: new Date(holDate).toISOString(), type: holType }); refreshHolidays(); setHolOpen(false); toast.success("Holiday added"); }}>Add</Button></DialogFooter>
         </DialogContent>

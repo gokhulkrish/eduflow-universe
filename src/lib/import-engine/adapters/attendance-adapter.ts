@@ -1,6 +1,7 @@
 import type { ImportModule, ImportModuleFieldGroup, ImportModuleMatchStrategy, ImportCommitResult, ImportBatch, ImportPreviewRow, ImportRollbackEntry } from "../types";
 import { emitAppSync } from "@/lib/app-sync";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentExists } from "@/lib/student-records";
 
 const fieldGroups: ImportModuleFieldGroup[] = [
   {
@@ -70,17 +71,7 @@ async function commitRows(
 
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
-      const { data: student } = await supabase
-        .from("students")
-        .select("id")
-        .eq("admission_no", admissionNo)
-        .maybeSingle();
-
-      if (!student) {
-        failed++;
-        errors.push({ rowNumber: row.sourceRowIndex, message: `Student not found: ${admissionNo}` });
-        continue;
-      }
+      const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
 
       const date = row.mapped.date || "";
       if (!date) {
@@ -101,7 +92,7 @@ async function commitRows(
 
       if (row.action === "insert") {
         const { error: insertError } = await (supabase.from("attendance") as any).insert({
-          student_id: student.id,
+          student_id: studentId,
           date,
           period,
           status,
@@ -111,7 +102,7 @@ async function commitRows(
         if (insertError) {
           if (insertError.code === "23505") {
             const { error: upsertError } = await (supabase.from("attendance") as any).upsert(
-              { student_id: student.id, date, period, status, remarks },
+              { student_id: studentId, date, period, status, remarks },
               { onConflict: "student_id,date,period" },
             );
             if (upsertError) {
@@ -129,7 +120,7 @@ async function commitRows(
         }
       } else if (row.action === "update") {
         const { error: upsertError } = await (supabase.from("attendance") as any).upsert(
-          { student_id: student.id, date, period, status, remarks },
+          { student_id: studentId, date, period, status, remarks },
           { onConflict: "student_id,date,period" },
         );
         if (upsertError) {
@@ -143,7 +134,7 @@ async function commitRows(
       failed++;
       errors.push({
         rowNumber: row.sourceRowIndex,
-        message: err instanceof Error ? err.message : "Unknown error",
+        message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error"),
       });
     }
   }

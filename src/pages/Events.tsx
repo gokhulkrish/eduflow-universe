@@ -133,14 +133,14 @@ export default function Events() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>{editId ? "Edit" : "New"} Event</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label className="text-xs">Time</Label><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="eventTitle">Title</Label><Input id="eventTitle" name="eventTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="eventDesc">Description</Label><Textarea id="eventDesc" name="eventDesc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="eventDate">Date</Label><Input id="eventDate" name="eventDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label className="text-xs" htmlFor="eventTime">Time</Label><Input id="eventTime" name="eventTime" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Location</Label><Input value={loc} onChange={(e) => setLoc(e.target.value)} /></div>
-              <div><Label className="text-xs">Category</Label><Select value={cat} onValueChange={setCat}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="eventLocation">Location</Label><Input id="eventLocation" name="eventLocation" value={loc} onChange={(e) => setLoc(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="eventCategory">Category</Label><Select name="eventCategory" value={cat} onValueChange={setCat}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
             </div>
-            <div><Label className="text-xs">Capacity</Label><Input type="number" value={cap} onChange={(e) => setCap(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="eventCapacity">Capacity</Label><Input id="eventCapacity" name="eventCapacity" type="number" value={cap} onChange={(e) => setCap(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={!title || !date}>{editId ? "Update" : "Create"}</Button></DialogFooter>
         </DialogContent>
@@ -150,10 +150,10 @@ export default function Events() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>RSVP</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Guest Name</Label><Input value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="rsvpName">Guest Name</Label><Input id="rsvpName" name="rsvpName" value={rsvpName} onChange={(e) => setRsvpName(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Status</Label><Select value={rsvpStatus} onValueChange={setRsvpStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="confirmed"><CheckCircle className="h-3 w-3 inline mr-1" />Confirmed</SelectItem><SelectItem value="declined"><XCircle className="h-3 w-3 inline mr-1" />Declined</SelectItem><SelectItem value="maybe">Maybe</SelectItem></SelectContent></Select></div>
-              <div><Label className="text-xs">Guests</Label><Input type="number" value={rsvpGuests} onChange={(e) => setRsvpGuests(e.target.value)} min="1" /></div>
+              <div><Label className="text-xs" htmlFor="rsvpStatus">Status</Label><Select name="rsvpStatus" value={rsvpStatus} onValueChange={setRsvpStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="confirmed"><CheckCircle className="h-3 w-3 inline mr-1" />Confirmed</SelectItem><SelectItem value="declined"><XCircle className="h-3 w-3 inline mr-1" />Declined</SelectItem><SelectItem value="maybe">Maybe</SelectItem></SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="rsvpGuests">Guests</Label><Input id="rsvpGuests" name="rsvpGuests" type="number" value={rsvpGuests} onChange={(e) => setRsvpGuests(e.target.value)} min="1" /></div>
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setRsvpOpen(false)}>Cancel</Button><Button disabled={!rsvpName} onClick={() => { if (selId) { addRSVP({ event_id: selId, guest: rsvpName, status: rsvpStatus, guests_count: Number(rsvpGuests), notes: "" }); setRsvps(getRSVPs(selId)); setRsvpOpen(false); toast.success("RSVP added"); } }}>Submit</Button></DialogFooter>
@@ -164,8 +164,8 @@ export default function Events() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Ticket Type</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Ticket Name</Label><Input value={tixName} onChange={(e) => setTixName(e.target.value)} placeholder="e.g. VIP" /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Price (₹)</Label><Input type="number" value={tixPrice} onChange={(e) => setTixPrice(e.target.value)} /></div><div><Label className="text-xs">Quantity</Label><Input type="number" value={tixQty} onChange={(e) => setTixQty(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="tixName">Ticket Name</Label><Input id="tixName" name="tixName" value={tixName} onChange={(e) => setTixName(e.target.value)} placeholder="e.g. VIP" /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="tixPrice">Price (₹)</Label><Input id="tixPrice" name="tixPrice" type="number" value={tixPrice} onChange={(e) => setTixPrice(e.target.value)} /></div><div><Label className="text-xs" htmlFor="tixQty">Quantity</Label><Input id="tixQty" name="tixQty" type="number" value={tixQty} onChange={(e) => setTixQty(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setTixOpen(false)}>Cancel</Button><Button disabled={!tixName || !tixQty} onClick={() => { if (selId) { addTicketType({ event_id: selId, name: tixName, price: Number(tixPrice) || 0, quantity: Number(tixQty), sold: 0 }); setTickets(getTickets(selId)); setTixOpen(false); toast.success("Ticket added"); } }}>Add</Button></DialogFooter>
         </DialogContent>

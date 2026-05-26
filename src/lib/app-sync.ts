@@ -16,11 +16,11 @@ export function subscribeAppSync(keys: string[], listener: () => void) {
 
   const handleCustomEvent = (event: Event) => {
     const detail = (event as CustomEvent<AppSyncDetail>).detail;
-    if (!detail?.key || keySet.has(detail.key)) listener();
+    if (!detail?.key || keySet.has(detail.key)) Promise.resolve().then(listener);
   };
 
   const handleStorageEvent = (event: StorageEvent) => {
-    if (!event.key || keySet.has(event.key)) listener();
+    if (!event.key || keySet.has(event.key)) Promise.resolve().then(listener);
   };
 
   window.addEventListener(APP_SYNC_EVENT, handleCustomEvent as EventListener);

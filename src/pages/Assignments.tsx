@@ -71,7 +71,7 @@ export default function Assignments() {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex gap-2">
               <Select value={cohortFilter} onValueChange={(v) => setCohortFilter(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="All cohorts" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs w-44" name="cohortFilter"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
                   {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.grade}{c.section ? `-${c.section}` : ""}</SelectItem>)}
@@ -114,7 +114,7 @@ export default function Assignments() {
         <TabsContent value="submissions">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <Select value={selectedAs ?? ""} onValueChange={(v) => setSelectedAs(v)}>
-              <SelectTrigger className="h-8 text-xs w-64"><SelectValue placeholder="Select assignment" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs w-64" name="selectedAssignment"><SelectValue placeholder="Select assignment" /></SelectTrigger>
               <SelectContent>{(assignments ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.title} ({a.grade}{a.section})</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -164,15 +164,15 @@ export default function Assignments() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{asEditId ? "Edit" : "New"} Assignment</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={asTitle} onChange={(e) => setAsTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="asTitle">Title</Label><Input id="asTitle" name="title" value={asTitle} onChange={(e) => setAsTitle(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Subject</Label><Select value={asSubj} onValueChange={setAsSubj}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(subjects ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label className="text-xs">Cohort</Label><Select value={asCohort} onValueChange={setAsCohort}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.grade}{c.section ? `-${c.section}` : ""}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="asSubj">Subject</Label><Select value={asSubj} onValueChange={setAsSubj}><SelectTrigger id="asSubj" name="subject"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(subjects ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="asCohort">Cohort</Label><Select value={asCohort} onValueChange={setAsCohort}><SelectTrigger id="asCohort" name="cohort"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.grade}{c.section ? `-${c.section}` : ""}</SelectItem>)}</SelectContent></Select></div>
             </div>
-            <div><Label className="text-xs">Description</Label><Textarea value={asDesc} onChange={(e) => setAsDesc(e.target.value)} rows={3} /></div>
+            <div><Label className="text-xs" htmlFor="asDesc">Description</Label><Textarea id="asDesc" name="description" value={asDesc} onChange={(e) => setAsDesc(e.target.value)} rows={3} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Due Date</Label><Input type="datetime-local" value={asDue} onChange={(e) => setAsDue(e.target.value)} /></div>
-              <div><Label className="text-xs">Max Marks</Label><Input type="number" value={asMax} onChange={(e) => setAsMax(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="asDue">Due Date</Label><Input id="asDue" name="dueDate" type="datetime-local" value={asDue} onChange={(e) => setAsDue(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="asMax">Max Marks</Label><Input id="asMax" name="maxMarks" type="number" value={asMax} onChange={(e) => setAsMax(e.target.value)} /></div>
             </div>
           </div>
           <DialogFooter>
@@ -187,8 +187,8 @@ export default function Assignments() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Grade Submission</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Marks</Label><Input type="number" value={gradeMarks} onChange={(e) => setGradeMarks(e.target.value)} placeholder="0" /></div>
-            <div><Label className="text-xs">Feedback</Label><Textarea value={gradeFeedback} onChange={(e) => setGradeFeedback(e.target.value)} rows={3} /></div>
+            <div><Label className="text-xs" htmlFor="gradeMarks">Marks</Label><Input id="gradeMarks" name="marks" type="number" value={gradeMarks} onChange={(e) => setGradeMarks(e.target.value)} placeholder="0" /></div>
+            <div><Label className="text-xs" htmlFor="gradeFeedback">Feedback</Label><Textarea id="gradeFeedback" name="feedback" value={gradeFeedback} onChange={(e) => setGradeFeedback(e.target.value)} rows={3} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmissionId(null)}>Cancel</Button>

@@ -246,18 +246,18 @@ export default function PromotionEngine() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>{editId ? "Edit" : "New"} Promotion Rule</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Rule Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Primary Promotion 2026" /></div>
+            <div><Label className="text-xs" htmlFor="ruleName">Rule Name</Label><Input id="ruleName" name="ruleName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Primary Promotion 2026" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">From Cohort</Label><Select value={fromProgram} onValueChange={handleProgramChange}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEFAULT_GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label className="text-xs">To Cohort</Label><Select value={toProgram} onValueChange={setToProgram}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEFAULT_GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="fromCohort">From Cohort</Label><Select name="fromCohort" value={fromProgram} onValueChange={handleProgramChange}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEFAULT_GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="toCohort">To Cohort</Label><Select name="toCohort" value={toProgram} onValueChange={setToProgram}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{DEFAULT_GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">From Section</Label><Select value={fromSec} onValueChange={setFromSec}><SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger><SelectContent>{DEFAULT_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label className="text-xs">To Section</Label><Select value={toSec} onValueChange={setToSec}><SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger><SelectContent>{DEFAULT_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="fromSection">From Section</Label><Select name="fromSection" value={fromSec} onValueChange={setFromSec}><SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger><SelectContent>{DEFAULT_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="toSection">To Section</Label><Select name="toSection" value={toSec} onValueChange={setToSec}><SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger><SelectContent>{DEFAULT_SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Min Attendance %</Label><Input type="number" value={minAtt} onChange={(e) => setMinAtt(e.target.value)} /></div>
-              <div><Label className="text-xs">Min GPA</Label><Input type="number" step="0.1" value={minGpa} onChange={(e) => setMinGpa(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="minAtt">Min Attendance %</Label><Input id="minAtt" name="minAtt" type="number" value={minAtt} onChange={(e) => setMinAtt(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="minGpa">Min GPA</Label><Input id="minGpa" name="minGpa" type="number" step="0.1" value={minGpa} onChange={(e) => setMinGpa(e.target.value)} /></div>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2"><Switch checked={auto} onCheckedChange={setAuto} id="auto" /><Label htmlFor="auto" className="text-xs">Auto-promote</Label></div>

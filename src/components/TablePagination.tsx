@@ -44,6 +44,8 @@ export function TablePagination({ page, totalPages, total, from, to, setPage, ne
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-muted-foreground whitespace-nowrap">Rows per page:</span>
         <select
+          id="rows-per-page"
+          name="pageSize"
           value={pageSize}
           onChange={(e) => setPageSize?.(Number(e.target.value))}
           className="h-7 w-full max-w-[7rem] rounded-md border border-border/40 bg-background px-1.5 text-xs font-medium outline-none focus:ring-1 focus:ring-primary/30 sm:w-auto"

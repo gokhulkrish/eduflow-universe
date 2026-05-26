@@ -93,12 +93,12 @@ export default function Notifications() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Send Broadcast</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={bcTitle} onChange={(e) => setBcTitle(e.target.value)} placeholder="e.g. Holiday Notice" /></div>
-            <div><Label className="text-xs">Message</Label><Textarea value={bcBody} onChange={(e) => setBcBody(e.target.value)} rows={4} /></div>
+            <div><Label className="text-xs" htmlFor="bcTitle">Title</Label><Input id="bcTitle" name="bcTitle" value={bcTitle} onChange={(e) => setBcTitle(e.target.value)} placeholder="e.g. Holiday Notice" /></div>
+            <div><Label className="text-xs" htmlFor="bcBody">Message</Label><Textarea id="bcBody" name="bcBody" value={bcBody} onChange={(e) => setBcBody(e.target.value)} rows={4} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Type</Label>
-                <Select value={bcType} onValueChange={setBcType}>
+                <Label className="text-xs" htmlFor="bcType">Type</Label>
+                <Select name="bcType" value={bcType} onValueChange={setBcType}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alert">Alert</SelectItem>
@@ -109,8 +109,8 @@ export default function Notifications() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Target</Label>
-                <Select value={bcTarget} onValueChange={setBcTarget}>
+                <Label className="text-xs" htmlFor="bcTarget">Target</Label>
+                <Select name="bcTarget" value={bcTarget} onValueChange={setBcTarget}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="students">All Students</SelectItem>
@@ -120,7 +120,7 @@ export default function Notifications() {
               </div>
             </div>
             {bcTarget === "students" && (
-              <div><Label className="text-xs">Cohort filter (optional)</Label><Input value={bcCohort} onChange={(e) => setBcCohort(e.target.value)} placeholder="e.g. B.Com Sem 4" /></div>
+              <div><Label className="text-xs" htmlFor="bcCohort">Cohort filter (optional)</Label><Input id="bcCohort" name="bcCohort" value={bcCohort} onChange={(e) => setBcCohort(e.target.value)} placeholder="e.g. B.Com Sem 4" /></div>
             )}
           </div>
           <DialogFooter>

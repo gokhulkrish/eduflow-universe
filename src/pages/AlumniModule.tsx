@@ -33,7 +33,7 @@ export default function AlumniModule() {
     <div>
       <PageHeader title="Alumni Module" subtitle="Graduate directory & engagement" icon={<GraduationCap className="h-6 w-6" />} />
       <div className="flex gap-3 mb-4">
-        <div className="relative flex-1"><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search alumni..." className="pl-3 h-9 text-xs" /></div>
+        <div className="relative flex-1"><Input id="search-alumni" name="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search alumni..." className="pl-3 h-9 text-xs" /></div>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setName(""); setBatch(""); setEmail(""); setPhone(""); setOccupation(""); setCompany(""); setCity(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Alumni</Button>
       </div>
       <TablePagination {...pag} />
@@ -59,10 +59,10 @@ export default function AlumniModule() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Alumni</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs">Batch</Label><Input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="e.g. 2024" /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div><div><Label className="text-xs">Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Occupation</Label><Input value={occupation} onChange={(e) => setOccupation(e.target.value)} /></div><div><Label className="text-xs">Company</Label><Input value={company} onChange={(e) => setCompany(e.target.value)} /></div></div>
-            <div><Label className="text-xs">City</Label><Input value={city} onChange={(e) => setCity(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="name">Name</Label><Input id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="batch">Batch</Label><Input id="batch" name="batch" value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="e.g. 2024" /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div><div><Label className="text-xs" htmlFor="phone">Phone</Label><Input id="phone" name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="occupation">Occupation</Label><Input id="occupation" name="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} /></div><div><Label className="text-xs" htmlFor="company">Company</Label><Input id="company" name="company" value={company} onChange={(e) => setCompany(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="city">City</Label><Input id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !batch} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, batch, email, phone, occupation, company, city }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

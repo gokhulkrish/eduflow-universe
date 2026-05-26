@@ -510,7 +510,13 @@ export async function saveStudentRecord(values: StudentFormValues) {
     ? await supabase.from("students").update(studentPayload).eq("id", studentId).select("*").single()
     : await supabase.from("students").insert(studentPayload as TablesInsert<"students">).select("*").single();
 
-  if (studentError) throwDataError(studentError);
+  if (studentError) {
+    const se = studentError as { code?: string; status?: number; message?: string; details?: string };
+    if (!studentId && (se.code === "23505" || se.status === 409)) {
+      throw new Error(`A student with admission number "${studentPayload.admission_no}" already exists.`);
+    }
+    throwDataError(studentError);
+  }
 
   const enrollmentPayload: TablesInsert<"enrollments"> | TablesUpdate<"enrollments"> = {
     student_id: savedStudent.id,
@@ -599,6 +605,71 @@ const notificationTypeForAction = (action: string): RecentNotification["type"] =
   if (normalized.includes("warn") || normalized.includes("review") || normalized.includes("flag")) return "warning";
   return "info";
 };
+
+const studentCreatePromises = new Map<string, Promise<string>>();
+
+export async function ensureStudentExists(
+  admissionNo: string,
+  studentName?: string,
+): Promise<string> {
+  const key = clean(admissionNo) ?? admissionNo;
+  const pending = studentCreatePromises.get(key);
+  if (pending) return pending;
+
+  const promise = (async (): Promise<string> => {
+    const { data: existing, error: selectError } = await supabase
+      .from("students")
+      .select("id")
+      .eq("admission_no", key)
+      .maybeSingle();
+
+    if (selectError) throw new Error(selectError.message);
+    if (existing) return existing.id;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id ?? null;
+
+    const parts = (studentName ?? key).trim().split(/\s+/);
+    const firstName = parts[0] || key;
+    const lastName = parts.slice(1).join(" ") || null;
+
+    const { data: created, error } = await supabase
+      .from("students")
+      .insert({
+        admission_no: key,
+        first_name: firstName,
+        last_name: lastName,
+        status: "active",
+        created_by: userId,
+        updated_by: userId,
+      } as TablesInsert<"students">)
+      .select("id")
+      .single();
+
+    if (error) {
+      const se = error as { code?: string; status?: number; message?: string; details?: string };
+      if (se.code === "23505" || se.status === 409) {
+        const { data: retry, error: retryError } = await supabase
+          .from("students")
+          .select("id")
+          .eq("admission_no", key)
+          .maybeSingle();
+        if (retryError) throw new Error(retryError.message);
+        if (retry) return retry.id;
+      }
+      throw new Error(se.message ?? "Unknown Supabase error");
+    }
+
+    return created.id;
+  })();
+
+  studentCreatePromises.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    studentCreatePromises.delete(key);
+  }
+}
 
 export async function fetchRecentNotifications(limit = 5): Promise<RecentNotification[]> {
   if (!(await tableExists("audit_log"))) return [];

@@ -197,7 +197,7 @@ export default function Settings() {
                 ) : (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Enable</span>
-                    <Switch onCheckedChange={(v) => toast.success(`${s.title}: ${v ? "Enabled" : "Disabled"}`)} />
+                    <Switch id={`setting-${s.title.toLowerCase().replace(/\s+/g, "-")}`} onCheckedChange={(v) => toast.success(`${s.title}: ${v ? "Enabled" : "Disabled"}`)} />
                   </div>
                 )}
               </CardContent>

@@ -237,13 +237,14 @@ export default function Admissions() {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                      id="search-admissions" name="search"
                       value={search} onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search by name, admission no, email…"
                       className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9"
                     />
                   </div>
                   <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as AdmissionStage | "all")}>
-                    <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All stages" /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-40" name="stageFilter"><SelectValue placeholder="All stages" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
                       {ADMISSION_STAGES.map((s) => (
@@ -339,7 +340,7 @@ export default function Admissions() {
                                           <Badge variant="secondary" className={stageColor(a.stage)}>{stageLabel(a.stage)}</Badge>
                                           {" → "}
                                           <Select value={actionStage ?? getNextStages(a.stage)[0]} onValueChange={(v) => setActionStage(v as AdmissionStage)}>
-                                            <SelectTrigger className="inline-flex w-auto h-7 text-xs">
+                                            <SelectTrigger className="inline-flex w-auto h-7 text-xs" name="advanceStage">
                                               <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -353,6 +354,7 @@ export default function Admissions() {
                                       </AlertDialogHeader>
                                       <div className="px-6 pb-4">
                                         <Textarea
+                                          name="actionNotes"
                                           value={actionNotes}
                                           onChange={(e) => setActionNotes(e.target.value)}
                                           placeholder="Add notes (optional)"

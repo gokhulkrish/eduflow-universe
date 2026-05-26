@@ -181,16 +181,16 @@ export default function OnlineExams() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>{editId ? "Edit" : "New"} Test</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div><Label className="text-xs">Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
+            <div><Label className="text-xs" htmlFor="examTitle">Title</Label><Input id="examTitle" name="examTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label className="text-xs" htmlFor="examDesc">Description</Label><Textarea id="examDesc" name="examDesc" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Subject</Label><Select value={subjId} onValueChange={setSubjId}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(subjects ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label className="text-xs">Cohort</Label><Select value={cohortId} onValueChange={setCohortId}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.grade}{c.section ? `-${c.section}` : ""}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="examSubject">Subject</Label><Select name="examSubject" value={subjId} onValueChange={setSubjId}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(subjects ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label className="text-xs" htmlFor="examCohort">Cohort</Label><Select name="examCohort" value={cohortId} onValueChange={setCohortId}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.grade}{c.section ? `-${c.section}` : ""}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><Label className="text-xs">Duration</Label><Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
-              <div><Label className="text-xs">Max Marks</Label><Input type="number" value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} /></div>
-              <div><Label className="text-xs">Pass Marks</Label><Input type="number" value={passMarks} onChange={(e) => setPassMarks(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="examDuration">Duration</Label><Input id="examDuration" name="examDuration" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="examMaxMarks">Max Marks</Label><Input id="examMaxMarks" name="examMaxMarks" type="number" value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} /></div>
+              <div><Label className="text-xs" htmlFor="examPassMarks">Pass Marks</Label><Input id="examPassMarks" name="examPassMarks" type="number" value={passMarks} onChange={(e) => setPassMarks(e.target.value)} /></div>
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={handleSave} disabled={!title || !subjId || !cohortId}>{editId ? "Update" : "Create"}</Button></DialogFooter>

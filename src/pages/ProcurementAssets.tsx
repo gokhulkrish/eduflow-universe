@@ -38,7 +38,7 @@ export default function ProcurementAssets() {
         <Card className="p-4"><p className="text-[10px] text-muted-foreground">Pending / Requested</p><p className="text-2xl font-bold text-destructive">{items.filter((p) => p.procurementStatus === "Requested" || p.procurementStatus === "Quoted").length}</p></Card>
       </div>
       <div className="flex gap-3 mb-4">
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search requests..." className="flex-1 h-9 text-xs" />
+        <Input id="procSearch" name="procSearch" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search requests..." className="flex-1 h-9 text-xs" />
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setTitle(""); setVendor(""); setTag(""); setDept(""); setStatus(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add Request</Button>
       </div>
       <TablePagination {...pag} />
@@ -63,9 +63,9 @@ export default function ProcurementAssets() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Procurement Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Request / Asset Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div><div><Label className="text-xs">Vendor</Label><Input value={vendor} onChange={(e) => setVendor(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Asset Tag</Label><Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="e.g. AST-001" /></div><div><Label className="text-xs">Department</Label><Input value={dept} onChange={(e) => setDept(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Procurement Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Requested">Requested</SelectItem><SelectItem value="Quoted">Quoted</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ordered">Ordered</SelectItem><SelectItem value="Received">Received</SelectItem><SelectItem value="Issued">Issued</SelectItem></SelectContent></Select></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="procTitle">Request / Asset Title</Label><Input id="procTitle" name="procTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div><div><Label className="text-xs" htmlFor="procVendor">Vendor</Label><Input id="procVendor" name="procVendor" value={vendor} onChange={(e) => setVendor(e.target.value)} /></div></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="procTag">Asset Tag</Label><Input id="procTag" name="procTag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="e.g. AST-001" /></div><div><Label className="text-xs" htmlFor="procDept">Department</Label><Input id="procDept" name="procDept" value={dept} onChange={(e) => setDept(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="procStatus">Procurement Status</Label><Select name="procStatus" value={status} onValueChange={setStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Requested">Requested</SelectItem><SelectItem value="Quoted">Quoted</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ordered">Ordered</SelectItem><SelectItem value="Received">Received</SelectItem><SelectItem value="Issued">Issued</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), requestTitle: title, vendorName: vendor, assetTag: tag, departmentName: dept, procurementStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

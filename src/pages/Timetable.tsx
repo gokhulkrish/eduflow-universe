@@ -142,7 +142,7 @@ export default function Timetable() {
         <TabsContent value="grid">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex w-full items-center gap-2 sm:w-auto">
-              <Select value={cohortFilter} onValueChange={(v) => { setCohortFilter(v === "all" ? "" : v); }}>
+              <Select name="cohortFilter" value={cohortFilter} onValueChange={(v) => { setCohortFilter(v === "all" ? "" : v); }}>
                 <SelectTrigger className="h-8 w-full text-xs sm:w-48"><SelectValue placeholder="Select cohort" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>
@@ -321,23 +321,23 @@ export default function Timetable() {
             {!editEntry && (
               <>
                 <div>
-                  <Label className="text-xs">Cohort</Label>
-                  <Select value={entryCohortId} onValueChange={setEntryCohortId} disabled={!!cohortFilter}>
+                  <Label className="text-xs" htmlFor="entryCohort">Cohort</Label>
+                  <Select name="entryCohort" value={entryCohortId} onValueChange={setEntryCohortId} disabled={!!cohortFilter}>
                     <SelectTrigger><SelectValue placeholder="Select cohort" /></SelectTrigger>
                     <SelectContent>{classOptions.map((c) => <SelectItem key={c.id} value={c.id}>{classLabel(c)}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Day</Label>
-                    <Select value={entryDay} onValueChange={setEntryDay}>
+                    <Label className="text-xs" htmlFor="entryDay">Day</Label>
+                    <Select name="entryDay" value={entryDay} onValueChange={setEntryDay}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>{[1, 2, 3, 4, 5, 6].map((d) => <SelectItem key={d} value={String(d)}>{DAY_NAMES[d]}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs">Period</Label>
-                    <Select value={entrySlotId} onValueChange={setEntrySlotId}>
+                    <Label className="text-xs" htmlFor="entryPeriod">Period</Label>
+                    <Select name="entryPeriod" value={entrySlotId} onValueChange={setEntrySlotId}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>{(slots ?? []).filter((s) => s.day_of_week === Number(entryDay) && !s.is_break).map((s) => <SelectItem key={s.id} value={s.id}>{s.name} ({s.start_time.slice(0, 5)})</SelectItem>)}</SelectContent>
                     </Select>
@@ -346,22 +346,22 @@ export default function Timetable() {
               </>
             )}
             <div>
-              <Label className="text-xs">Subject</Label>
-              <Select value={entrySubjId} onValueChange={setEntrySubjId}>
+              <Label className="text-xs" htmlFor="entrySubject">Subject</Label>
+              <Select name="entrySubject" value={entrySubjId} onValueChange={setEntrySubjId}>
                 <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
                 <SelectContent>{subjectOptions.map((s) => <SelectItem key={s.id} value={s.id}>{s.name} ({s.code ?? "—"})</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Teacher</Label>
-              <Select value={entryTeacherId} onValueChange={setEntryTeacherId}>
+              <Label className="text-xs" htmlFor="entryTeacher">Teacher</Label>
+              <Select name="entryTeacher" value={entryTeacherId} onValueChange={setEntryTeacherId}>
                 <SelectTrigger><SelectValue placeholder="Select teacher" /></SelectTrigger>
                 <SelectContent>{staffOptions.map((s) => <SelectItem key={s.id} value={s.id}>{staffLabel(s)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Room (optional)</Label>
-              <Input value={entryRoom} onChange={(e) => setEntryRoom(e.target.value)} placeholder="e.g. 101" />
+              <Label className="text-xs" htmlFor="entryRoom">Room (optional)</Label>
+              <Input id="entryRoom" name="entryRoom" value={entryRoom} onChange={(e) => setEntryRoom(e.target.value)} placeholder="e.g. 101" />
             </div>
           </div>
           <DialogFooter>
@@ -381,8 +381,8 @@ export default function Timetable() {
           <DialogHeader><DialogTitle>Create Substitution</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label className="text-xs">Timetable Entry</Label>
-              <Select value={subEntryId} onValueChange={setSubEntryId}>
+              <Label className="text-xs" htmlFor="subEntry">Timetable Entry</Label>
+              <Select name="subEntry" value={subEntryId} onValueChange={setSubEntryId}>
                 <SelectTrigger><SelectValue placeholder="Select entry" /></SelectTrigger>
                 <SelectContent>{(entries ?? []).filter((e) => e.teacher_name).map((e) => (
                   <SelectItem key={e.id} value={e.id}>{e.subject_name} — {e.teacher_name} ({DAY_NAMES[e.day_of_week]})</SelectItem>
@@ -390,19 +390,19 @@ export default function Timetable() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Substitute Teacher</Label>
-              <Select value={subTeacherId} onValueChange={setSubTeacherId}>
+              <Label className="text-xs" htmlFor="subTeacher">Substitute Teacher</Label>
+              <Select name="subTeacher" value={subTeacherId} onValueChange={setSubTeacherId}>
                 <SelectTrigger><SelectValue placeholder="Select teacher" /></SelectTrigger>
                 <SelectContent>{staffOptions.map((s) => <SelectItem key={s.id} value={s.id}>{staffLabel(s)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Date</Label>
-              <Input type="date" value={subDate} onChange={(e) => setSubDate(e.target.value)} />
+              <Label className="text-xs" htmlFor="subDate">Date</Label>
+              <Input id="subDate" name="subDate" type="date" value={subDate} onChange={(e) => setSubDate(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Reason (optional)</Label>
-              <Input value={subReason} onChange={(e) => setSubReason(e.target.value)} placeholder="e.g. Sick leave" />
+              <Label className="text-xs" htmlFor="subReason">Reason (optional)</Label>
+              <Input id="subReason" name="subReason" value={subReason} onChange={(e) => setSubReason(e.target.value)} placeholder="e.g. Sick leave" />
             </div>
           </div>
           <DialogFooter>

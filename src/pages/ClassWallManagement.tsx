@@ -31,7 +31,7 @@ export default function ClassWallManagement() {
     <div>
       <PageHeader title="Campus Wall Management" subtitle="Cohort-specific posts & announcements" icon={<LayoutPanelTop className="h-6 w-6" />} />
       <div className="flex gap-3 mb-4">
-        <Select value={filterClass} onValueChange={setFilterClass}><SelectTrigger className="w-40 h-9"><SelectValue placeholder="All Cohorts" /></SelectTrigger><SelectContent><SelectItem value="all">All Cohorts</SelectItem>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+        <Select name="filterClass" value={filterClass} onValueChange={setFilterClass}><SelectTrigger className="w-40 h-9"><SelectValue placeholder="All Cohorts" /></SelectTrigger><SelectContent><SelectItem value="all">All Cohorts</SelectItem>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow ml-auto" onClick={() => { setSelClass(""); setAuthor(""); setContent(""); setAttachment(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New Post</Button>
       </div>
       {filtered.map((p) => (
@@ -54,9 +54,9 @@ export default function ClassWallManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>New Post</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Cohort</Label><Select value={selClass} onValueChange={setSelClass}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs">Author</Label><Input value={author} onChange={(e) => setAuthor(e.target.value)} /></div></div>
-            <div><Label className="text-xs">Content</Label><Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} /></div>
-            <div><Label className="text-xs">Attachment URL (optional)</Label><Input value={attachment} onChange={(e) => setAttachment(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="selClass">Cohort</Label><Select name="selClass" value={selClass} onValueChange={setSelClass}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="author">Author</Label><Input id="author" name="author" value={author} onChange={(e) => setAuthor(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="content">Content</Label><Textarea id="content" name="content" value={content} onChange={(e) => setContent(e.target.value)} rows={3} /></div>
+            <div><Label className="text-xs" htmlFor="attachment">Attachment URL (optional)</Label><Input id="attachment" name="attachment" value={attachment} onChange={(e) => setAttachment(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!selClass || !content} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), class: selClass, author, content, attachment, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
         </DialogContent>

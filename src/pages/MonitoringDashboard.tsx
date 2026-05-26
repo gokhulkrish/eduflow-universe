@@ -54,11 +54,12 @@ export default function MonitoringDashboard() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-sm">Student Overview</CardTitle>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={grade} onValueChange={setGrade}>
+              <Select name="gradeFilter" value={grade} onValueChange={setGrade}>
                 <SelectTrigger className="h-8 w-full sm:w-[140px]"><SelectValue placeholder="All grades" /></SelectTrigger>
                 <SelectContent>{DEFAULT_GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
               <input
+                id="studentSearch"
                 className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-sm sm:w-[200px]"
                 placeholder="Search students..."
                 value={search}

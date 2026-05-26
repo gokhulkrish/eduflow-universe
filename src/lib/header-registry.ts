@@ -1041,7 +1041,8 @@ export async function upsertHeaderField(
   const isCustom = normalized.source === "custom" || normalized.id.startsWith("custom:");
 
   if (isCustom) {
-    const customId = normalized.id.startsWith("custom:") ? normalized.id.slice("custom:".length) : (normalized.id || crypto.randomUUID());
+    const uuid = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const customId = normalized.id.startsWith("custom:") ? normalized.id.slice("custom:".length) : (normalized.id || uuid);
     const saved = saveCustomImportField({
       id: customId,
       key: normalized.key,

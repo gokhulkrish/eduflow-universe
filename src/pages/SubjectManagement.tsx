@@ -51,8 +51,8 @@ export default function SubjectManagement() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add Subject</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label className="text-xs">Subject Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs">Code</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. MATH101" /></div><div><Label className="text-xs">Credits</Label><Input type="number" value={credits} onChange={(e) => setCredits(e.target.value)} /></div></div>
+            <div><Label className="text-xs" htmlFor="subjectName">Subject Name</Label><Input id="subjectName" name="subjectName" value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="subjectCode">Code</Label><Input id="subjectCode" name="subjectCode" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. MATH101" /></div><div><Label className="text-xs" htmlFor="subjectCredits">Credits</Label><Input id="subjectCredits" name="subjectCredits" type="number" value={credits} onChange={(e) => setCredits(e.target.value)} /></div></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !code} onClick={() => { createSubject({ name, code, class_id: "", teacher_id: "", credits: Number(credits) || 3 }); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>

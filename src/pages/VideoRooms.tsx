@@ -107,12 +107,12 @@ export default function VideoRooms() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Schedule Video Room</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Room title" /></div>
+            <div><Label htmlFor="roomTitle">Title</Label><Input id="roomTitle" name="roomTitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Room title" /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-              <div><Label>Time</Label><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
+              <div><Label htmlFor="roomDate">Date</Label><Input id="roomDate" name="roomDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+              <div><Label htmlFor="roomTime">Time</Label><Input id="roomTime" name="roomTime" type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
             </div>
-            <div><Label>Duration (min)</Label><Select value={String(duration)} onValueChange={setDuration}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="15">15 min</SelectItem><SelectItem value="30">30 min</SelectItem><SelectItem value="45">45 min</SelectItem><SelectItem value="60">60 min</SelectItem><SelectItem value="90">90 min</SelectItem><SelectItem value="120">120 min</SelectItem></SelectContent></Select></div>
+            <div><Label htmlFor="roomDuration">Duration (min)</Label><Select name="roomDuration" value={String(duration)} onValueChange={setDuration}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="15">15 min</SelectItem><SelectItem value="30">30 min</SelectItem><SelectItem value="45">45 min</SelectItem><SelectItem value="60">60 min</SelectItem><SelectItem value="90">90 min</SelectItem><SelectItem value="120">120 min</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter className="mt-2"><Button className="rounded-xl bg-gradient-primary shadow-glow" onClick={handleCreate}>Create</Button></DialogFooter>
         </DialogContent>

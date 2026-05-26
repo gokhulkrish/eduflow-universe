@@ -300,7 +300,7 @@ export default function Reports() {
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-sm">Defaulters</CardTitle>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Select value={cohortFilter} onValueChange={setCohortFilter}>
+                  <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
                     <SelectTrigger className="h-7 w-full text-[10px] sm:w-28"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All cohorts</SelectItem>
@@ -371,7 +371,7 @@ export default function Reports() {
         <TabsContent value="attendance" className="space-y-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select value={cohortFilter} onValueChange={setCohortFilter}>
+              <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
                     <SelectTrigger className="h-8 w-full text-xs sm:w-32"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                   <SelectContent>
                   <SelectItem value="all">All cohorts</SelectItem>

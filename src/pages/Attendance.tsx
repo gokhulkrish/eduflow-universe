@@ -207,14 +207,14 @@ export default function Attendance() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-9 w-40" />
+                <Input id="attendance-date" name="date" type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-9 w-40" />
               </div>
               <Select value={cohort} onValueChange={setCohort}>
-                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-36" name="cohort"><SelectValue /></SelectTrigger>
                 <SelectContent>{cohortOptions.map((g) => (<SelectItem key={g} value={g}>Cohort {g}</SelectItem>))}</SelectContent>
               </Select>
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-52" name="period"><SelectValue /></SelectTrigger>
                 <SelectContent>{PERIOD_OPTIONS.map((p) => (<SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>))}</SelectContent>
               </Select>
               <div className="ml-auto flex gap-1.5">

@@ -149,12 +149,15 @@ export default function InstituteSettings() {
     </Card>
   );
 
-  const field = (label: string, value: string, onChange: (v: string) => void, type = "text") => (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs">{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} type={type} />
-    </div>
-  );
+  const field = (label: string, value: string, onChange: (v: string) => void, type = "text") => {
+    const id = "field-" + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs" htmlFor={id}>{label}</Label>
+        <Input id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)} type={type} />
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -192,8 +195,8 @@ export default function InstituteSettings() {
               {field("Established", identity.estd, (v) => setIdentity({ ...identity, estd: v }))}
               {field("Affiliation", identity.affiliation, (v) => setIdentity({ ...identity, affiliation: v }))}
               <div className="sm:col-span-2 flex flex-col gap-1.5">
-                <Label className="text-xs">Motto</Label>
-                <Input value={identity.motto} onChange={(e) => setIdentity({ ...identity, motto: e.target.value })} />
+                <Label className="text-xs" htmlFor="motto">Motto</Label>
+                <Input id="motto" name="motto" value={identity.motto} onChange={(e) => setIdentity({ ...identity, motto: e.target.value })} />
               </div>
             </div>
           )}
@@ -204,8 +207,8 @@ export default function InstituteSettings() {
               {field("Phone", contact.phone, (v) => setContact({ ...contact, phone: v }), "tel")}
               {field("Website", contact.website, (v) => setContact({ ...contact, website: v }), "url")}
               <div className="sm:col-span-2 flex flex-col gap-1.5">
-                <Label className="text-xs">Address</Label>
-                <Textarea rows={2} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
+                <Label className="text-xs" htmlFor="address">Address</Label>
+                <Textarea id="address" name="address" rows={2} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
               </div>
             </div>
           )}

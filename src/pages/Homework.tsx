@@ -99,13 +99,13 @@ export default function Homework() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Assign Homework</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Homework title" /></div>
-            <div><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Details..." /></div>
+            <div><Label htmlFor="hwTitle">Title</Label><Input id="hwTitle" name="hwTitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Homework title" /></div>
+            <div><Label htmlFor="hwDesc">Description</Label><Textarea id="hwDesc" name="hwDesc" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Details..." /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Subject</Label><Select value={subject} onValueChange={setSubject}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-              <div><Label>Class</Label><Select value={cls} onValueChange={setCls}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label htmlFor="hwSubject">Subject</Label><Select name="hwSubject" value={subject} onValueChange={setSubject}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label htmlFor="hwClass">Class</Label><Select name="hwClass" value={cls} onValueChange={setCls}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{CLASSES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
             </div>
-            <div><Label>Due Date</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
+            <div><Label htmlFor="hwDueDate">Due Date</Label><Input id="hwDueDate" name="hwDueDate" type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
           </div>
           <DialogFooter className="mt-2"><Button className="rounded-xl bg-gradient-primary shadow-glow" onClick={handleCreate}>Assign</Button></DialogFooter>
         </DialogContent>
