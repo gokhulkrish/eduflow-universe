@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Incident = { id: string; student: string; type: string; description: string; date: string; severity: string; action: string; status: string; };
 export const disciplineKey = "eduflow_discipline";
@@ -71,7 +72,7 @@ export default function DisciplineRecord() {
             <div><Label className="text-xs" htmlFor="description">Description</Label><Textarea id="description" name="description" value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></div>
             <div><Label className="text-xs" htmlFor="actionTaken">Action Taken</Label><Input id="actionTaken" name="actionTaken" value={action} onChange={(e) => setAction(e.target.value)} placeholder="e.g. Warning" /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!student || !type} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), student, type, description: desc, date: new Date(date).toISOString(), severity, action, status: "open" }); ss(items); refresh(); setOpen(false); toast.success("Recorded"); }}>Record</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!student || !type} onClick={() => { const items = ls(); items.push({ id: generateId(), student, type, description: desc, date: new Date(date).toISOString(), severity, action, status: "open" }); ss(items); refresh(); setOpen(false); toast.success("Recorded"); }}>Record</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

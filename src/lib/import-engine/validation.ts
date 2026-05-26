@@ -1,21 +1,66 @@
 import type { ImportBatch, ImportError } from "./types";
+import { CANONICAL_FIELDS, getFieldByKey } from '../../engine/registry/canonical';
 
 export function validateEmail(value: string | null | undefined): boolean {
   if (!value) return false;
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(String(value).trim());
+  const field = getFieldByKey('email');
+  const pattern = field?.validationPattern || '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
+  return new RegExp(pattern).test(String(value).trim());
 }
 
 export function validatePhone(value: string | null | undefined): boolean {
   if (!value) return false;
-  const regex = /^[\d\s\-+()]{7,}$/;
-  return regex.test(String(value).trim());
+  const field = getFieldByKey('contactNumber');
+  const pattern = field?.validationPattern || '^[\\d\\s\\-+()]{7,}$';
+  return new RegExp(pattern).test(String(value).trim());
 }
 
 export function validateName(value: string | null | undefined): boolean {
   if (!value) return false;
   const text = String(value).trim();
   return text.length >= 2 && text.length <= 100;
+}
+
+function validateFieldByRegistry(
+  key: string,
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null;
+  const field = getFieldByKey(key);
+  if (!field) return null;
+
+  // Enum validation
+  if (field.dataType === 'enum' && field.enumValues && field.enumValues.length > 0) {
+    if (!field.enumValues.map((v) => v.toLowerCase()).includes(value.trim().toLowerCase())) {
+      return `${field.label} must be one of: ${field.enumValues.join(', ')}`;
+    }
+  }
+
+  // Pattern validation
+  if (field.validationPattern) {
+    try {
+      if (!new RegExp(field.validationPattern).test(String(value).trim())) {
+        return `${field.label} has an invalid format`;
+      }
+    } catch { /* skip bad regex */ }
+  }
+
+  // Date validation
+  if (field.dataType === 'date') {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return `${field.label} must be a valid date (YYYY-MM-DD)`;
+    }
+  }
+
+  // Number validation
+  if (field.dataType === 'number') {
+    if (Number.isNaN(Number(value))) {
+      return `${field.label} must be a number`;
+    }
+  }
+
+  return null;
 }
 
 export function validateRow(
@@ -28,25 +73,23 @@ export function validateRow(
     return errors;
   }
 
-  const requiredFields = ["firstName", "lastName", "email"];
-  requiredFields.forEach((field) => {
-    const value = row[field];
+  // Required field validation from registry
+  for (const field of CANONICAL_FIELDS) {
+    if (!field.required) continue;
+    const mappedKey = field.key;
+    const value = row[mappedKey];
     if (!value || String(value).trim() === "") {
-      errors.push(`${field} is required`);
-    }
-  });
-
-  if (row.email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(row.email)) {
-      errors.push("Invalid email format: " + row.email);
+      errors.push(`${field.label || field.key} is required`);
     }
   }
 
-  if (row.phone) {
-    const phoneRegex = /^[\d\s\-+()]+$/;
-    if (!phoneRegex.test(row.phone)) {
-      errors.push("Invalid phone format: " + row.phone);
+  // Data type and pattern validation from registry
+  for (const field of CANONICAL_FIELDS) {
+    const value = row[field.key];
+    if (!value) continue;
+    const registryError = validateFieldByRegistry(field.key, value);
+    if (registryError) {
+      errors.push(registryError);
     }
   }
 

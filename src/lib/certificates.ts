@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { fetchStudentRegister } from "@/lib/student-records";
 import { tableExists, tablesExist } from "@/lib/supabase-health";
+import { generateId } from "@/lib/utils";
 
 type TemplateRow = Tables<"certificate_templates">;
 type RequestRow = Tables<"certificate_requests">;
@@ -291,7 +292,7 @@ async function createIssuedCertificate(row: RequestRow): Promise<CertificateRow 
   const template = await getTemplate(row.template_id);
   const { data: auth } = await supabase.auth.getUser();
   const certificateNo = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  const verificationCode = row.qr_token || crypto.randomUUID().replace(/-/g, "");
+  const verificationCode = row.qr_token || generateId().replace(/-/g, "");
 
   const { data, error } = await supabase
     .from("certificates")

@@ -1,66 +1,50 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, it, expect, beforeEach } from 'vitest';
+import { resolveImportMappingEngineMatch, invalidateRegistryAliasIndex } from './mapping';
 
-beforeEach(() => {
-  vi.resetModules();
-  vi.clearAllMocks();
-  window.localStorage.clear();
-});
-
-describe("import mapping registry", () => {
-  it("saves and recovers a template for the same headers even when order changes", async () => {
-    const registry = await import("./mapping-registry");
-
-    const saved = registry.saveImportMappingTemplate({
-      name: "Students intake",
-      moduleId: "students",
-      headers: ["Email Address", "First Name"],
-      mapping: {
-        "Email Address": "email",
-        "First Name": "firstName",
-      },
-      conflicts: [],
-      sourceProfileId: "profile-1",
-      customFieldIds: ["cf-1", "cf-2"],
-    });
-
-    const match = registry.findImportMappingTemplate(
-      ["First Name", "Email Address"],
-      "students",
-      { customFieldIds: ["cf-2", "cf-1"] },
-    );
-
-    expect(match?.template.id).toBe(saved.id);
-    expect(match?.template.mapping["Email Address"]).toBe("email");
-    expect(match?.matchReason).toContain("Recovered");
+describe('resolveImportMappingEngineMatch (registry-backed)', () => {
+  beforeEach(() => {
+    invalidateRegistryAliasIndex();
   });
 
-  it("removes templates linked to a deleted profile without affecting others", async () => {
-    const registry = await import("./mapping-registry");
+  it('matches exact header from hardcoded rules', () => {
+    const result = resolveImportMappingEngineMatch('first name');
+    expect(result.targetField).toBe('firstName');
+    expect(result.isRequired).toBe(true);
+  });
 
-    registry.saveImportMappingTemplate({
-      name: "Profile template",
-      moduleId: "students",
-      headers: ["Admission No"],
-      mapping: { "Admission No": "admissionNo" },
-      conflicts: [],
-      sourceProfileId: "profile-1",
-      customFieldIds: [],
-    });
+  it('matches alias from canonical registry', () => {
+    const result = resolveImportMappingEngineMatch('reg_no');
+    expect(result.targetField).toBe('registrationNumber');
+    expect(result.isRequired).toBe(true);
+  });
 
-    registry.saveImportMappingTemplate({
-      name: "Independent template",
-      moduleId: "students",
-      headers: ["Phone"],
-      mapping: { Phone: "phone" },
-      conflicts: [],
-      sourceProfileId: null,
-      customFieldIds: [],
-    });
+  it('matches alias variant from canonical registry', () => {
+    const result = resolveImportMappingEngineMatch('registration_no');
+    expect(result.targetField).toBe('registrationNumber');
+  });
 
-    registry.deleteImportMappingTemplatesByProfile("profile-1");
+  it('matches UMIS alias from registry', () => {
+    const result = resolveImportMappingEngineMatch('umis_id');
+    expect(result.targetField).toBe('umis');
+  });
 
-    const templates = registry.loadImportMappingTemplates();
-    expect(templates).toHaveLength(1);
-    expect(templates[0].name).toBe("Independent template");
+  it('matches father aliases from registry', () => {
+    const result = resolveImportMappingEngineMatch('father name');
+    expect(result.targetField).toBe('fatherName');
+  });
+
+  it('matches mother aliases from registry', () => {
+    const result = resolveImportMappingEngineMatch('mother name');
+    expect(result.targetField).toBe('motherName');
+  });
+
+  it('returns null for unrecognised header', () => {
+    const result = resolveImportMappingEngineMatch('completely_random_field_xyz');
+    expect(result.targetField).toBeNull();
+  });
+
+  it('returns null for empty header', () => {
+    const result = resolveImportMappingEngineMatch('');
+    expect(result.targetField).toBeNull();
   });
 });

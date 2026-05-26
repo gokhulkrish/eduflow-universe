@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Ticket = { id: string; student: string; category: string; description: string; priority: string; status: string; created: string; resolved: string; };
 const GRIEVANCES_KEY = "eduflow_grievances";
@@ -106,7 +107,7 @@ export default function GrievanceRedressal() {
             <div><Label className="text-xs" htmlFor="grievanceDesc">Description</Label><Input id="grievanceDesc" name="grievanceDesc" value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
             <div><Label className="text-xs" htmlFor="grievancePriority">Priority</Label><Select name="grievancePriority" value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={() => { ts([...tl(), { id: crypto.randomUUID(), student, category: cat, description: desc, priority, status: "open", created: new Date().toISOString(), resolved: "" }]); refresh(); setOpen(false); toast.success("Filed"); }} disabled={!student || !cat || !desc}>Submit</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={() => { ts([...tl(), { id: generateId(), student, category: cat, description: desc, priority, status: "open", created: new Date().toISOString(), resolved: "" }]); refresh(); setOpen(false); toast.success("Filed"); }} disabled={!student || !cat || !desc}>Submit</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

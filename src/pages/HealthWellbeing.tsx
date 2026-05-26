@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Case = { id: string; caseTitle: string; personName: string; caseType: string; followUpDate: string; careStatus: string; };
 const HEALTH_KEY = "eduflow_health";
@@ -67,7 +68,7 @@ export default function HealthWellbeing() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="caseType">Case Type</Label><Select name="caseType" value={caseType} onValueChange={setCaseType}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Medical">Medical</SelectItem><SelectItem value="Counselling">Counselling</SelectItem><SelectItem value="Emergency">Emergency</SelectItem><SelectItem value="Wellbeing">Wellbeing</SelectItem><SelectItem value="Follow-up">Follow-up</SelectItem></SelectContent></Select></div><div><Label className="text-xs" htmlFor="followUpDate">Follow-up Date</Label><Input id="followUpDate" name="followUpDate" type="date" value={followUp} onChange={(e) => setFollowUp(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="careStatus">Care Status</Label><Select name="careStatus" value={status} onValueChange={setStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="Monitoring">Monitoring</SelectItem><SelectItem value="Referred">Referred</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), caseTitle: title, personName: person, caseType, followUpDate: followUp, careStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: generateId(), caseTitle: title, personName: person, caseType, followUpDate: followUp, careStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

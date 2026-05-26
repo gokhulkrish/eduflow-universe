@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type AcademicCohort = { id: string; grade: string; section: string; teacher_id: string; room: string; capacity: number; };
 
@@ -9,7 +10,7 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getClasses(): AcademicCohort[] { return ls(classesMgmtKey, []); }
 export function createClass(c: Omit<AcademicCohort, "id">): AcademicCohort {
-  const items = getClasses(); const n = { ...c, id: crypto.randomUUID() }; items.push(n); ss(classesMgmtKey, items); return n;
+  const items = getClasses(); const n = { ...c, id: generateId() }; items.push(n); ss(classesMgmtKey, items); return n;
 }
 export function updateClass(id: string, p: Partial<AcademicCohort>) { const items = getClasses(); const i = items.findIndex((x) => x.id === id); if (i >= 0) { items[i] = { ...items[i], ...p }; ss(classesMgmtKey, items); } }
 export function deleteClass(id: string) { ss(classesMgmtKey, getClasses().filter((x) => x.id !== id)); }

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 const reservationsKey = "eduflow_reservations";
 
@@ -41,7 +42,7 @@ export default function Library() {
 
   const addReservation = () => {
     const items = JSON.parse(localStorage.getItem(reservationsKey) ?? "[]");
-    items.push({ id: crypto.randomUUID(), book: resBook, student: resStudent, date: new Date().toISOString(), status: "pending" });
+    items.push({ id: generateId(), book: resBook, student: resStudent, date: new Date().toISOString(), status: "pending" });
     localStorage.setItem(reservationsKey, JSON.stringify(items));
     emitAppSync(reservationsKey);
     setOpen(false); toast.success("Reservation added");

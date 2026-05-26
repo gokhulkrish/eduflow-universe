@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Quiz = { id: string; title: string; questions: { q: string; options: string[]; correct: number }[]; class_id: string; time_limit: number; created_at: string; };
 export const quizzesKey = "eduflow_quizzes";
@@ -95,7 +96,7 @@ export default function QuizModule() {
           <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => {
             const optsArr = opts.split(",").map((s) => s.trim()).filter(Boolean);
             const qs = qText && optsArr.length > 1 ? [{ q: qText, options: optsArr, correct: Number(correct) }] : [];
-            const items = ls(); items.push({ id: crypto.randomUUID(), title, questions: qs, class_id: "", time_limit: Number(timeLimit) || 5, created_at: new Date().toISOString() });
+            const items = ls(); items.push({ id: generateId(), title, questions: qs, class_id: "", time_limit: Number(timeLimit) || 5, created_at: new Date().toISOString() });
             ss(items); refresh(); setOpen(false); toast.success("Quiz created");
           }}>Create</Button></DialogFooter>
         </DialogContent>

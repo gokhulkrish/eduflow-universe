@@ -38,33 +38,34 @@ export function registerModuleAdapter(
   }
 }
 
+async function importWithRetry<T>(loader: () => Promise<T>, retries = 3, delay = 500): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await loader();
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise((r) => setTimeout(r, delay * (i + 1)));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 export async function loadInitialModules(): Promise<void> {
-  const [{ studentsModule }, { feesModule }, { attendanceModule }, { examMarksModule }, { transportModule }] = await Promise.all([
-    import("./adapters/student-adapter"),
-    import("./adapters/fees-adapter"),
-    import("./adapters/attendance-adapter"),
-    import("./adapters/exam-marks-adapter"),
-    import("./adapters/transport-adapter"),
+  const adapters = await Promise.all([
+    importWithRetry(() => import("./adapters/student-adapter")),
+    importWithRetry(() => import("./adapters/fees-adapter")),
+    importWithRetry(() => import("./adapters/attendance-adapter")),
+    importWithRetry(() => import("./adapters/exam-marks-adapter")),
+    importWithRetry(() => import("./adapters/transport-adapter")),
+    importWithRetry(() => import("./adapters/hostel-adapter")),
+    importWithRetry(() => import("./adapters/library-adapter")),
+    importWithRetry(() => import("./adapters/hr-adapter")),
+    importWithRetry(() => import("./adapters/admissions-adapter")),
+    importWithRetry(() => import("./adapters/assignments-adapter")),
   ]);
 
-  registerModule(studentsModule);
-  registerModule(feesModule);
-  registerModule(attendanceModule);
-  registerModule(examMarksModule);
-  registerModule(transportModule);
-
-  // Register remaining adapters
-  const [{ hostelModule }, { libraryModule }, { hrModule }, { admissionsModule }, { assignmentsModule }] = await Promise.all([
-    import("./adapters/hostel-adapter"),
-    import("./adapters/library-adapter"),
-    import("./adapters/hr-adapter"),
-    import("./adapters/admissions-adapter"),
-    import("./adapters/assignments-adapter"),
-  ]);
-
-  registerModule(hostelModule);
-  registerModule(libraryModule);
-  registerModule(hrModule);
-  registerModule(admissionsModule);
-  registerModule(assignmentsModule);
+  for (const mod of adapters) {
+    const key = Object.keys(mod)[0] as string;
+    registerModule((mod as any)[key]);
+  }
 }

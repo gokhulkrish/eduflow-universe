@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type PromotionRule = { id: string; name: string; from_grade: string; to_grade: string; from_section: string; to_section: string; min_attendance: number; min_gpa: number; auto_promote: boolean; reset_roll: boolean; status: string; created_at: string; };
 export type PromotionRun = { id: string; rule_id: string; name: string; promoted: number; failed: number; total: number; run_at: string; status: string; };
@@ -13,7 +14,7 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getRules(): PromotionRule[] { return ls(promotionRulesKey, []); }
 export function createRule(r: Omit<PromotionRule, "id" | "created_at">): PromotionRule {
-  const items = getRules(); const n = { ...r, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+  const items = getRules(); const n = { ...r, id: generateId(), created_at: new Date().toISOString() };
   items.unshift(n); ss(promotionRulesKey, items); return n;
 }
 export function updateRule(id: string, p: Partial<PromotionRule>) { const items = getRules(); const i = items.findIndex((x) => x.id === id); if (i >= 0) { items[i] = { ...items[i], ...p }; ss(promotionRulesKey, items); } }
@@ -25,7 +26,7 @@ export function runPromotion(rule: PromotionRule, totalStudents: number): Promot
   const eligible = getEligibleStudents(rule);
   const promoted = eligible.length;
   const failed = totalStudents - promoted;
-  const n: PromotionRun = { id: crypto.randomUUID(), rule_id: rule.id, name: rule.name, promoted, failed, total: totalStudents, run_at: new Date().toISOString(), status: "completed" };
+  const n: PromotionRun = { id: generateId(), rule_id: rule.id, name: rule.name, promoted, failed, total: totalStudents, run_at: new Date().toISOString(), status: "completed" };
   items.unshift(n); ss(promotionRunsKey, items); return n;
 }
 

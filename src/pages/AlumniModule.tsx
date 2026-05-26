@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Alumni = { id: string; name: string; batch: string; email: string; phone: string; occupation: string; company: string; city: string; };
 const ALUMNI_KEY = "eduflow_alumni";
@@ -64,7 +65,7 @@ export default function AlumniModule() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="occupation">Occupation</Label><Input id="occupation" name="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} /></div><div><Label className="text-xs" htmlFor="company">Company</Label><Input id="company" name="company" value={company} onChange={(e) => setCompany(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="city">City</Label><Input id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !batch} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, batch, email, phone, occupation, company, city }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !batch} onClick={() => { const items = ls(); items.push({ id: generateId(), name, batch, email, phone, occupation, company, city }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

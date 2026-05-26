@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { generateId } from "@/lib/utils";
 
 interface Task {
   id: string; title: string; description: string; assignee: string; priority: "low" | "medium" | "high" | "critical"; status: "open" | "in-progress" | "completed"; dueDate: string; category: string;
@@ -48,7 +49,7 @@ export default function Administration() {
   const handleCreateTask = () => {
     if (!tTitle) { toast.error("Title required"); return; }
     const all = loadT();
-    all.push({ id: crypto.randomUUID(), title: tTitle, description: tDesc, assignee: tAssignee, priority: tPriority, status: "open", dueDate: tDue, category: tCat });
+    all.push({ id: generateId(), title: tTitle, description: tDesc, assignee: tAssignee, priority: tPriority, status: "open", dueDate: tDue, category: tCat });
     saveT(all); refreshT(); setTOpen(false); setTTitle(""); setTDesc(""); setTAssignee(""); setTPriority("medium"); setTCat(""); setTDue(""); toast.success("Task created");
   };
 
@@ -64,7 +65,7 @@ export default function Administration() {
   const handleCreateNotice = () => {
     if (!nTitle) { toast.error("Title required"); return; }
     const all = loadN();
-    all.push({ id: crypto.randomUUID(), title: nTitle, content: nContent, audience: nAudience || "All", date: new Date().toISOString() });
+    all.push({ id: generateId(), title: nTitle, content: nContent, audience: nAudience || "All", date: new Date().toISOString() });
     saveN(all); refreshN(); setNOpen(false); setNTitle(""); setNContent(""); setNAudience(""); toast.success("Notice posted");
   };
 

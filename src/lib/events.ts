@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type Event = { id: string; title: string; description: string; date: string; time: string; location: string; category: string; organizer: string; capacity: number; created_at: string; };
 export type RSVP = { id: string; event_id: string; guest: string; status: string; guests_count: number; notes: string; responded_at: string; };
@@ -16,7 +17,7 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getEvents(): Event[] { return ls(eventsKey, []); }
 export function createEvent(e: Omit<Event, "id" | "created_at">): Event {
-  const items = getEvents(); const n = { ...e, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+  const items = getEvents(); const n = { ...e, id: generateId(), created_at: new Date().toISOString() };
   items.unshift(n); ss(eventsKey, items); return n;
 }
 export function updateEvent(id: string, p: Partial<Event>) { const items = getEvents(); const i = items.findIndex((x) => x.id === id); if (i >= 0) { items[i] = { ...items[i], ...p }; ss(eventsKey, items); } }
@@ -26,7 +27,7 @@ export function getRSVPs(eventId?: string): RSVP[] {
   const all = ls(rsvpsKey, [] as RSVP[]); return eventId ? all.filter((r) => r.event_id === eventId) : all;
 }
 export function addRSVP(r: Omit<RSVP, "id" | "responded_at">): RSVP {
-  const items = ls(rsvpsKey, [] as RSVP[]); const n = { ...r, id: crypto.randomUUID(), responded_at: new Date().toISOString() };
+  const items = ls(rsvpsKey, [] as RSVP[]); const n = { ...r, id: generateId(), responded_at: new Date().toISOString() };
   items.push(n); ss(rsvpsKey, items); return n;
 }
 export function updateRSVP(id: string, status: string) {
@@ -37,7 +38,7 @@ export function getTickets(eventId?: string): TicketType[] {
   const all = ls(ticketsKey, [] as TicketType[]); return eventId ? all.filter((t) => t.event_id === eventId) : all;
 }
 export function addTicketType(t: Omit<TicketType, "id">): TicketType {
-  const items = ls(ticketsKey, [] as TicketType[]); const n = { ...t, id: crypto.randomUUID() };
+  const items = ls(ticketsKey, [] as TicketType[]); const n = { ...t, id: generateId() };
   items.push(n); ss(ticketsKey, items); return n;
 }
 export function sellTicket(ticketId: string) {
@@ -50,7 +51,7 @@ export function getPhotos(eventId?: string): PhotoGallery[] {
   const all = ls(photosKey, [] as PhotoGallery[]); return eventId ? all.filter((p) => p.event_id === eventId) : all;
 }
 export function addPhoto(p: Omit<PhotoGallery, "id" | "uploaded_at">): PhotoGallery {
-  const items = ls(photosKey, [] as PhotoGallery[]); const n = { ...p, id: crypto.randomUUID(), uploaded_at: new Date().toISOString() };
+  const items = ls(photosKey, [] as PhotoGallery[]); const n = { ...p, id: generateId(), uploaded_at: new Date().toISOString() };
   items.push(n); ss(photosKey, items); return n;
 }
 export function deletePhoto(id: string) { ss(photosKey, ls(photosKey, [] as PhotoGallery[]).filter((p) => p.id !== id)); }

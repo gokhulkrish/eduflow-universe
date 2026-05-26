@@ -3,6 +3,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { studentSections, type SectionDef } from "@/lib/student-records";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 import { tableExists } from "@/lib/supabase-health";
 import {
   deleteCustomImportField,
@@ -524,7 +525,7 @@ export function normalizeHeaderField(
   const key = normalizeHeaderKey(input.key ?? input.label ?? "");
   const label = clean(input.label) || key;
   return {
-    id: input.id || `registry:${key}:${crypto.randomUUID().slice(0, 8)}`,
+    id: input.id || `registry:${key}:${generateId().slice(0, 8)}`,
     module: normalizeHeaderFieldModule(input.module ?? "registry"),
     key,
     label,
@@ -1041,7 +1042,7 @@ export async function upsertHeaderField(
   const isCustom = normalized.source === "custom" || normalized.id.startsWith("custom:");
 
   if (isCustom) {
-    const uuid = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const uuid = generateId();
     const customId = normalized.id.startsWith("custom:") ? normalized.id.slice("custom:".length) : (normalized.id || uuid);
     const saved = saveCustomImportField({
       id: customId,
@@ -1484,7 +1485,7 @@ export function saveFilterPreset(
 ): FilterPreset {
   const presets = loadFilterPresets();
   const now = new Date().toISOString();
-  const id = preset.id || crypto.randomUUID();
+  const id = preset.id || generateId();
   const existing = presets.find((p) => p.id === id);
   const next: FilterPreset = {
     id,

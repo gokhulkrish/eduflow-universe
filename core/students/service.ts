@@ -63,6 +63,44 @@ function removeLegacyDual(studentId: string): void {
   }
 }
 
+export async function bulkTransfer(
+  rows: { sourceRow: Record<string, string>; mapped: Record<string, string>; action: 'insert' | 'update' | 'skip'; existingId?: string }[],
+  batchId: string,
+): Promise<{ inserted: number; updated: number; skipped: number; failed: number; errors: { rowNumber: number; message: string }[] }> {
+  const result = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [] as { rowNumber: number; message: string }[] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.action === 'skip') { result.skipped++; continue; }
+
+    try {
+      const values: Record<string, string> = {
+        ...row.mapped,
+        ...(row.action === 'update' && row.existingId ? { studentId: row.existingId, id: row.existingId } : {}),
+      };
+      const saved = await saveStudentRecord(values);
+
+      const studentId = String(saved.id);
+      await supabase.from('students').update({
+        meta: ((saved as any).meta ? { ...(saved as any).meta as Record<string, unknown>, import: { ...((saved as any).meta as any)?.import ?? {}, batchId } } : { import: { batchId } }) as any,
+        updated_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+      } as any).eq('id', studentId);
+
+      if (row.action === 'insert') result.inserted++;
+      else result.updated++;
+    } catch (err) {
+      result.failed++;
+      result.errors.push({ rowNumber: i, message: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+
+  if (result.updated + result.inserted > 0) {
+    emitAppSync(studentRegisterSyncKey);
+  }
+
+  return result;
+}
+
 export async function createStudent(input: CreateStudentInput) {
   const parsed = createStudentSchema.parse(input);
 

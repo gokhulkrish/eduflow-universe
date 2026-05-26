@@ -4,6 +4,7 @@ import { readSupabaseRows } from "@/lib/supabase-query";
 import { isModuleEnabled } from "@/lib/module-access";
 import { tableExists } from "@/lib/supabase-health";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type TestAttempt = { id: string; test_id: string; student_id: string; student_name: string; score: number | null; total: number; percentage: number | null; status: string; submitted_at: string | null; };
 
@@ -18,7 +19,7 @@ export function getLocalTests(): any[] { return ls(onlineExamTestsKey, []); }
 export function saveLocalTest(test: any) {
   const tests = getLocalTests();
   if (test.id) { const i = tests.findIndex((t: any) => t.id === test.id); if (i >= 0) { tests[i] = { ...tests[i], ...test }; ss(onlineExamTestsKey, tests); return tests[i]; } }
-  const nt = { ...test, id: crypto.randomUUID(), created_at: new Date().toISOString() }; tests.push(nt); ss(onlineExamTestsKey, tests); return nt;
+  const nt = { ...test, id: generateId(), created_at: new Date().toISOString() }; tests.push(nt); ss(onlineExamTestsKey, tests); return nt;
 }
 export function deleteLocalTest(id: string) { ss(onlineExamTestsKey, getLocalTests().filter((t: any) => t.id !== id)); }
 
@@ -29,7 +30,7 @@ export function gradeAttempt(testId: string, studentId: string, answers: { quest
   answers.forEach((a) => { total += a.marks; if (a.answer?.trim().toLowerCase() === a.correct_answer?.trim().toLowerCase()) score += a.marks; });
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const results = getResults();
-  const n: TestAttempt = { id: crypto.randomUUID(), test_id: testId, student_id: studentId, student_name: "Student " + studentId.slice(0, 4), score, total, percentage: pct, status: pct >= 35 ? "passed" : "failed", submitted_at: new Date().toISOString() };
+  const n: TestAttempt = { id: generateId(), test_id: testId, student_id: studentId, student_name: "Student " + studentId.slice(0, 4), score, total, percentage: pct, status: pct >= 35 ? "passed" : "failed", submitted_at: new Date().toISOString() };
   results.push(n); ss(onlineExamResultsKey, results); return n;
 }
 

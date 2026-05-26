@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -62,6 +62,17 @@ import {
 } from "@/lib/student-import";
 import { toast } from "sonner";
 import { subscribeAppSync } from "@/lib/app-sync";
+import {
+  loadRegistryAiState,
+  saveRegistryAiState,
+  rebuildRegistryAiReviewQueue,
+  approveRegistryAiMapping,
+  rejectRegistryAiMapping,
+  type RegistryAiState,
+} from "@/lib/registry-ai-queue";
+import { getCanonicalRegistryCatalog } from "@/lib/canonical-student-fields";
+import RegistryExplorer from "@/components/registry/RegistryExplorer";
+import RegistryDiagnosticsView from "@/components/registry/RegistryDiagnosticsView";
 
 const createEmptyCustomFieldDraft = () => ({
   key: "",
@@ -73,6 +84,8 @@ const createEmptyCustomFieldDraft = () => ({
   aliases: "",
 });
 
+
+
 const splitListInput = (value: string) =>
   value
     .split(/[\n,]/g)
@@ -80,6 +93,7 @@ const splitListInput = (value: string) =>
     .filter(Boolean);
 
 export default function SettingsHeaders() {
+  const [registryTab, setRegistryTab] = useState('overview');
   const [registrySettings, setRegistrySettings] = useState(() => loadHeaderRegistrySettings());
   const [customFields, setCustomFields] = useState(() => loadCustomImportFields());
   const [profiles, setProfiles] = useState(() => loadImportProfiles());
@@ -94,6 +108,7 @@ export default function SettingsHeaders() {
   const [filterDraftField, setFilterDraftField] = useState("");
   const [filterDraftOperator, setFilterDraftOperator] = useState<FilterCondition["operator"]>("eq");
   const [filterDraftValue, setFilterDraftValue] = useState("");
+  const [aiState, setAiState] = useState<RegistryAiState>(() => loadRegistryAiState());
 
   const registrySections = useMemo(() => buildRegistrySections(customFields, registrySettings), [customFields, registrySettings]);
   const fieldOptions = useMemo(() => getImportTargetFieldOptions(customFields), [customFields]);
@@ -114,11 +129,34 @@ export default function SettingsHeaders() {
     });
   }, []);
 
+  const rebuildAiQueue = useCallback(() => {
+    const canonicalCatalog = getCanonicalRegistryCatalog();
+    const detectedHeaderNames = fetchedHeaders.map(h => h.name);
+    if (detectedHeaderNames.length === 0) return;
+    const current = loadRegistryAiState();
+    const nextState = rebuildRegistryAiReviewQueue(detectedHeaderNames, canonicalCatalog, current);
+    saveRegistryAiState(nextState);
+    setAiState(nextState);
+  }, [fetchedHeaders]);
+
+  useEffect(() => {
+    rebuildAiQueue();
+  }, [rebuildAiQueue]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.tab) setRegistryTab(detail.tab);
+    };
+    window.addEventListener('sms:navigate-registry-tab', handler);
+    return () => window.removeEventListener('sms:navigate-registry-tab', handler);
+  }, []);
+
   const explorerCustomFields = useMemo(() => {
     const q = explorerQuery.trim().toLowerCase();
     if (!q) return customFields;
     return customFields.filter((field) =>
-      [field.label, field.key, field.notes, ...field.aliases].join(" ").toLowerCase().includes(q)
+      [field.label, field.key, field.notes, ...(field.aliases ?? [])].join(" ").toLowerCase().includes(q)
     );
   }, [customFields, explorerQuery]);
 
@@ -345,10 +383,11 @@ export default function SettingsHeaders() {
         }
       />
 
-      <Tabs defaultValue="overview">
+      <Tabs value={registryTab} onValueChange={setRegistryTab}>
         <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="explorer">Explorer</TabsTrigger>
+          <TabsTrigger value="canonical-fields">Canonical Fields</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
           <TabsTrigger value="mapping">Mapping</TabsTrigger>
@@ -641,6 +680,10 @@ export default function SettingsHeaders() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="canonical-fields" className="space-y-4">
+          <RegistryExplorer />
+        </TabsContent>
+
         <TabsContent value="modules" className="space-y-4">
           <Card className="glass p-5">
             <div className="flex items-center justify-between gap-3">
@@ -927,43 +970,24 @@ export default function SettingsHeaders() {
         </TabsContent>
 
         <TabsContent value="diagnostics" className="space-y-4">
-          <Card className="glass p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold">Diagnostics</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">Total: {diagnostics.total}</Badge>
-                <Badge variant="secondary" className="bg-destructive/10 text-destructive">Critical: {diagnostics.critical}</Badge>
-                <Badge variant="secondary" className="bg-warning/10 text-warning">Review: {diagnostics.warning}</Badge>
-                <Badge variant="secondary" className="bg-success/10 text-success">Resolved: {diagnostics.success}</Badge>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {diagnostics.issues.slice(0, 8).map((issue) => (
-                <div key={issue.id} className="rounded-xl border border-border/60 bg-card/60 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{issue.title}</p>
-                    <Badge
-                      variant="secondary"
-                      className={
-                        issue.severity === "critical"
-                          ? "bg-destructive/10 text-destructive"
-                          : issue.severity === "warning"
-                            ? "bg-warning/10 text-warning"
-                            : issue.severity === "success"
-                              ? "bg-success/10 text-success"
-                              : "bg-primary/10 text-primary"
-                      }
-                    >
-                      {issue.severity}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{issue.detail}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <RegistryDiagnosticsView
+            aiState={aiState}
+            structuralIssues={diagnostics.issues}
+            onApprove={(detectedHeader, fieldKey) => {
+              const next = approveRegistryAiMapping(detectedHeader, fieldKey, aiState);
+              saveRegistryAiState(next);
+              setAiState(next);
+              window.dispatchEvent(new CustomEvent('sms:ai-state-changed'));
+            }}
+            onReject={(detectedHeader, fieldKey) => {
+              const next = rejectRegistryAiMapping(detectedHeader, fieldKey, aiState);
+              saveRegistryAiState(next);
+              setAiState(next);
+              window.dispatchEvent(new CustomEvent('sms:ai-state-changed'));
+            }}
+            onRebuild={() => { rebuildAiQueue(); toast.success('AI queue rebuilt'); }}
+            onRefresh={() => rebuildAiQueue()}
+          />
         </TabsContent>
       </Tabs>
 

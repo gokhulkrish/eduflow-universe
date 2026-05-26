@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type User = { id: string; name: string; email: string; role: string; department: string; status: string; created: string; };
 export const usersKey = "eduflow_users";
@@ -108,7 +109,7 @@ export default function UserManagement() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="userName">Name</Label><Input id="userName" name="userName" value={uName} onChange={(e) => setUName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="userEmail">Email</Label><Input id="userEmail" name="userEmail" type="email" value={uEmail} onChange={(e) => setUEmail(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="userRole">Role</Label><Select name="userRole" value={uRole} onValueChange={setURole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{roles.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="userDept">Department</Label><Input id="userDept" name="userDept" value={uDept} onChange={(e) => setUDept(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setUOpen(false)}>Cancel</Button><Button onClick={() => { us([...ul(), { id: crypto.randomUUID(), name: uName, email: uEmail, role: uRole, department: uDept, status: "active", created: new Date().toISOString() }]); ru(); setUOpen(false); toast.success("Added"); }} disabled={!uName || !uEmail || !uRole}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setUOpen(false)}>Cancel</Button><Button onClick={() => { us([...ul(), { id: generateId(), name: uName, email: uEmail, role: uRole, department: uDept, status: "active", created: new Date().toISOString() }]); ru(); setUOpen(false); toast.success("Added"); }} disabled={!uName || !uEmail || !uRole}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -119,7 +120,7 @@ export default function UserManagement() {
             <div><Label className="text-xs" htmlFor="roleName">Role Name</Label><Input id="roleName" name="roleName" value={roleName} onChange={(e) => setRoleName(e.target.value)} /></div>
             <div><Label className="text-xs">Permissions</Label><div className="flex flex-wrap gap-1 mt-1">{PERMISSIONS.map((p) => <Badge key={p} className={`cursor-pointer text-[9px] ${rolePerms.includes(p) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`} onClick={() => setRolePerms(rolePerms.includes(p) ? rolePerms.filter((x) => x !== p) : [...rolePerms, p])}>{p}</Badge>)}</div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setRoleOpen(false)}>Cancel</Button><Button onClick={() => { ros([...rol(), { id: crypto.randomUUID(), name: roleName, permissions: rolePerms }]); rr(); setRoleOpen(false); toast.success("Role created"); }} disabled={!roleName}>Create</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setRoleOpen(false)}>Cancel</Button><Button onClick={() => { ros([...rol(), { id: generateId(), name: roleName, permissions: rolePerms }]); rr(); setRoleOpen(false); toast.success("Role created"); }} disabled={!roleName}>Create</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

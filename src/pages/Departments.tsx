@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Department = { id: string; departmentName: string; departmentCode: string; hodName: string; programLevel: string; sanctionedIntake: number; naacNbaStatus: string; };
 const DEPT_KEY = "eduflow_departments";
@@ -68,7 +69,7 @@ export default function Departments() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="hod">HOD / Coordinator</Label><Input id="hod" name="hod" value={hod} onChange={(e) => setHod(e.target.value)} /></div><div><Label className="text-xs" htmlFor="level">Program Level</Label><Select name="level" value={level} onValueChange={setLevel}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="UG">UG</SelectItem><SelectItem value="PG">PG</SelectItem><SelectItem value="Research">Research</SelectItem><SelectItem value="Diploma">Diploma</SelectItem><SelectItem value="Certificate">Certificate</SelectItem></SelectContent></Select></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="intake">Sanctioned Intake</Label><Input id="intake" name="intake" type="number" value={intake} onChange={(e) => setIntake(e.target.value)} /></div><div><Label className="text-xs" htmlFor="naac">NAAC / NBA Status</Label><Select name="naac" value={naac} onValueChange={setNaac}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Not Applied">Not Applied</SelectItem><SelectItem value="Applied">Applied</SelectItem><SelectItem value="Accredited">Accredited</SelectItem><SelectItem value="Re-Accreditation Due">Re-Accreditation Due</SelectItem></SelectContent></Select></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !code} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), departmentName: name, departmentCode: code, hodName: hod, programLevel: level, sanctionedIntake: Number(intake) || 0, naacNbaStatus: naac }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !code} onClick={() => { const items = ls(); items.push({ id: generateId(), departmentName: name, departmentCode: code, hodName: hod, programLevel: level, sanctionedIntake: Number(intake) || 0, naacNbaStatus: naac }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

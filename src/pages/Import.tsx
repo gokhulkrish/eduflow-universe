@@ -140,13 +140,15 @@ import {
 } from "@/lib/import-engine";
 
 const STEPS = [
-  { id: "create", title: "Create Batch", icon: FileSpreadsheet, caption: "Identity + upload" },
+  { id: "analyze", title: "Analyze", icon: FileSpreadsheet, caption: "Parse + profile columns" },
+  { id: "create", title: "Create Batch", icon: Save, caption: "Name + config" },
   { id: "map", title: "Schema Mapping", icon: Cog, caption: "Map source -> target" },
-  { id: "key", title: "Keying", icon: KeyRound, caption: "Match design" },
+  { id: "keying", title: "Keying", icon: KeyRound, caption: "Match design" },
   { id: "dupe", title: "Duplicates", icon: Database, caption: "Resolve conflicts" },
   { id: "validate", title: "Validation", icon: ShieldCheck, caption: "Review issues" },
   { id: "preview", title: "Preview", icon: Eye, caption: "Diff before commit" },
   { id: "transfer", title: "Transfer", icon: Send, caption: "Commit to register" },
+  { id: "finalize", title: "Finalize", icon: CheckCircle2, caption: "Archive + refresh" },
 ] as const;
 
 const getDefaultBatchName = (fileName: string) => fileName.replace(/\.[^.]+$/, "") || fileName;
@@ -272,7 +274,7 @@ export default function Import() {
   const tryNavigateTo = (targetStep: number) => {
     const batch = getCurrentBatch();
     if (!batch) { setStep(targetStep); return; }
-    const stepName = ["create", "map", "keying", "duplicates", "validate", "preview", "transfer"][targetStep] as ImportPipelineStep;
+    const stepName = ["analyze", "create", "map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"][targetStep] as ImportPipelineStep;
     const p = pipelineRef.current;
     p.currentStep = stepName as ImportPipelineStep;
     const check = checkStepPrerequisite(p, stepName as ImportPipelineStep, batch);
@@ -510,7 +512,7 @@ export default function Import() {
         await saveImportBatches([engineBatch]);
         setImportRuntimeActiveBatch(engineBatch.batchId);
         refreshCanonicalPipelineState(pipelineRef.current, engineBatch);
-        setStep(form.mode === "auto" ? 6 : 1);
+        setStep(form.mode === "auto" ? 7 : 2);
 
         if (form.mode === "auto" && !alive) return;
         if (form.mode === "auto") {
@@ -580,7 +582,7 @@ export default function Import() {
     );
     setSavedBatches((prev) => [batch, ...prev.filter((b) => b.batchId !== batch.batchId)]);
     setImportRuntimeActiveBatch(batch.batchId);
-    setStep(Math.min(step, 1));
+    setStep(Math.min(step, 2));
     invalidateImportDownstream(pipelineRef.current, "map", batch, "batch-resumed");
     refreshCanonicalPipelineState(pipelineRef.current, batch);
     toast.success(`Resumed batch "${batch.batchName}".`);
@@ -603,7 +605,7 @@ export default function Import() {
   const [preview, setPreview] = useState<ImportPreviewState | null>(null);
 
   useEffect(() => {
-    if (!parsedFile || step < 2) {
+    if (!parsedFile || step < 3) {
       if (preview !== null) setPreview(null);
       return;
     }
@@ -968,7 +970,7 @@ export default function Import() {
       emitAppSync(importBatchSyncKey);
       setSavedBatches((prev) => prev.map((b) => (b.batchId === current.batchId ? current : b)));
 
-      setStep(6);
+      setStep(7);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Commit failed");
     } finally {
@@ -1354,6 +1356,69 @@ export default function Import() {
 
           {step === 1 && (
             <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <FileSpreadsheet className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-display text-lg font-semibold">Batch Created</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Review the batch details and proceed to mapping.
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-4 rounded-xl border border-border/60 bg-card/40 p-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Batch Name</p>
+                  <p className="font-medium">{batchName || "Untitled"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Transfer Rule</p>
+                  <p className="font-medium">{rule}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Match Design</p>
+                  <p className="font-medium">{design}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Import Mode</p>
+                  <p className="font-medium">{mode}</p>
+                </div>
+              </div>
+              {parsedFile && (
+                <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                  <p className="text-sm font-medium">File Analysis</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-lg bg-primary/5 p-3 text-center">
+                      <p className="font-display text-2xl font-bold text-primary">{parsedFile.rows.length}</p>
+                      <p className="text-xs text-muted-foreground">Rows detected</p>
+                    </div>
+                    <div className="rounded-lg bg-primary/5 p-3 text-center">
+                      <p className="font-display text-2xl font-bold text-primary">{parsedFile.headers.length}</p>
+                      <p className="text-xs text-muted-foreground">Columns detected</p>
+                    </div>
+                    <div className="rounded-lg bg-primary/5 p-3 text-center">
+                      <p className="font-display text-2xl font-bold text-primary">{parsedFile.sourceType.toUpperCase()}</p>
+                      <p className="text-xs text-muted-foreground">File type</p>
+                    </div>
+                  </div>
+                  {parsedFile.headers.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted-foreground mb-1">Detected columns:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {parsedFile.headers.map((h) => (
+                          <Badge key={h} variant="secondary" className="text-[11px]">{h}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
               <Card className="border-primary/20 bg-primary/5 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -1503,7 +1568,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -1550,7 +1615,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1632,7 +1697,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1764,7 +1829,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-4">
                 {[
@@ -1849,7 +1914,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <div className="space-y-4 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
                 <CheckCircle2 className="h-8 w-8 text-success" />
@@ -1913,6 +1978,68 @@ export default function Import() {
             </div>
           )}
 
+          {step === 8 && (
+            <div className="space-y-4 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+                <CheckCircle2 className="h-8 w-8 text-success" />
+              </div>
+              <div>
+                <h4 className="font-display text-xl font-semibold">Import finalized</h4>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  The batch has been archived and the dashboard is being refreshed.
+                </p>
+              </div>
+              {commitResult && (
+                <div className="grid gap-3 sm:grid-cols-4">
+                  {[
+                    { label: "Inserted", value: commitResult.inserted, className: "text-success" },
+                    { label: "Updated", value: commitResult.updated, className: "text-primary" },
+                    { label: "Skipped", value: commitResult.skipped, className: "text-muted-foreground" },
+                    { label: "Failed", value: commitResult.failed, className: "text-warning" },
+                  ].map((item) => (
+                    <Card key={item.label} className="glass p-4 text-center">
+                      <p className={cn("font-display text-3xl font-bold", item.className)}>{item.value}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.label}</p>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => window.open("/settings/trace", "_blank")}
+                >
+                  Trace Settings
+                </Button>
+                <Button
+                  className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
+                  onClick={() => {
+                    const batch = getCurrentBatch();
+                    if (batch) {
+                      batch.status = 'archived' as any;
+                      void saveImportBatches([batch]);
+                      emitAppSync('dashboard.refresh');
+                      toast.success('Batch archived and dashboard refreshed.');
+                    }
+                    pipelineRef.current = createImportPipelineState();
+                    resetImportEngineSession("new-import");
+                    setImportRuntimeActiveBatch(null);
+                    setStep(0);
+                    setCommitResult(null);
+                    setParsedFile(null);
+                    setFile(null);
+                    setBatchName("");
+                    setBatchDescription("");
+                  }}
+                >
+                  Start New Import
+                  <Upload className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {parseError ? (
             <div className="mt-4 rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-warning">
               {parseError}
@@ -1931,12 +2058,31 @@ export default function Import() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            {step < 6 ? (
+            {step < 7 ? (
               <Button onClick={() => tryNavigateTo(step + 1)} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            ) : commitResult ? (
+            ) : step === 7 ? (
+              commitResult ? (
+                <Button
+                  onClick={() => { setStep(8); }}
+                  className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
+                >
+                  Next: Finalize
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => void handleCommit()}
+                  disabled={committing || !preview || preview.summary.total === 0}
+                  className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
+                >
+                  {committing ? "Committing..." : "Commit Import"}
+                  <Send className="ml-2 h-4 w-4" />
+                </Button>
+              )
+            ) : (
               <Button
                 variant="outline"
                 onClick={() => { pipelineRef.current = createImportPipelineState(); resetImportEngineSession("new-import"); setImportRuntimeActiveBatch(null); setStep(0); setCommitResult(null); setParsedFile(null); setFile(null); setBatchName(""); setBatchDescription(""); }}
@@ -1944,15 +2090,6 @@ export default function Import() {
               >
                 New Import
                 <Upload className="ml-2 h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={() => void handleCommit()}
-                disabled={committing || !preview || preview.summary.total === 0}
-                className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
-              >
-                {committing ? "Committing..." : "Commit Import"}
-                <Send className="ml-2 h-4 w-4" />
               </Button>
             )}
           </StickyActionBar>

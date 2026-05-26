@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Lesson = { id: string; title: string; subject: string; class_id: string; topic: string; objectives: string; materials: string; status: string; created_at: string; };
 export const lessonsKey = "eduflow_lessons";
@@ -68,7 +69,7 @@ export default function LessonManagement() {
             <div><Label className="text-xs" htmlFor="lessonObjectives">Objectives</Label><Textarea id="lessonObjectives" name="lessonObjectives" value={objectives} onChange={(e) => setObjectives(e.target.value)} rows={2} /></div>
             <div><Label className="text-xs" htmlFor="lessonMaterials">Materials/Resources</Label><Textarea id="lessonMaterials" name="lessonMaterials" value={materials} onChange={(e) => setMaterials(e.target.value)} rows={2} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !subject} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), title, subject, class_id: "", topic, objectives, materials, status: "draft", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !subject} onClick={() => { const items = ls(); items.push({ id: generateId(), title, subject, class_id: "", topic, objectives, materials, status: "draft", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

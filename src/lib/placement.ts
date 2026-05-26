@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type Company = { id: string; name: string; industry: string; website: string; contacts: string; past_drives: number; offers_made: number; created_at: string; };
 export type JobPosting = { id: string; title: string; company: string; company_id: string; location: string; description: string; requirements: string; salary: string; vacancy: number; deadline: string; status: string; created_at: string; };
@@ -16,7 +17,7 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getCompanies(): Company[] { return ls(companiesKey, []); }
 export function createCompany(c: Omit<Company, "id" | "created_at">): Company {
-  const items = getCompanies(); const n = { ...c, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+  const items = getCompanies(); const n = { ...c, id: generateId(), created_at: new Date().toISOString() };
   items.unshift(n); ss(companiesKey, items); return n;
 }
 export function updateCompany(id: string, p: Partial<Company>) { const items = getCompanies(); const i = items.findIndex((x) => x.id === id); if (i >= 0) { items[i] = { ...items[i], ...p }; ss(companiesKey, items); } }
@@ -24,7 +25,7 @@ export function deleteCompany(id: string) { ss(companiesKey, getCompanies().filt
 
 export function getJobs(): JobPosting[] { return ls(jobsKey, []); }
 export function createJob(j: Omit<JobPosting, "id" | "created_at">): JobPosting {
-  const items = getJobs(); const n = { ...j, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+  const items = getJobs(); const n = { ...j, id: generateId(), created_at: new Date().toISOString() };
   items.unshift(n); ss(jobsKey, items); return n;
 }
 export function updateJob(id: string, p: Partial<JobPosting>) { const items = getJobs(); const i = items.findIndex((x) => x.id === id); if (i >= 0) { items[i] = { ...items[i], ...p }; ss(jobsKey, items); } }
@@ -34,7 +35,7 @@ export function getRegistrations(jobId?: string): PlacementRegistration[] {
   const all = ls(placementRegistrationsKey, [] as PlacementRegistration[]); return jobId ? all.filter((r) => r.job_id === jobId) : all;
 }
 export function registerStudent(jobId: string, student: string): PlacementRegistration {
-  const items = ls(placementRegistrationsKey, [] as PlacementRegistration[]); const n = { id: crypto.randomUUID(), job_id: jobId, student, registered_at: new Date().toISOString(), status: "registered" };
+  const items = ls(placementRegistrationsKey, [] as PlacementRegistration[]); const n = { id: generateId(), job_id: jobId, student, registered_at: new Date().toISOString(), status: "registered" };
   items.push(n); ss(placementRegistrationsKey, items); return n;
 }
 export function updateRegistration(id: string, status: string) {
@@ -45,7 +46,7 @@ export function getInterviews(regId?: string): InterviewStage[] {
   const all = ls(interviewStagesKey, [] as InterviewStage[]); return regId ? all.filter((x) => x.reg_id === regId) : all;
 }
 export function addInterviewStage(regId: string, stage: string): InterviewStage {
-  const items = ls(interviewStagesKey, [] as InterviewStage[]); const n = { id: crypto.randomUUID(), reg_id: regId, stage, status: "pending", feedback: "", conducted_at: "" };
+  const items = ls(interviewStagesKey, [] as InterviewStage[]); const n = { id: generateId(), reg_id: regId, stage, status: "pending", feedback: "", conducted_at: "" };
   items.push(n); ss(interviewStagesKey, items); return n;
 }
 export function updateInterviewStage(id: string, p: Partial<InterviewStage>) {

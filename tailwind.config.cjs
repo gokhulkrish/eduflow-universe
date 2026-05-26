@@ -67,6 +67,7 @@ module.exports = {
         "pulse-glow": { "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.5)" }, "50%": { boxShadow: "0 0 0 12px hsl(var(--primary) / 0)" } },
         "shimmer": { "0%": { backgroundPosition: "-200% 0" }, "100%": { backgroundPosition: "200% 0" } },
         "float": { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-6px)" } },
+        "flash-scroll": { "0%": { transform: "translateX(0)" }, "100%": { transform: "translateX(-50%)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

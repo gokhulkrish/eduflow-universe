@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type LeaveType = { id: string; name: string; days: number; paid: boolean; carry_forward: boolean; };
 const LEAVE_MASTER_KEY = "eduflow_leave_master";
@@ -56,7 +57,7 @@ export default function LeaveMaster() {
             <div><Label className="text-xs" htmlFor="maxDays">Max Days Per Year</Label><Input id="maxDays" name="maxDays" type="number" value={days} onChange={(e) => setDays(e.target.value)} /></div>
             <div className="flex gap-4"><label className="flex items-center gap-2 text-xs"><input type="checkbox" id="paid" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> Paid</label><label className="flex items-center gap-2 text-xs"><input type="checkbox" id="carryForward" checked={cf} onChange={(e) => setCf(e.target.checked)} /> Carry Forward</label></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !days} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, days: Number(days), paid, carry_forward: cf }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !days} onClick={() => { const items = ls(); items.push({ id: generateId(), name, days: Number(days), paid, carry_forward: cf }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

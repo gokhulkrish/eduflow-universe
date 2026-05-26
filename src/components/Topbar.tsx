@@ -13,6 +13,7 @@ import {
 import { notifications } from "@/lib/mock-data";
 import { useShell } from "@/stores/shell";
 import { useActivityTrace } from "@/stores/activityTrace";
+import { useTraceConfig } from "@/stores/traceConfig";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { getFocusRuntimeOptions, getFocusRuntimeSnapshot, summarizeFocusRuntime } from "@/lib/focus-runtime";
@@ -28,6 +29,7 @@ export function Topbar() {
   const dark = theme === "dark";
   const openTrace = useActivityTrace((s) => s.setOpen);
   const traceCount = useActivityTrace((s) => s.events.length);
+  const traceCfg = useTraceConfig();
   const { user, roles, signOut } = useAuth();
   const nav = useNavigate();
   const primaryRole = roles[0] ?? "guest";
@@ -70,19 +72,21 @@ export function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => openTrace(true)}
-          className="relative rounded-xl"
-          aria-label="Open activity trace"
-          title="Activity Trace"
-        >
-          <Activity className="h-4 w-4" />
-          {traceCount > 0 && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{traceCount}</span>
-          )}
-        </Button>
+        {traceCfg.enabled && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => openTrace(true)}
+            className="relative rounded-xl"
+            aria-label="Open activity trace"
+            title="Activity Trace"
+          >
+            <Activity className="h-4 w-4" />
+            {traceCfg.showBadge && traceCount > 0 && (
+              <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">{traceCount}</span>
+            )}
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

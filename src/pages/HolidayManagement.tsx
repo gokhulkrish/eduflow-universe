@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { generateId } from "@/lib/utils";
 
 type Holiday = { id: string; name: string; date: string; type: string; };
 const KEY = "eduflow_holidays_standalone";
@@ -56,7 +57,7 @@ export default function HolidayManagement() {
             <div><Label className="text-xs" htmlFor="holidayName">Holiday Name</Label><Input id="holidayName" name="holidayName" value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="holidayDate">Date</Label><Input id="holidayDate" name="holidayDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label className="text-xs" htmlFor="holidayType">Type</Label><Select name="holidayType" value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="college">College</SelectItem><SelectItem value="religious">Religious</SelectItem><SelectItem value="national">National</SelectItem></SelectContent></Select></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !date} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, date: new Date(date).toISOString(), type }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !date} onClick={() => { const items = ls(); items.push({ id: generateId(), name, date: new Date(date).toISOString(), type }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

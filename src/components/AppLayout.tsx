@@ -5,9 +5,12 @@ import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
 import { WorkspaceFab } from "./WorkspaceFab";
 import { ActivityTraceDrawer } from "./ActivityTraceDrawer";
+import { FlashNewsBar } from "./FlashNewsBar";
+import { useFlashNews } from "@/stores/flashNews";
 import { SchemaHealthBanner } from "./SchemaHealthBanner";
 import { CommandPalette } from "./CommandPalette";
 import { SupabaseSchemaGate } from "./SupabaseSchemaGate";
+import { DestroyWorkspaceDialog } from "@/components/registry/DestroyWorkspaceDialog";
 import { RouteAccessGate } from "./RouteAccessGate";
 import { useShell } from "@/stores/shell";
 import { useErpWorkspace } from "@/stores/erpWorkspace";
@@ -20,6 +23,7 @@ import { getFocusRuntimeSnapshot } from "@/lib/focus-runtime";
 export function AppLayout() {
   const focusMode = useShell((s) => s.focusMode);
   const layoutMode = useShell((s) => s.layoutMode);
+  const flashPosition = useFlashNews((s) => s.settings.position);
   const sidebarExpanded = useErpWorkspace((s) => s.state.sidebarExpanded);
   const setSidebarExpanded = useErpWorkspace((s) => s.setSidebarExpanded);
   const hydrateErpWorkspace = useErpWorkspace((s) => s.hydrate);
@@ -64,13 +68,16 @@ export function AppLayout() {
         {!focus && <AppSidebar />}
         <div className="flex min-w-0 flex-1 flex-col">
           {!focus && <Topbar />}
+          {!focus && flashPosition === "top" && <FlashNewsBar />}
           <main className={cn("mobile-collision-surface flex-1 animate-fade-in", mainPadding)}>
             <SchemaHealthBanner />
             <RouteAccessGate>
               <Outlet />
             </RouteAccessGate>
           </main>
+          {!focus && flashPosition === "bottom" && <FlashNewsBar />}
         </div>
+        <DestroyWorkspaceDialog />
         <CommandPalette />
         <WorkspaceFab />
         <ActivityTraceDrawer />

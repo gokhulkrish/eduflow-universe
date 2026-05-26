@@ -52,6 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
               size="sm"
               variant="outline"
               onClick={() => {
+                window.dispatchEvent(new CustomEvent("sms:lazy-retry"));
                 recordRuntimeRecovery("error-boundary", "Retry requested");
                 recordRuntimeAudit("error-boundary", "User requested retry", this.state.error.message);
                 this.setState({ error: null });

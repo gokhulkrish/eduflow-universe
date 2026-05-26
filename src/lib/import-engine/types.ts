@@ -154,7 +154,7 @@ export interface ImportCommitResult {
   rowResults?: ImportCommitRowResult[];
 }
 
-export type ImportPipelineStep = "create" | "map" | "keying" | "duplicates" | "validate" | "preview" | "transfer";
+export type ImportPipelineStep = "analyze" | "create" | "map" | "keying" | "duplicates" | "validate" | "preview" | "transfer" | "finalize";
 
 export interface ImportPipelineAuditEntry {
   step: string;
@@ -166,6 +166,7 @@ export interface ImportPipelineAuditEntry {
 export interface ImportPipelineSnapshot {
   stage: string;
   timestamp: string;
+  analyzeHash: string;
   mappingHash: string;
   keyingHash: string;
   duplicateHash: string;
@@ -180,6 +181,7 @@ export interface ImportPipelineState {
   sessionId: string;
   currentStep: ImportPipelineStep;
   hash: {
+    analyze: string;
     mapping: string;
     keying: string;
     duplicate: string;

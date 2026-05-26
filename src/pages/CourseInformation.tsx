@@ -16,6 +16,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { PROGRAMS } from "@/lib/promotion";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Mapping = { id: string; course: string; grade: string; section: string; };
 const COURSE_MAPPINGS_KEY = "eduflow_course_mappings";
@@ -108,7 +109,7 @@ export default function CourseInformation() {
               <div><Label className="text-xs" htmlFor="mSec">Section</Label><Select name="mSec" value={mSec} onValueChange={setMSec}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setMOpen(false)}>Cancel</Button><Button onClick={() => { const n: Mapping = { id: crypto.randomUUID(), course: mCourse, grade: mProgram, section: mSec }; const next = [...mappings, n]; ms(next); rm(); setMOpen(false); toast.success("Mapped"); }} disabled={!mCourse || !mProgram}>Save</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setMOpen(false)}>Cancel</Button><Button onClick={() => { const n: Mapping = { id: generateId(), course: mCourse, grade: mProgram, section: mSec }; const next = [...mappings, n]; ms(next); rm(); setMOpen(false); toast.success("Mapped"); }} disabled={!mCourse || !mProgram}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -119,7 +120,7 @@ export default function CourseInformation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="sCourse">Course</Label><Input id="sCourse" name="sCourse" value={sCourse} onChange={(e) => setSCourse(e.target.value)} /></div><div><Label className="text-xs" htmlFor="sProgram">Program</Label><Select name="sProgram" value={sProgram} onValueChange={setSProgram}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="sTotal">Total Seats</Label><Input id="sTotal" name="sTotal" type="number" value={sTotal} onChange={(e) => setSTotal(e.target.value)} /></div><div><Label className="text-xs" htmlFor="sFilled">Filled</Label><Input id="sFilled" name="sFilled" type="number" value={sFilled} onChange={(e) => setSFilled(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setSOpen(false)}>Cancel</Button><Button onClick={() => { const n: Seat = { id: crypto.randomUUID(), course: sCourse, grade: sProgram, total: Number(sTotal) || 0, filled: Number(sFilled) || 0 }; const next = [...seats, n]; ss(next); rs(); setSOpen(false); toast.success("Saved"); }} disabled={!sCourse || !sProgram || !sTotal}>Save</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setSOpen(false)}>Cancel</Button><Button onClick={() => { const n: Seat = { id: generateId(), course: sCourse, grade: sProgram, total: Number(sTotal) || 0, filled: Number(sFilled) || 0 }; const next = [...seats, n]; ss(next); rs(); setSOpen(false); toast.success("Saved"); }} disabled={!sCourse || !sProgram || !sTotal}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

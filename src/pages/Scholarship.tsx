@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Scheme = { id: string; name: string; provider: string; amount: number; criteria: string; };
 export const scholarshipSchemesKey = "eduflow_scholarship_schemes";
@@ -100,7 +101,7 @@ export default function Scholarship() {
             <div><Label className="text-xs" htmlFor="schemeAmount">Amount (₹)</Label><Input id="schemeAmount" name="schemeAmount" type="number" value={scAmt} onChange={(e) => setScAmt(e.target.value)} /></div>
             <div><Label className="text-xs" htmlFor="schemeCriteria">Eligibility Criteria</Label><Input id="schemeCriteria" name="schemeCriteria" value={scCrit} onChange={(e) => setScCrit(e.target.value)} placeholder="e.g. Grade 10+, 90%+" /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setScOpen(false)}>Cancel</Button><Button onClick={() => { ss([...sl(), { id: crypto.randomUUID(), name: scName, provider: scProv, amount: Number(scAmt) || 0, criteria: scCrit }]); rs(); setScOpen(false); toast.success("Scheme created"); }} disabled={!scName || !scProv || !scAmt}>Create</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setScOpen(false)}>Cancel</Button><Button onClick={() => { ss([...sl(), { id: generateId(), name: scName, provider: scProv, amount: Number(scAmt) || 0, criteria: scCrit }]); rs(); setScOpen(false); toast.success("Scheme created"); }} disabled={!scName || !scProv || !scAmt}>Create</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -111,7 +112,7 @@ export default function Scholarship() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="appStudent">Student</Label><Input id="appStudent" name="appStudent" value={apStudent} onChange={(e) => setApStudent(e.target.value)} /></div><div><Label className="text-xs" htmlFor="appScheme">Scheme</Label><Select name="appScheme" value={apScheme} onValueChange={setApScheme}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{schemes.map((s) => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent></Select></div></div>
             <div><Label className="text-xs" htmlFor="appAmount">Amount (₹)</Label><Input id="appAmount" name="appAmount" type="number" value={apAmt} onChange={(e) => setApAmt(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button><Button onClick={() => { aps([...apl(), { id: crypto.randomUUID(), student: apStudent, scheme: apScheme, amount: Number(apAmt) || 0, status: "pending", applied: new Date().toISOString() }]); ra(); setApOpen(false); toast.success("Applied"); }} disabled={!apStudent || !apScheme || !apAmt}>Apply</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button><Button onClick={() => { aps([...apl(), { id: generateId(), student: apStudent, scheme: apScheme, amount: Number(apAmt) || 0, status: "pending", applied: new Date().toISOString() }]); ra(); setApOpen(false); toast.success("Applied"); }} disabled={!apStudent || !apScheme || !apAmt}>Apply</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

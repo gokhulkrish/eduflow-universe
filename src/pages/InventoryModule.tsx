@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Item = { id: string; name: string; category: string; quantity: number; min_stock: number; unit: string; location: string; };
 const INVENTORY_KEY = "eduflow_inventory";
@@ -78,7 +79,7 @@ export default function InventoryModule() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemQty">Quantity</Label><Input id="itemQty" name="itemQty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div><div><Label className="text-xs" htmlFor="itemMinStock">Min Stock</Label><Input id="itemMinStock" name="itemMinStock" type="number" value={minStock} onChange={(e) => setMinStock(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemUnit">Unit</Label><Input id="itemUnit" name="itemUnit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. pcs, kg" /></div><div><Label className="text-xs" htmlFor="itemLocation">Location</Label><Input id="itemLocation" name="itemLocation" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="e.g. Store Room A" /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !cat} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !cat} onClick={() => { const items = ls(); items.push({ id: generateId(), name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

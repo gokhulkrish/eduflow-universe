@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Course = { id: string; courseRoom: string; contentUnit: string; facultyOwner: string; engagementPercent: number; completionStatus: string; };
 const LMS_KEY = "eduflow_lms";
@@ -67,7 +68,7 @@ export default function LmsElearning() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="facultyOwner">Faculty Owner</Label><Input id="facultyOwner" name="facultyOwner" value={faculty} onChange={(e) => setFaculty(e.target.value)} /></div><div><Label className="text-xs" htmlFor="engagementPct">Engagement %</Label><Input id="engagementPct" name="engagementPct" type="number" value={engagement} onChange={(e) => setEngagement(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="completionStatus">Completion Status</Label><Select name="completionStatus" value={completion} onValueChange={setCompletion}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Not Started">Not Started</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Needs Intervention">Needs Intervention</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!room} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), courseRoom: room, contentUnit: unit, facultyOwner: faculty, engagementPercent: Number(engagement) || 0, completionStatus: completion }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!room} onClick={() => { const items = ls(); items.push({ id: generateId(), courseRoom: room, contentUnit: unit, facultyOwner: faculty, engagementPercent: Number(engagement) || 0, completionStatus: completion }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

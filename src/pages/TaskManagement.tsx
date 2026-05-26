@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Task = { id: string; title: string; description: string; assignee: string; priority: string; status: string; due_date: string; created_at: string; };
 const TASKS_KEY = "eduflow_tasks";
@@ -65,7 +66,7 @@ export default function TaskManagement() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="taskAssignee">Assignee</Label><Input id="taskAssignee" name="taskAssignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} /></div><div><Label className="text-xs" htmlFor="taskDue">Due Date</Label><Input id="taskDue" name="taskDue" type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="taskPriority">Priority</Label><Select name="taskPriority" value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !assignee} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), title, description: desc, assignee, priority, status: "pending", due_date: due ? new Date(due).toISOString() : "", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !assignee} onClick={() => { const items = ls(); items.unshift({ id: generateId(), title, description: desc, assignee, priority, status: "pending", due_date: due ? new Date(due).toISOString() : "", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

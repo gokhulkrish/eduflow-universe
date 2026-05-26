@@ -1,4 +1,5 @@
 import type { ImportMappingLine, ImportTransferMode, ImportMatchStrategy } from "./types";
+import { CANONICAL_FIELDS } from '../../engine/registry/canonical';
 
 interface ResolvedMatch {
   importField: string;
@@ -28,11 +29,39 @@ const MAPPING_RULES: Record<string, string> = {
   "enrollment no": "enrollmentNumber",
   "roll no": "rollNumber",
   "roll number": "rollNumber",
-  class: "class",
-  section: "division",
-  division: "division",
+  class: "grade",
+  section: "section",
+  division: "section",
   institute: "institute",
 };
+
+function buildRegistryAliasIndex(): Map<string, string> {
+  const idx = new Map<string, string>();
+  for (const field of CANONICAL_FIELDS) {
+    idx.set(field.key.toLowerCase(), field.key);
+    idx.set(field.label.toLowerCase(), field.key);
+    for (const alias of field.aliases) {
+      idx.set(alias.toLowerCase(), field.key);
+    }
+  }
+  return idx;
+}
+
+export function invalidateRegistryAliasIndex(): void {
+  /* no-op; kept for compatibility */
+}
+
+function resolveFromRegistry(headerLower: string): string | null {
+  const idx = buildRegistryAliasIndex();
+  const direct = idx.get(headerLower);
+  if (direct) return direct;
+
+  const fuzzy = headerLower.replace(/[_\s-]+/g, '');
+  for (const [key, val] of idx.entries()) {
+    if (key.replace(/[_\s-]+/g, '') === fuzzy) return val;
+  }
+  return null;
+}
 
 export function resolveImportMappingEngineMatch(
   sourceHeader: string,
@@ -49,13 +78,24 @@ export function resolveImportMappingEngineMatch(
   }
 
   const headerLower = String(sourceHeader).toLowerCase().trim();
-  const targetField = MAPPING_RULES[headerLower] || null;
+
+  // 1. Try hardcoded rules first (fast path)
+  let targetField = MAPPING_RULES[headerLower] || null;
+
+  // 2. Try registry alias match
+  if (!targetField) {
+    targetField = resolveFromRegistry(headerLower);
+  }
+
+  // 3. Determine required from CanonicalFields
+  const canonicalField = CANONICAL_FIELDS.find((f) => f.key === targetField);
+  const isRequired = canonicalField?.required ?? ["firstName", "lastName", "email"].includes(targetField || "");
 
   return {
     importField: sourceHeader,
     targetField,
     transferMode: defaultImportType,
-    isRequired: ["firstName", "lastName", "email"].includes(targetField || ""),
+    isRequired,
   };
 }
 

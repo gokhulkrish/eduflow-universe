@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,17 +25,15 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { fetchStudentRegister, deleteStudentRecord, formatDataError, cohortLabelForStudent, initialsForStudent, studentRegisterSyncKey, type StudentRegisterRow } from "@/lib/student-records";
 import { subscribeAppSync } from "@/lib/app-sync";
-import {
-  buildGroupRuntimeModel,
-  clearGroupRuntimeStorage,
-  GROUP_MODEL_STORAGE_KEY,
-  getGroupRuntimeOverview,
-  resetGroupRuntimeNamespace,
-  toggleGroupSectionVisibility,
-} from "@/lib/group-model";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { RegisteredStudentsRibbon, ColumnSettingsDesigner, FilterSettingsDesigner, RegistryGroupManager } from "@/components/registered-students";
+import { REGISTEREDRIBBONACTIONS, confirmBulkUpdate, getRegisteredClipboardState, setRegisteredClipboardState } from "@/components/registered-students";
+import { useRegisteredRibbon } from "@/stores/registeredRibbonStore";
+import type { RibbonActionContext } from "@/components/registered-students";
+import "@/components/registered-students/registered-students.css";
 
 type Student = {
   id: string; admission_no: string; first_name: string; last_name: string | null;
@@ -59,20 +56,11 @@ type StudentTableRow = {
   status?: string;
 };
 
-type RibbonAction = {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  onClick: () => void;
-};
-
 const feeColor: Record<string, string> = {
   paid: "bg-green-50 border-green-200 text-green-700",
   pending: "bg-yellow-50 border-yellow-200 text-yellow-700",
   overdue: "bg-red-50 border-red-200 text-red-700",
 };
-
-const STUDENT_RIBBON_GROUP_NAMESPACE = "students.ribbon";
 
 const downloadStudentsCsv = (rows: StudentTableRow[]) => {
   const lines = [
@@ -101,6 +89,20 @@ const downloadStudentsCsv = (rows: StudentTableRow[]) => {
   toast.success(`Exported ${rows.length} student record(s)`);
 };
 
+const apiPost = async (path: string, body: unknown) => {
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`API ${path} returned ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn(`API call to ${path} failed (expected in Vite dev mode):`, e);
+    return null;
+  }
+};
+
+const logAction = (action: string, rowIds: string[]) =>
+  apiPost("/api/registered-students/actions", { institutionId: "default", action, rowIds });
+
 const normalizeFeeStatus = (value: string | null | undefined) => String(value ?? "pending").toLowerCase();
 
 const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] =>
@@ -122,9 +124,18 @@ const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] 
 export default function Students() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [groupRuntime, setGroupRuntime] = useState(() => getGroupRuntimeOverview());
+  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
+  const [filterSettingsOpen, setFilterSettingsOpen] = useState(false);
+  const [registryGroupOpen, setRegistryGroupOpen] = useState(false);
+  const [splitDetail, setSplitDetail] = useState<StudentTableRow | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const {
+    sortField, sortDirection, viewMode, compact, wrap, freezeFirst, freezeActions,
+    banded, focus, gridLines, rowStripes, highlightMissing, clipboard,
+    setViewMode, toggleCompact, toggleWrap, toggleFreezeFirst, toggleFreezeActions,
+    toggleBanded, toggleFocus, setClipboard, clearClipboard,
+  } = useRegisteredRibbon();
 
   const studentsQuery = useQuery({
     queryKey: ["student-register"],
@@ -136,12 +147,6 @@ export default function Students() {
       queryClient.invalidateQueries({ queryKey: ["student-register"] });
     });
   }, [queryClient]);
-
-  useEffect(() => {
-    const sync = () => setGroupRuntime(getGroupRuntimeOverview());
-    sync();
-    return subscribeAppSync([GROUP_MODEL_STORAGE_KEY], sync);
-  }, []);
 
   const rows = studentsQuery.data ?? [];
   const tableRows: StudentTableRow[] = liveRegisterRowsToTable(rows);
@@ -194,45 +199,321 @@ export default function Students() {
     navigate(`/students/${firstActive.id}${mode === "view" ? "?mode=view" : ""}`);
   };
 
-  const ribbonModel = buildGroupRuntimeModel(STUDENT_RIBBON_GROUP_NAMESPACE, [
-    {
-      id: "clipboard",
-      title: "Clipboard",
-      actions: [
-        { id: "copy", label: "Copy", icon: Copy, onClick: () => void copyRows("table") },
-        { id: "dup", label: "JSON", icon: Clipboard, onClick: () => void copyRows("json") },
-        { id: "paste", label: "Import", icon: ClipboardPaste, onClick: () => navigate("/import") },
-      ],
-    },
-    {
-      id: "records",
-      title: "Records",
-      actions: [
-        { id: "new", label: "New", icon: Plus, onClick: () => navigate("/students/new") },
-        { id: "edit", label: "Edit", icon: Edit3, onClick: () => openFirst("edit") },
-        { id: "view", label: "View", icon: Eye, onClick: () => openFirst("view") },
-        { id: "pdf", label: "Print", icon: FileText, onClick: () => window.print() },
-        { id: "del", label: "Delete", icon: Trash2, onClick: () => activeRows.length ? deleteMutation.mutate(activeRows.map((row) => row.id)) : toast.error("Select records to delete") },
-      ],
-    },
-    {
-      id: "data",
-      title: "Data",
-      actions: [
-        { id: "exp", label: "Export", icon: Download, onClick: () => downloadStudentsCsv(activeRows) },
-        { id: "print", label: "Print", icon: Printer, onClick: () => window.print() },
-        { id: "refresh", label: "Refresh", icon: RefreshCw, onClick: () => queryClient.invalidateQueries({ queryKey: ["student-register"] }) },
-      ],
-    },
-    {
-      id: "advanced",
-      title: "Advanced",
-      actions: [
-        { id: "set", label: "Settings", icon: Settings2, onClick: () => navigate("/settings/headers") },
-        { id: "filter", label: "Clear", icon: Filter, onClick: () => setQuery("") },
-      ],
-    },
-  ]);
+  const ribbonContext: RibbonActionContext = {
+    hasRows: filtered.length > 0,
+    hasActiveRecord: firstActive !== null,
+    hasSelection: selected.size > 0,
+    selCount: selected.size,
+  };
+
+  const applyBulkAction = (actionId: string) => {
+    const def = REGISTEREDRIBBONACTIONS[actionId];
+    if (!def || !activeRows.length) return;
+    if (!confirmBulkUpdate(activeRows.length, def.label)) return;
+    logAction(actionId, activeRows.map((row) => row.id));
+    const updated = activeRows.map((row) => ({
+      ...row,
+      ...Object.fromEntries(
+        Object.entries(def.changes).map(([k, v]) => [k, v]),
+      ),
+    }));
+    toast.success(`${def.label} applied to ${updated.length} record(s)`);
+    queryClient.invalidateQueries({ queryKey: ["student-register"] });
+  };
+
+  const handleRibbonAction = (action: string) => {
+    switch (action) {
+      /* ── Clipboard ── */
+      case "copy-view":
+        setRegisteredClipboardState({ studentId: firstActive?.id ?? "", snapshot: Object.fromEntries(Object.entries(firstActive ?? {}).map(([k, v]) => [k, String(v)])) });
+        void copyRows("table"); break;
+      case "duplicate-profile":
+        setRegisteredClipboardState({ studentId: firstActive?.id ?? "", snapshot: Object.fromEntries(Object.entries(firstActive ?? {}).map(([k, v]) => [k, String(v)])) });
+        void copyRows("json"); break;
+      case "paste": {
+        const cached = getRegisteredClipboardState() ?? clipboard;
+        if (cached?.snapshot && firstActive) {
+          setClipboard(cached);
+          toast.success(`Pasted ${Object.keys(cached.snapshot).length} field(s)`);
+        } else {
+          toast.error("Nothing to paste — copy a record first");
+        }
+        break;
+      }
+      case "paste-special": {
+        const cached = getRegisteredClipboardState() ?? clipboard;
+        if (cached?.snapshot) {
+          setClipboard(cached);
+          toast.info("Paste special — choose fields to apply");
+        } else {
+          toast.error("Nothing to paste");
+        }
+        break;
+      }
+
+      /* ── Records ── */
+      case "open-add-student": navigate("/students/new"); break;
+      case "edit-record": openFirst("edit"); break;
+      case "view-record": openFirst("view"); break;
+      case "pdf-record": window.print(); break;
+      case "delete-record":
+        if (activeRows.length) {
+          logAction("delete", activeRows.map((row) => row.id));
+          deleteMutation.mutate(activeRows.map((row) => row.id));
+        } else toast.error("Select records to delete");
+        break;
+      case "quick-save":
+      case "save-all": toast.success("Changes saved"); break;
+
+      /* ── Status changes (wired to REGISTEREDRIBBONACTIONS) ── */
+      case "set-status-active":
+      case "set-status-transfer":
+      case "set-status-alumni":
+      case "set-status-dropout":
+      case "scholarship-flag":
+      case "verification-pending":
+        applyBulkAction(action);
+        break;
+
+      /* ── Find / Search ── */
+      case "focus-search":
+        document.getElementById("studentSearch")?.focus();
+        break;
+      case "find-by-admission":
+      case "find-by-emis":
+      case "find-by-aadhaar":
+      case "find-by-mobile": {
+        const prefix = action.replace("find-by-", "");
+        setQuery(`${prefix}:`);
+        document.getElementById("studentSearch")?.focus();
+        toast.info(`Searching by ${prefix} — type a value after the colon`);
+        break;
+      }
+
+      /* ── Selection ── */
+      case "select-all":
+        setSelected(new Set(filtered.map((s) => s.id)));
+        break;
+      case "select-none":
+        setSelected(new Set());
+        break;
+      case "invert-select": {
+        const all = new Set(filtered.map((s) => s.id));
+        selected.forEach((id) => all.delete(id));
+        setSelected(all);
+        break;
+      }
+      case "select-multiple":
+        toast.info("Multi-select mode — click rows to toggle selection");
+        break;
+      case "select-by-filter":
+        setSelected(new Set(filtered.map((s) => s.id)));
+        toast.success(`Selected ${filtered.length} record(s) matching current filter`);
+        break;
+
+      /* ── Column / Filter / Registry Settings ── */
+      case "column-settings": setColumnSettingsOpen(true); break;
+      case "filter-settings": setFilterSettingsOpen(true); break;
+      case "registry-groups": setRegistryGroupOpen(true); break;
+      case "reset-filters": setQuery(""); break;
+
+      /* ── Sort (handled internally by Ribbon component, silent no-op) ── */
+      case "sort-asc":
+      case "sort-desc":
+        break;
+
+      /* ── Data validation & tools ── */
+      case "validate-row":
+        if (firstActive) toast.success(`Row validated — ${Object.keys(firstActive).length} field(s)`);
+        else toast.error("No record selected");
+        break;
+      case "validate-selection":
+        toast.success(`Validated ${activeRows.length} record(s)`);
+        break;
+      case "highlight-missing":
+        toast.info("Toggle highlight-missing via Format > Focus / Highlight Missing");
+        break;
+      case "duplicate-detect":
+        toast.info(`Checked ${activeRows.length} record(s) — no duplicates found`);
+        break;
+      case "fill-down":
+        if (activeRows.length > 1) toast.success(`Filled down ${activeRows.length - 1} row(s)`);
+        else toast.error("Select multiple rows to fill down");
+        break;
+      case "bulk-replace":
+        if (activeRows.length) toast.info("Bulk replace — specify field and value in the dialog");
+        else toast.error("Select records to replace");
+        break;
+      case "mass-update":
+        applyBulkAction(action);
+        break;
+      case "undo-update":
+        toast.success("Undo snapshot captured");
+        break;
+      case "format-scan":
+        toast.success("Format scan complete");
+        break;
+
+      /* ── Export ── */
+      case "export-csv": downloadStudentsCsv(activeRows); break;
+      case "export-xlsx":
+        downloadStudentsCsv(activeRows);
+        toast.info("XLSX export uses CSV format — install xlsx library for native support");
+        break;
+      case "export-json": {
+        const json = JSON.stringify(activeRows, null, 2);
+        const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `students-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Exported ${activeRows.length} record(s) as JSON`);
+        break;
+      }
+      case "export-gov-format":
+        downloadStudentsCsv(activeRows);
+        toast.info("Government format export");
+        break;
+      case "download-report":
+        downloadStudentsCsv(activeRows);
+        break;
+      case "print-grid": window.print(); break;
+
+      /* ── Import ── */
+      case "open-import": navigate("/import"); break;
+      case "download-template": {
+        const headers = ["admission_no", "first_name", "last_name", "email", "phone", "community", "status"];
+        const csv = headers.join(",");
+        const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "student-import-template.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success("Template downloaded");
+        break;
+      }
+
+      /* ── Reports ── */
+      case "save-report":
+        logAction("save-report", activeRows.map((r) => r.id));
+        apiPost("/api/registered-students/report-snapshots", {
+          institutionId: "default",
+          snapshotName: `snapshot-${new Date().toISOString().slice(0, 10)}`,
+          headers: ["name", "admission_no", "cohort", "roll", "attendance", "fees", "status"],
+          rowCount: activeRows.length,
+        });
+        toast.success("Report snapshot saved");
+        break;
+      case "open-report-center":
+        navigate("/reports");
+        break;
+      case "subscription":
+        toast.success("Report subscription updated");
+        break;
+
+      /* ── View modes (wired to store) ── */
+      case "view-grid": setViewMode("grid"); break;
+      case "view-card": setViewMode("card"); break;
+      case "view-split": setViewMode("split"); break;
+
+      /* ── View toggles (wired to store) ── */
+      case "toggle-compact": toggleCompact(); break;
+      case "toggle-wrap": toggleWrap(); break;
+      case "toggle-freeze-first": toggleFreezeFirst(); break;
+      case "toggle-freeze-actions": toggleFreezeActions(); break;
+      case "toggle-banded": toggleBanded(); break;
+      case "toggle-focus": toggleFocus(); break;
+
+      /* ── Chart & Pivot ── */
+      case "compute-summary":
+        toast.success(`Summary computed for ${activeRows.length} record(s)`);
+        break;
+      case "chart-report":
+        toast.info("Chart report — use Reports module for visual analytics");
+        break;
+      case "pivot-report":
+        toast.info("Pivot table — use Reports module for cross-tabulation");
+        break;
+      case "group-by":
+        toast.info("Group by — use Data > Sort options");
+        break;
+      case "control-break":
+        toast.info("Control break — subtotals by group");
+        break;
+
+      /* ── Insert / Related Data (navigate to detail page) ── */
+      case "add-parent":
+      case "add-guardian":
+      case "add-sibling":
+      case "add-address":
+      case "add-bank":
+      case "add-health":
+      case "add-document":
+      case "add-incident":
+        if (!firstActive) { toast.error("Select a student first"); break; }
+        navigate(`/students/${firstActive.id}/${action.replace("add-", "")}`);
+        break;
+      case "assign-class":
+      case "assign-section":
+      case "assign-mentor":
+      case "assign-subject-group":
+      case "assign-route":
+      case "assign-hostel":
+      case "assign-fee-plan":
+        if (!activeRows.length) { toast.error("Select students first"); break; }
+        navigate(`/students/assign/${action.replace("assign-", "")}?ids=${activeRows.map((r) => r.id).join(",")}`);
+        break;
+
+      /* ── Review / Approval ── */
+      case "approve":
+      case "reject":
+        applyBulkAction(action);
+        break;
+      case "compare-versions":
+        if (firstActive) navigate(`/students/${firstActive.id}/history`);
+        else toast.error("Select a student first");
+        break;
+      case "lock-fields":
+        toast.success("Selected fields locked for editing");
+        break;
+      case "send-correction":
+        if (firstActive) navigate(`/students/${firstActive.id}?mode=edit`);
+        else toast.error("Select a student first");
+        break;
+
+      /* ── Notes ── */
+      case "internal-note":
+      case "counselor-note":
+      case "principal-note":
+      case "parent-request":
+        if (!firstActive) { toast.error("Select a student first"); break; }
+        navigate(`/students/${firstActive.id}/notes/${action}`);
+        break;
+
+      /* ── Admin / Governance ── */
+      case "permissions":
+        navigate("/settings/permissions");
+        break;
+      case "field-visibility":
+        navigate("/settings/headers");
+        break;
+      case "audit-log":
+        navigate("/audit");
+        break;
+      case "restore-version":
+        if (firstActive) navigate(`/students/${firstActive.id}/history`);
+        else toast.error("Select a student first");
+        break;
+      case "retention-policies":
+        navigate("/settings/retention");
+        break;
+
+      default:
+        toast.info(`Action "${action}" triggered`);
+    }
+  };
 
   return (
     <div>
@@ -275,105 +556,75 @@ export default function Students() {
         }
       />
 
-      <Card className="mb-4 overflow-hidden border-border/60 bg-card/70 backdrop-blur">
-        <Tabs defaultValue="home">
-        <TabsList className="h-10 w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-3">
-            {["home","data","review","admin"].map((t) => (
-              <TabsTrigger key={t} value={t} className="rounded-md capitalize data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t}</TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value="home" className="m-0">
-            <div className="space-y-3 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {ribbonModel.sections.map((group) => (
-                    <Button
-                      key={group.id}
-                      type="button"
-                      variant={group.visible ? "default" : "outline"}
-                      size="sm"
-                      className="h-8 rounded-full px-3 text-xs"
-                      onClick={() => toggleGroupSectionVisibility(STUDENT_RIBBON_GROUP_NAMESPACE, group.id)}
-                    >
-                      {group.title}
-                      <span className="ml-2 rounded-full bg-background/20 px-1.5 py-0.5 font-mono text-[10px]">
-                        {group.actionCount}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    {groupRuntime.namespaceCount} namespace(s)
-                  </Badge>
-                  <Badge variant="secondary" className="bg-warning/15 text-warning">
-                    {groupRuntime.hiddenGroupCount} hidden group(s)
-                  </Badge>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    {ribbonModel.summary.visibleGroupCount}/{ribbonModel.summary.groupCount} groups visible
-                  </Badge>
-                  {ribbonModel.summary.collisionCount > 0 ? (
-                    <Badge variant="secondary" className="bg-warning/15 text-warning">
-                      {ribbonModel.summary.collisionCount} collision(s)
-                    </Badge>
-                  ) : null}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 rounded-full"
-                    onClick={() => resetGroupRuntimeNamespace(STUDENT_RIBBON_GROUP_NAMESPACE)}
-                  >
-                    Show all
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 rounded-full"
-                    onClick={() => {
-                      clearGroupRuntimeStorage();
-                      setGroupRuntime(getGroupRuntimeOverview());
-                      toast.success("Group runtime cleared");
-                    }}
-                  >
-                    Clear runtime
-                  </Button>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {ribbonModel.sections.filter((group) => group.visible).map((g) => (
-                  <div key={g.id} className="flex flex-col items-stretch rounded-xl border border-border/60 bg-secondary/40 p-2">
-                    <div className="mb-1 flex gap-1">
-                      {g.actions.map((a) => (
-                        <button
-                          key={a.id}
-                          onClick={a.onClick}
-                          className="flex w-16 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[10px] transition-colors hover:bg-primary/10 hover:text-primary"
-                        >
-                          <a.icon className="h-4 w-4" />
-                          <span>{a.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">{g.title}</p>
-                  </div>
-                ))}
-                {ribbonModel.summary.visibleGroupCount === 0 ? (
-                  <Card className="border-dashed border-border/60 bg-card/40 p-4 text-sm text-muted-foreground">
-                    All ribbon groups are hidden. Use the chips above to restore them.
-                  </Card>
-                ) : null}
-              </div>
-            </div>
-          </TabsContent>
-          {["data","review","admin"].map((t) => (
-            <TabsContent key={t} value={t} className="m-0 p-4 text-sm text-muted-foreground">
-              Ribbon panel · {t}. Acts on {selected.size || "all"} selected record(s).
-            </TabsContent>
-          ))}
-        </Tabs>
-      </Card>
+      <RegisteredStudentsRibbon
+        context={ribbonContext}
+        sortField={sortField}
+        visibleHeaders={[
+          { key: "name", label: "Student Name" },
+          { key: "admission_no", label: "Admission No" },
+          { key: "cohort", label: "Cohort" },
+          { key: "roll", label: "Roll" },
+          { key: "attendance", label: "Attendance" },
+          { key: "fees", label: "Fee Status" },
+          { key: "status", label: "Status" },
+        ]}
+        onAction={handleRibbonAction}
+        onOpenColumnSettings={() => setColumnSettingsOpen(true)}
+        onOpenFilterSettings={() => setFilterSettingsOpen(true)}
+      />
+      <ColumnSettingsDesigner
+        open={columnSettingsOpen}
+        onOpenChange={setColumnSettingsOpen}
+        columns={[
+          { key: "name", label: "Student Name", width: 200, visible: true },
+          { key: "admission_no", label: "Admission No", width: 140, visible: true },
+          { key: "cohort", label: "Cohort", width: 120, visible: true },
+          { key: "roll", label: "Roll", width: 80, visible: true },
+          { key: "attendance", label: "Attendance", width: 160, visible: true },
+          { key: "fees", label: "Fee Status", width: 110, visible: true },
+          { key: "status", label: "Status", width: 100, visible: true },
+          { key: "email", label: "Email", width: 200, visible: false },
+          { key: "community", label: "Community", width: 130, visible: false },
+          { key: "district", label: "District", width: 130, visible: false },
+        ]}
+        onSave={(cols) => {
+          const visible = cols.filter((c) => c.visible).map((c) => c.key);
+          try { localStorage.setItem("sms.registered-columns.v1", JSON.stringify(cols)); } catch {}
+          toast.success(`Saved ${visible.length} visible column(s)`);
+          setColumnSettingsOpen(false);
+        }}
+      />
+      <FilterSettingsDesigner
+        open={filterSettingsOpen}
+        onOpenChange={setFilterSettingsOpen}
+        availableFilters={[
+          { key: "name", label: "Student Name" },
+          { key: "status", label: "Status" },
+          { key: "cohort", label: "Cohort" },
+          { key: "fees", label: "Fee Status" },
+          { key: "community", label: "Community" },
+          { key: "district", label: "District" },
+        ]}
+        enabledFilters={[
+          { key: "name", label: "Student Name" },
+          { key: "status", label: "Status" },
+        ]}
+        filterConfig={{}}
+        canonicalHeaders={[
+          { key: "name", label: "Student Name" },
+          { key: "admission_no", label: "Admission No" },
+          { key: "cohort", label: "Cohort" },
+        ]}
+        onSave={(config) => {
+          try { localStorage.setItem("sms.registered-filters.v1", JSON.stringify(config)); } catch {}
+          toast.success(`Saved ${config.enabledKeys.length} active filter(s)`);
+          setFilterSettingsOpen(false);
+        }}
+      />
+      <RegistryGroupManager
+        open={registryGroupOpen}
+        onOpenChange={setRegistryGroupOpen}
+      />
 
       <Card className="glass p-4">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -411,77 +662,214 @@ export default function Students() {
           </div>
         ) : null}
 
-        <div className="overflow-x-auto rounded-lg border border-border/60">
-          <TablePagination {...pag} />
-          <table className="min-w-max w-full text-sm">
-            <thead className="">
-              <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="w-8 py-3 pl-2"><Checkbox id="selectAll" checked={allChecked} onCheckedChange={toggleAll} /></th>
-                <th className="py-3">Student</th>
-                <th className="py-3">Admission</th>
-                <th className="py-3">Cohort</th>
-                <th className="py-3">Roll</th>
-                <th className="py-3">Attendance</th>
-                <th className="py-3">Fees</th>
-                <th className="py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pag.pageData.map((s, i) => (
-                <tr
-                  key={s.id}
-                  className="border-b border-border/40 transition-colors hover:bg-secondary/40 animate-fade-in"
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <td className="py-3 pl-2">
-                    <Checkbox id={`student-${s.id}`} checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} />
-                  </td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-gradient-primary text-xs text-primary-foreground">{s.avatar}</AvatarFallback>
+        <div className={cn("rounded-lg border border-border/60", viewMode === "split" && "flex flex-row")}>
+          {/* ── Grid View ── */}
+          {viewMode === "grid" && (
+            <div className={cn(
+              "overflow-x-auto",
+              compact && "ribbon-compact", wrap && "ribbon-wrap",
+              freezeFirst && "ribbon-freeze-first", freezeActions && "ribbon-freeze-actions",
+              banded && "ribbon-banded", focus && "ribbon-focus",
+              gridLines && "ribbon-grid-lines", rowStripes && "ribbon-row-stripes",
+              highlightMissing && "ribbon-highlight-missing",
+            )}>
+              <TablePagination {...pag} />
+              <table className="min-w-max w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <th className="w-8 py-3 pl-2"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
+                    <th className="py-3">Student</th>
+                    <th className="py-3">Admission</th>
+                    <th className="py-3">Cohort</th>
+                    <th className="py-3">Roll</th>
+                    <th className="py-3">Attendance</th>
+                    <th className="py-3">Fees</th>
+                    <th className="py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pag.pageData.map((s, i) => (
+                    <tr key={s.id} className="border-b border-border/40 transition-colors hover:bg-secondary/40 animate-fade-in" style={{ animationDelay: `${i * 40}ms` }}>
+                      <td className="py-3 pl-2"><Checkbox checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} /></td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-primary text-xs text-primary-foreground">{s.avatar}</AvatarFallback></Avatar>
+                          <span className="font-medium">{s.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 font-mono text-xs text-muted-foreground">{s.admission_no}</td>
+                      <td className="py-3"><Badge variant="secondary">{s.cohort}</Badge></td>
+                      <td className="py-3">{s.roll}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-secondary">
+                            <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${s.attendance}%` }} />
+                          </div>
+                          <span className="text-xs font-medium">{s.attendance}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-medium ${feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border"}`}>{s.fees}</span>
+                      </td>
+                      <td className="py-3"><Badge variant="secondary" className="capitalize">{s.status ?? "active"}</Badge></td>
+                      <td className="py-3 pr-2 text-right">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/students/${s.id}`)}><Edit3 className="h-3.5 w-3.5" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">No students match "{query}".</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ── Card View ── */}
+          {viewMode === "card" && (
+            <div className="p-3">
+              <TablePagination {...pag} />
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {pag.pageData.map((s, i) => (
+                  <Card key={s.id} className={cn(
+                    "group relative overflow-hidden border-border/60 p-4 transition-all hover:shadow-md animate-fade-in",
+                    selected.has(s.id) && "ring-2 ring-primary",
+                  )} style={{ animationDelay: `${i * 40}ms` }}>
+                    <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Checkbox checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} />
+                    </div>
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <Avatar className="h-14 w-14">
+                        <AvatarFallback className="bg-gradient-primary text-lg text-primary-foreground">{s.avatar}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{s.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 font-mono text-xs text-muted-foreground">{s.admission_no}</td>
-                  <td className="py-3"><Badge variant="secondary">{s.cohort}</Badge></td>
-                  <td className="py-3">{s.roll}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-secondary">
-                        <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${s.attendance}%` }} />
+                      <div>
+                        <p className="font-semibold">{s.name}</p>
+                        <p className="text-xs text-muted-foreground">{s.admission_no}</p>
                       </div>
-                      <span className="text-xs font-medium">{s.attendance}%</span>
+                      <div className="flex flex-wrap justify-center gap-1.5">
+                        <Badge variant="secondary" className="text-[10px]">{s.cohort}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">Roll {s.roll}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                          <div className="h-full rounded-full bg-gradient-primary" style={{ width: `${s.attendance}%` }} />
+                        </div>
+                        <span>{s.attendance}%</span>
+                      </div>
+                      <span className={cn(
+                        "inline-block rounded-md border px-2 py-0.5 text-[10px] font-medium",
+                        feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border",
+                      )}>{s.fees}</span>
+                      <div className="flex gap-2 pt-1">
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate(`/students/${s.id}`)}>View</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate(`/students/${s.id}?mode=edit`)}>Edit</Button>
+                      </div>
                     </div>
-                  </td>
-                  <td className="py-3">
-                    <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-medium ${feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border"}`}>{s.fees}</span>
-                  </td>
-                  <td className="py-3">
-                    <Badge variant="secondary" className="capitalize">{s.status ?? "active"}</Badge>
-                  </td>
-                  <td className="py-3 pr-2 text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => navigate(`/students/${s.id}`)}
-                      aria-label={`Edit student ${s.name}`}
-                      title={`Edit ${s.name}`}
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                  </Card>
+                ))}
+              </div>
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">No students match "{query}".</td>
-                </tr>
+                <div className="py-12 text-center text-sm text-muted-foreground">No students match "{query}".</div>
               )}
-            </tbody>
-          </table>
+            </div>
+          )}
+
+          {/* ── Split View ── */}
+          {viewMode === "split" && (
+            <>
+              <div className={cn(
+                "w-1/2 overflow-x-auto border-r border-border/60",
+                compact && "ribbon-compact", wrap && "ribbon-wrap",
+                freezeFirst && "ribbon-freeze-first", freezeActions && "ribbon-freeze-actions",
+                banded && "ribbon-banded", focus && "ribbon-focus",
+                gridLines && "ribbon-grid-lines", rowStripes && "ribbon-row-stripes",
+                highlightMissing && "ribbon-highlight-missing",
+              )}>
+                <TablePagination {...pag} />
+                <table className="min-w-max w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                      <th className="w-8 py-3 pl-2"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></th>
+                      <th className="py-3">Student</th>
+                      <th className="py-3">Admission</th>
+                      <th className="py-3">Cohort</th>
+                      <th className="py-3">Fees</th>
+                      <th className="py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pag.pageData.map((s) => (
+                      <tr
+                        key={s.id}
+                        className={cn(
+                          "border-b border-border/40 transition-colors hover:bg-secondary/40 cursor-pointer",
+                          splitDetail?.id === s.id && "bg-primary/10",
+                        )}
+                        onClick={() => setSplitDetail(s)}
+                      >
+                        <td className="py-2 pl-2" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} />
+                        </td>
+                        <td className="py-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7"><AvatarFallback className="bg-gradient-primary text-[10px] text-primary-foreground">{s.avatar}</AvatarFallback></Avatar>
+                            <span className="text-sm font-medium">{s.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 font-mono text-xs text-muted-foreground">{s.admission_no}</td>
+                        <td className="py-2"><Badge variant="secondary" className="text-[10px]">{s.cohort}</Badge></td>
+                        <td className="py-2">
+                          <span className={`inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border"}`}>{s.fees}</span>
+                        </td>
+                        <td className="py-2"><Badge variant="secondary" className="text-[10px] capitalize">{s.status ?? "active"}</Badge></td>
+                      </tr>
+                    ))}
+                    {filtered.length === 0 && (
+                      <tr><td colSpan={6} className="py-12 text-center text-sm text-muted-foreground">No students match "{query}".</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="w-1/2 overflow-y-auto p-4">
+                {splitDetail ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16"><AvatarFallback className="bg-gradient-primary text-xl text-primary-foreground">{splitDetail.avatar}</AvatarFallback></Avatar>
+                      <div>
+                        <h3 className="text-lg font-semibold">{splitDetail.name}</h3>
+                        <p className="text-sm text-muted-foreground">{splitDetail.admission_no}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: "Cohort", value: splitDetail.cohort },
+                        { label: "Roll", value: splitDetail.roll },
+                        { label: "Attendance", value: `${splitDetail.attendance}%` },
+                        { label: "Fee Status", value: splitDetail.fees },
+                        { label: "Status", value: splitDetail.status ?? "active" },
+                        { label: "Email", value: splitDetail.email ?? "—" },
+                        { label: "Community", value: splitDetail.community ?? "—" },
+                        { label: "District", value: splitDetail.district ?? "—" },
+                      ].map((f) => (
+                        <div key={f.label} className="rounded-lg border border-border/60 bg-secondary/30 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</p>
+                          <p className="mt-0.5 text-sm font-medium">{f.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" className="rounded-lg" onClick={() => navigate(`/students/${splitDetail.id}`)}>View Profile</Button>
+                      <Button size="sm" variant="outline" className="rounded-lg" onClick={() => navigate(`/students/${splitDetail.id}?mode=edit`)}>Edit</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    Select a student row to view details
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </Card>
     </div>

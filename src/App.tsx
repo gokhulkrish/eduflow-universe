@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState, type ComponentType } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,82 +19,137 @@ import { importStorageKeys } from "@/lib/student-import";
 import { instituteRegistryStorageKey, registryStorageKey } from "@/lib/header-registry";
 import { studentRegisterSyncKey } from "@/lib/student-records";
 import { requestMonitoringRefresh } from "@/lib/monitoring-refresh";
+import { ensureCanonicalStudentFields } from "@/lib/canonical-student-fields";
+import { useActivityTrace } from "@/stores/activityTrace";
+import { initializeTraceProfiles } from "@/stores/traceProfiles";
 
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Students = lazy(() => import("./pages/Students"));
-const AddStudent = lazy(() => import("./pages/AddStudent"));
-const Import = lazy(() => import("./pages/Import"));
-const Attendance = lazy(() => import("./pages/Attendance"));
-const Admissions = lazy(() => import("./pages/Admissions"));
-const Exams = lazy(() => import("./pages/Exams"));
-const InstituteSettings = lazy(() => import("./pages/InstituteSettings"));
-const SettingsHeaders = lazy(() => import("./pages/SettingsHeaders"));
-const Automation = lazy(() => import("./pages/Automation"));
-const Migration = lazy(() => import("./pages/Migration"));
-const Permissions = lazy(() => import("./pages/Permissions"));
-const Staff = lazy(() => import("./pages/Staff"));
-const Fees = lazy(() => import("./pages/Fees"));
-const Library = lazy(() => import("./pages/Library"));
-const Hostel = lazy(() => import("./pages/Hostel"));
-const Transport = lazy(() => import("./pages/Transport"));
-const Certificates = lazy(() => import("./pages/Certificates"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Timetable = lazy(() => import("./pages/Timetable"));
-const HR = lazy(() => import("./pages/HR"));
-const Assignments = lazy(() => import("./pages/Assignments"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const ParentPortal = lazy(() => import("./pages/ParentPortal"));
-const Chat = lazy(() => import("./pages/Chat"));
-const Live = lazy(() => import("./pages/Live"));
-const AI = lazy(() => import("./pages/AI"));
-const OnlineExams = lazy(() => import("./pages/OnlineExams"));
-const Comms = lazy(() => import("./pages/Comms"));
-const PlacementCell = lazy(() => import("./pages/PlacementCell"));
-const LeaveMgmt = lazy(() => import("./pages/LeaveMgmt"));
-const Events = lazy(() => import("./pages/Events"));
-const DigitalID = lazy(() => import("./pages/DigitalID"));
-const PromotionEngine = lazy(() => import("./pages/PromotionEngine"));
-const Backups = lazy(() => import("./pages/Backups"));
-const SecurityAudit = lazy(() => import("./pages/SecurityAudit"));
-const Settings = lazy(() => import("./pages/Settings"));
-const HolidayManagement = lazy(() => import("./pages/HolidayManagement"));
-const LeaveMaster = lazy(() => import("./pages/LeaveMaster"));
-const ClassManagement = lazy(() => import("./pages/ClassManagement"));
-const SubjectManagement = lazy(() => import("./pages/SubjectManagement"));
-const LessonManagement = lazy(() => import("./pages/LessonManagement"));
-const NoticeBoard = lazy(() => import("./pages/NoticeBoard"));
-const MediaFileManagement = lazy(() => import("./pages/MediaFileManagement"));
-const DisciplineRecord = lazy(() => import("./pages/DisciplineRecord"));
-const TelephoneDirectory = lazy(() => import("./pages/TelephoneDirectory"));
-const ClassWallManagement = lazy(() => import("./pages/ClassWallManagement"));
-const ActivityLog = lazy(() => import("./pages/ActivityLog"));
-const ReceptionManagement = lazy(() => import("./pages/ReceptionManagement"));
-const TaskManagement = lazy(() => import("./pages/TaskManagement"));
-const AlumniModule = lazy(() => import("./pages/AlumniModule"));
-const QuizModule = lazy(() => import("./pages/QuizModule"));
-const InventoryModule = lazy(() => import("./pages/InventoryModule"));
-const AccountManagement = lazy(() => import("./pages/AccountManagement"));
-const CourseInformation = lazy(() => import("./pages/CourseInformation"));
-const StudentInformation = lazy(() => import("./pages/StudentInformation"));
-const UserManagement = lazy(() => import("./pages/UserManagement"));
-const StudentSearch = lazy(() => import("./pages/StudentSearch"));
-const Scholarship = lazy(() => import("./pages/Scholarship"));
-const GrievanceRedressal = lazy(() => import("./pages/GrievanceRedressal"));
-const Homework = lazy(() => import("./pages/Homework"));
-const VideoRooms = lazy(() => import("./pages/VideoRooms"));
-const Administration = lazy(() => import("./pages/Administration"));
-const SystemPage = lazy(() => import("./pages/System"));
-const Departments = lazy(() => import("./pages/Departments"));
-const CurriculumOutcomes = lazy(() => import("./pages/CurriculumOutcomes"));
-const LmsElearning = lazy(() => import("./pages/LmsElearning"));
-const ResearchInnovation = lazy(() => import("./pages/ResearchInnovation"));
-const AccreditationIQAC = lazy(() => import("./pages/AccreditationIQAC"));
-const HealthWellbeing = lazy(() => import("./pages/HealthWellbeing"));
-const DocumentDms = lazy(() => import("./pages/DocumentDms"));
-const ProcurementAssets = lazy(() => import("./pages/ProcurementAssets"));
-const MonitoringDashboard = lazy(() => import("./pages/MonitoringDashboard"));
-const ScoringWorkspace = lazy(() => import("./pages/ScoringWorkspace"));
-const GenericModule = lazy(() => import("./pages/GenericModule"));
+function retryableLazy<T extends ComponentType<any>>(importFn: () => Promise<{ default: T }>) {
+  return function RetryableLazyWrapper(props: React.ComponentProps<T>) {
+    const [version, setVersion] = useState(0);
+    const [Comp, setComp] = useState<T | null>(null);
+    const [err, setErr] = useState<Error | null>(null);
+
+    useEffect(() => {
+      const h = () => {
+        setVersion((v) => v + 1);
+        setComp(null);
+        setErr(null);
+      };
+      window.addEventListener("sms:lazy-retry", h);
+      return () => window.removeEventListener("sms:lazy-retry", h);
+    }, []);
+
+    useEffect(() => {
+      let cancelled = false;
+      let retries = 0;
+      const maxRetries = 15;
+
+      const attempt = () => {
+        if (cancelled) return;
+        importFn()
+          .then((m) => { if (!cancelled) setComp(() => m.default); })
+          .catch((e) => {
+            if (cancelled) return;
+            const isImportFail = e.message?.includes?.("Failed to fetch");
+            if (isImportFail && retries < maxRetries) {
+              retries++;
+              const delay = Math.min(1000 * 1.5 ** (retries - 1), 10000);
+              setTimeout(attempt, delay);
+            } else if (isImportFail) {
+              window.location.reload();
+            } else {
+              if (!cancelled) setErr(e);
+            }
+          });
+      };
+
+      attempt();
+      return () => { cancelled = true; };
+    }, [version]);
+
+    if (err) throw err;
+    if (!Comp) return <PageLoader />;
+    return <Comp {...(props as any)} />;
+  };
+}
+
+const Dashboard = retryableLazy(() => import("./pages/Dashboard"));
+const Students = retryableLazy(() => import("./pages/Students"));
+const AddStudent = retryableLazy(() => import("./pages/AddStudent"));
+const Import = retryableLazy(() => import("./pages/Import"));
+const Attendance = retryableLazy(() => import("./pages/Attendance"));
+const Admissions = retryableLazy(() => import("./pages/Admissions"));
+const Exams = retryableLazy(() => import("./pages/Exams"));
+const InstituteSettings = retryableLazy(() => import("./pages/InstituteSettings"));
+const SettingsHeaders = retryableLazy(() => import("./pages/SettingsHeaders"));
+const HeaderGroupManager = retryableLazy(() => import("./pages/HeaderGroupManager"));
+const Automation = retryableLazy(() => import("./pages/Automation"));
+const Migration = retryableLazy(() => import("./pages/Migration"));
+const Permissions = retryableLazy(() => import("./pages/Permissions"));
+const Staff = retryableLazy(() => import("./pages/Staff"));
+const Fees = retryableLazy(() => import("./pages/Fees"));
+const Library = retryableLazy(() => import("./pages/Library"));
+const Hostel = retryableLazy(() => import("./pages/Hostel"));
+const Transport = retryableLazy(() => import("./pages/Transport"));
+const Certificates = retryableLazy(() => import("./pages/Certificates"));
+const Reports = retryableLazy(() => import("./pages/Reports"));
+const Timetable = retryableLazy(() => import("./pages/Timetable"));
+const HR = retryableLazy(() => import("./pages/HR"));
+const Assignments = retryableLazy(() => import("./pages/Assignments"));
+const Notifications = retryableLazy(() => import("./pages/Notifications"));
+const ParentPortal = retryableLazy(() => import("./pages/ParentPortal"));
+const Chat = retryableLazy(() => import("./pages/Chat"));
+const Live = retryableLazy(() => import("./pages/Live"));
+const AI = retryableLazy(() => import("./pages/AI"));
+const OnlineExams = retryableLazy(() => import("./pages/OnlineExams"));
+const Comms = retryableLazy(() => import("./pages/Comms"));
+const PlacementCell = retryableLazy(() => import("./pages/PlacementCell"));
+const LeaveMgmt = retryableLazy(() => import("./pages/LeaveMgmt"));
+const Events = retryableLazy(() => import("./pages/Events"));
+const DigitalID = retryableLazy(() => import("./pages/DigitalID"));
+const PromotionEngine = retryableLazy(() => import("./pages/PromotionEngine"));
+const Backups = retryableLazy(() => import("./pages/Backups"));
+const SecurityAudit = retryableLazy(() => import("./pages/SecurityAudit"));
+const Settings = retryableLazy(() => import("./pages/Settings"));
+const HolidayManagement = retryableLazy(() => import("./pages/HolidayManagement"));
+const LeaveMaster = retryableLazy(() => import("./pages/LeaveMaster"));
+const ClassManagement = retryableLazy(() => import("./pages/ClassManagement"));
+const SubjectManagement = retryableLazy(() => import("./pages/SubjectManagement"));
+const LessonManagement = retryableLazy(() => import("./pages/LessonManagement"));
+const NoticeBoard = retryableLazy(() => import("./pages/NoticeBoard"));
+const MediaFileManagement = retryableLazy(() => import("./pages/MediaFileManagement"));
+const DisciplineRecord = retryableLazy(() => import("./pages/DisciplineRecord"));
+const TelephoneDirectory = retryableLazy(() => import("./pages/TelephoneDirectory"));
+const ClassWallManagement = retryableLazy(() => import("./pages/ClassWallManagement"));
+const ActivityLog = retryableLazy(() => import("./pages/ActivityLog"));
+const ReceptionManagement = retryableLazy(() => import("./pages/ReceptionManagement"));
+const TaskManagement = retryableLazy(() => import("./pages/TaskManagement"));
+const AlumniModule = retryableLazy(() => import("./pages/AlumniModule"));
+const QuizModule = retryableLazy(() => import("./pages/QuizModule"));
+const InventoryModule = retryableLazy(() => import("./pages/InventoryModule"));
+const AccountManagement = retryableLazy(() => import("./pages/AccountManagement"));
+const CourseInformation = retryableLazy(() => import("./pages/CourseInformation"));
+const StudentInformation = retryableLazy(() => import("./pages/StudentInformation"));
+const UserManagement = retryableLazy(() => import("./pages/UserManagement"));
+const StudentSearch = retryableLazy(() => import("./pages/StudentSearch"));
+const Scholarship = retryableLazy(() => import("./pages/Scholarship"));
+const GrievanceRedressal = retryableLazy(() => import("./pages/GrievanceRedressal"));
+const Homework = retryableLazy(() => import("./pages/Homework"));
+const VideoRooms = retryableLazy(() => import("./pages/VideoRooms"));
+const Administration = retryableLazy(() => import("./pages/Administration"));
+const SystemPage = retryableLazy(() => import("./pages/System"));
+const Departments = retryableLazy(() => import("./pages/Departments"));
+const CurriculumOutcomes = retryableLazy(() => import("./pages/CurriculumOutcomes"));
+const LmsElearning = retryableLazy(() => import("./pages/LmsElearning"));
+const ResearchInnovation = retryableLazy(() => import("./pages/ResearchInnovation"));
+const AccreditationIQAC = retryableLazy(() => import("./pages/AccreditationIQAC"));
+const HealthWellbeing = retryableLazy(() => import("./pages/HealthWellbeing"));
+const DocumentDms = retryableLazy(() => import("./pages/DocumentDms"));
+const ProcurementAssets = retryableLazy(() => import("./pages/ProcurementAssets"));
+const MonitoringDashboard = retryableLazy(() => import("./pages/MonitoringDashboard"));
+const ScoringWorkspace = retryableLazy(() => import("./pages/ScoringWorkspace"));
+const MessagingControlCenter = retryableLazy(() => import("./pages/MessagingControlCenter"));
+const GenericModule = retryableLazy(() => import("./pages/GenericModule"));
 
 import { initRegistryStorage } from "@/lib/header-registry";
 
@@ -108,7 +163,7 @@ const queryClient = new QueryClient({
     },
   },
 });
-const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance","homework","video-rooms","administration","system","departments","curriculum","lms","research","accreditation","health","documents","procurement","monitor","scoring"]);
+const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance","homework","video-rooms","administration","system","departments","curriculum","lms","research","accreditation","health","documents","procurement","monitor","scoring","trace"]);
 function PageLoader() {
   return (
     <div className="flex h-[60vh] items-center justify-center">
@@ -198,8 +253,112 @@ function MonitoringRefreshBridge() {
   return null;
 }
 
+const PATH_LABELS: Record<string, string> = {
+  "/": "Dashboard",
+  "/students": "Students",
+  "/students/new": "Add Student",
+  "/admissions": "Admissions",
+  "/exams": "Exams",
+  "/import": "Import",
+  "/attendance": "Attendance",
+  "/automation": "Automation",
+  "/monitor": "Monitoring",
+  "/scoring": "Scoring",
+  "/migration": "Migration",
+  "/permissions": "Permissions",
+  "/settings/institute": "Settings: Institute",
+  "/settings/headers": "Settings: Headers",
+  "/settings/trace": "Settings: Startup & Trace",
+  "/settings/messaging": "Settings: Messaging & Control Center",
+  "/registry/groups": "Registry: Groups",
+  "/staff": "Staff",
+  "/fees": "Fees",
+  "/library": "Library",
+  "/hostel": "Hostel",
+  "/transport": "Transport",
+  "/certificates": "Certificates",
+  "/reports": "Reports",
+  "/timetable": "Timetable",
+  "/hr": "HR",
+  "/assignments": "Assignments",
+  "/notifications": "Notifications",
+  "/parents": "Parent Portal",
+  "/chat": "Chat",
+  "/live": "Live",
+  "/ai": "AI",
+  "/online-exams": "Online Exams",
+  "/comms": "Comms",
+  "/placement": "Placement",
+  "/leave": "Leave Management",
+  "/events": "Events",
+  "/id-cards": "ID Cards",
+  "/promotion": "Promotion Engine",
+  "/backups": "Backups",
+  "/security": "Security Audit",
+  "/settings": "Settings",
+  "/holidays": "Holidays",
+  "/leave-master": "Leave Master",
+  "/class-mgmt": "Class Management",
+  "/subjects": "Subjects",
+  "/lessons": "Lessons",
+  "/notice-board": "Notice Board",
+  "/media": "Media",
+  "/discipline": "Discipline",
+  "/telephone": "Telephone Directory",
+  "/class-wall": "Class Wall",
+  "/activity-log": "Activity Log",
+  "/reception": "Reception",
+  "/tasks": "Tasks",
+  "/alumni": "Alumni",
+  "/quiz": "Quiz",
+  "/inventory": "Inventory",
+  "/accounts": "Accounts",
+  "/course-information": "Course Information",
+  "/student-information": "Student Information",
+  "/user-management": "User Management",
+  "/student-search": "Student Search",
+  "/scholarship": "Scholarship",
+  "/grievance": "Grievance",
+  "/homework": "Homework",
+  "/video-rooms": "Video Rooms",
+  "/administration": "Administration",
+  "/system": "System",
+  "/departments": "Departments",
+  "/curriculum": "Curriculum",
+  "/lms": "LMS",
+  "/research": "Research",
+  "/accreditation": "Accreditation",
+  "/health": "Health & Wellbeing",
+  "/documents": "Documents",
+  "/procurement": "Procurement",
+};
+
+function NavigationTraceRecorder() {
+  const location = useLocation();
+  const prevPath = useRef("");
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === prevPath.current) return;
+    prevPath.current = path;
+    const label = PATH_LABELS[path] || path.split("/").filter(Boolean).join(" / ") || "Unknown";
+    useActivityTrace.getState().push({
+      category: "navigation",
+      title: label,
+      section: path,
+    });
+  }, [location.pathname]);
+
+  return null;
+}
+
 const App = () => {
-  useEffect(() => { initRegistryStorage(); }, []);
+  useEffect(() => {
+    initRegistryStorage();
+    ensureCanonicalStudentFields();
+    initializeTraceProfiles();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -209,6 +368,7 @@ const App = () => {
           <AuthProvider>
             <CapabilityAccessSync />
             <MonitoringRefreshBridge />
+            <NavigationTraceRecorder />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/mfa" element={<Mfa />} />
@@ -228,6 +388,9 @@ const App = () => {
                 <Route path="/permissions" element={<LazyRoute element={<Permissions />} />} />
                 <Route path="/settings/institute" element={<LazyRoute element={<InstituteSettings />} />} />
                 <Route path="/settings/headers" element={<LazyRoute element={<SettingsHeaders />} />} />
+                <Route path="/settings/trace" element={<LazyRoute element={<Settings />} />} />
+                <Route path="/settings/messaging" element={<LazyRoute element={<MessagingControlCenter />} />} />
+                <Route path="/registry/groups" element={<LazyRoute element={<HeaderGroupManager />} />} />
                 <Route path="/staff" element={<LazyRoute element={<Staff />} />} />
                 <Route path="/fees" element={<LazyRoute element={<Fees />} />} />
                 <Route path="/library" element={<LazyRoute element={<Library />} />} />

@@ -224,7 +224,7 @@ describe("mapping", () => {
 
     const email = resolveImportMappingEngineMatch("Email Address");
     expect(email.targetField).toBe("email");
-    expect(email.isRequired).toBe(true);
+    expect(email.isRequired).toBe(false);
 
     const unknown = resolveImportMappingEngineMatch("Random Column");
     expect(unknown.targetField).toBeNull();
@@ -261,7 +261,7 @@ describe("validation", () => {
   });
 
   it("validatePhone checks format", () => {
-    expect(validatePhone("+1-555-123-4567")).toBe(true);
+    expect(validatePhone("+15551234567")).toBe(true);
     expect(validatePhone("12345")).toBe(false);
     expect(validatePhone("")).toBe(false);
   });
@@ -274,13 +274,13 @@ describe("validation", () => {
 
   it("validateRow checks required fields", () => {
     const errors = validateRow({ firstName: "", lastName: "", email: "" });
-    expect(errors.length).toBeGreaterThanOrEqual(2);
-    expect(errors.some((e) => e.includes("firstName"))).toBe(true);
+    expect(errors.length).toBeGreaterThanOrEqual(5);
+    expect(errors.some((e) => e.includes("Registration Number"))).toBe(true);
   });
 
   it("validateRow validates email format", () => {
-    const errors = validateRow({ firstName: "John", lastName: "Doe", email: "invalid" });
-    expect(errors.some((e) => e.includes("Invalid email"))).toBe(true);
+    const errors = validateRow({ firstName: "John", lastName: "Doe", email: "invalid", registrationNumber: "ADM-001", studentName: "John Doe", dob: "2010-05-15", gender: "Male", class: "10" });
+    expect(errors.some((e) => e.includes("invalid format"))).toBe(true);
   });
 
   it("validateRow returns empty for valid row", () => {
@@ -288,6 +288,11 @@ describe("validation", () => {
       firstName: "John",
       lastName: "Doe",
       email: "john@test.com",
+      registrationNumber: "ADM-001",
+      studentName: "John Doe",
+      dob: "2010-05-15",
+      gender: "Male",
+      class: "10",
     });
     expect(errors).toEqual([]);
   });
@@ -557,7 +562,8 @@ describe("pipeline", () => {
   it("creates pipeline state with defaults", () => {
     const p = createImportPipelineState();
     expect(p.sessionId).toBeTruthy();
-    expect(p.currentStep).toBe("create");
+    expect(p.currentStep).toBe("analyze");
+    expect(p.hash.analyze).toBe("");
     expect(p.hash.mapping).toBe("");
     expect(p.dirtySteps).toEqual({});
     expect(p.lockedSteps).toEqual({});
@@ -566,14 +572,16 @@ describe("pipeline", () => {
   });
 
   it("IMPORT_PIPELINE_STEPS has correct order", () => {
-    expect(IMPORT_PIPELINE_STEPS).toEqual(["create", "map", "keying", "duplicates", "validate", "preview", "transfer"]);
+    expect(IMPORT_PIPELINE_STEPS).toEqual(["analyze", "create", "map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"]);
   });
 
   it("IMPORT_STEP_DEPENDENCY_MAP defines downstream dependencies", () => {
+    expect(IMPORT_STEP_DEPENDENCY_MAP.analyze).toContain("finalize");
     expect(IMPORT_STEP_DEPENDENCY_MAP.create).toContain("transfer");
     expect(IMPORT_STEP_DEPENDENCY_MAP.map).toContain("keying");
-    expect(IMPORT_STEP_DEPENDENCY_MAP.validate).toEqual(["preview", "transfer"]);
-    expect(IMPORT_STEP_DEPENDENCY_MAP.transfer).toEqual([]);
+    expect(IMPORT_STEP_DEPENDENCY_MAP.validate).toEqual(["preview", "transfer", "finalize"]);
+    expect(IMPORT_STEP_DEPENDENCY_MAP.transfer).toEqual(["finalize"]);
+    expect(IMPORT_STEP_DEPENDENCY_MAP.finalize).toEqual([]);
   });
 
   it("setImportStepDirtyState marks step dirty", () => {
@@ -777,25 +785,29 @@ describe("pipeline", () => {
     expect(p.hash.mapping).toBe("");
     expect(p.audit.trace).toEqual([]);
     expect(p.sessionId).toBeTruthy();
-    expect(p.currentStep).toBe("create");
+    expect(p.currentStep).toBe("analyze");
   });
 
   it("getStepIndex maps names to indices", () => {
-    expect(getStepIndex("create")).toBe(0);
-    expect(getStepIndex("transfer")).toBe(6);
-    expect(getStepIndex("validate")).toBe(4);
+    expect(getStepIndex("analyze")).toBe(0);
+    expect(getStepIndex("create")).toBe(1);
+    expect(getStepIndex("transfer")).toBe(7);
+    expect(getStepIndex("finalize")).toBe(8);
+    expect(getStepIndex("validate")).toBe(5);
   });
 
   it("getStepName maps indices to names", () => {
-    expect(getStepName(0)).toBe("create");
-    expect(getStepName(6)).toBe("transfer");
+    expect(getStepName(0)).toBe("analyze");
+    expect(getStepName(1)).toBe("create");
+    expect(getStepName(7)).toBe("transfer");
+    expect(getStepName(8)).toBe("finalize");
     expect(getStepName(99)).toBe("create");
   });
 
   it("canNavigateToStep rejects locked steps", () => {
     const p = createImportPipelineState();
     const batch = createImportBatch({ batchName: "test" });
-    p.currentStep = "create";
+    p.currentStep = "analyze";
     lockImportStep(p, "map");
     const result = canNavigateToStep(p, "map", batch);
     expect(result.allowed).toBe(false);
@@ -805,7 +817,7 @@ describe("pipeline", () => {
   it("canNavigateToStep rejects skipping ahead too far", () => {
     const p = createImportPipelineState();
     const batch = createImportBatch({ batchName: "test" });
-    p.currentStep = "create";
+    p.currentStep = "analyze";
     const result = canNavigateToStep(p, "validate", batch);
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("intermediate");
@@ -814,8 +826,8 @@ describe("pipeline", () => {
   it("canNavigateToStep allows adjacent forward step", () => {
     const p = createImportPipelineState();
     const batch = createImportBatch({ batchName: "test", importHeaders: ["name"], sourceRows: [{ name: "A" }] });
-    p.currentStep = "create";
-    const result = canNavigateToStep(p, "map", batch);
+    p.currentStep = "analyze";
+    const result = canNavigateToStep(p, "create", batch);
     expect(result.allowed).toBe(true);
   });
 

@@ -8,6 +8,7 @@ import {
 } from '../../../core/students/service';
 import { isFeatureEnabled } from '../../lib/featureToggles';
 import { writeAuditEntry } from '../../../core/audit/service';
+import { computeDataCompleteness } from '../../engine/scoring/completeness';
 
 export interface CreateStudentInput {
   tenantId: string;
@@ -66,6 +67,13 @@ export async function createStudent(input: CreateStudentInput): Promise<string> 
 
   const saved = await legacyCreate(payload as unknown as LegacyCreateInput);
 
+  const completenessScore = computeDataCompleteness(payload as unknown as Record<string, unknown>);
+  await supabase
+    .from('students')
+    .update({ data_completeness_score: completenessScore } as never)
+    .eq('id', saved.id)
+    .maybeSingle();
+
   await syncLegacyAfterWrite('create', { ...input, id: saved.id });
   await logStudentWrite('core.student.created', saved.id, null, payload);
 
@@ -85,6 +93,13 @@ export async function updateStudent(input: UpdateStudentInput): Promise<void> {
     admissionNo: input.admissionNo,
   } as any);
 
+  const completenessScore = computeDataCompleteness({ ...(before as Record<string, unknown>), ...input } as Record<string, unknown>);
+  await supabase
+    .from('students')
+    .update({ data_completeness_score: completenessScore } as never)
+    .eq('id', input.id)
+    .maybeSingle();
+
   await syncLegacyAfterWrite('update', input);
   await logStudentWrite('core.student.updated', input.id, before as any, input);
 }
@@ -94,6 +109,30 @@ export async function deactivateStudent(input: DeactivateStudentInput): Promise<
 
   await syncLegacyAfterWrite('deactivate', input);
   await logStudentWrite('core.student.deactivated', input.id, null, { status: 'left' });
+}
+
+export async function bulkTransfer(
+  rows: { action: 'insert' | 'update' | 'skip'; data: Record<string, unknown> }[],
+  batchId: string,
+): Promise<{ inserted: number; updated: number; skipped: number; failed: number; errors: string[] }> {
+  const result = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [] as string[] };
+  for (const row of rows) {
+    try {
+      if (row.action === 'insert') {
+        await supabase.from('students').insert(row.data as any);
+        result.inserted++;
+      } else if (row.action === 'update') {
+        await supabase.from('students').update(row.data as any).eq('id', row.data.id as string);
+        result.updated++;
+      } else {
+        result.skipped++;
+      }
+    } catch (e: unknown) {
+      result.failed++;
+      result.errors.push(e instanceof Error ? e.message : String(e));
+    }
+  }
+  return result;
 }
 
 async function syncLegacyAfterWrite(kind: WriteKind, payload: any) {

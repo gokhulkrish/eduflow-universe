@@ -3,6 +3,7 @@ export type LeaveRequest = { id: string; employee: string; department: string; t
 export type Holiday = { id: string; name: string; date: string; type: string; };
 
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export const leaveRequestsKey = "eduflow_leave_requests";
 export const holidaysKey = "eduflow_holidays";
@@ -12,7 +13,7 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getLeaveRequests(): LeaveRequest[] { return ls(leaveRequestsKey, []); }
 export function createLeaveRequest(l: Omit<LeaveRequest, "id" | "applied_at">): LeaveRequest {
-  const items = getLeaveRequests(); const n = { ...l, id: crypto.randomUUID(), applied_at: new Date().toISOString() };
+  const items = getLeaveRequests(); const n = { ...l, id: generateId(), applied_at: new Date().toISOString() };
   items.unshift(n); ss(leaveRequestsKey, items); return n;
 }
 export function updateLeaveRequest(id: string, status: string) {
@@ -21,7 +22,7 @@ export function updateLeaveRequest(id: string, status: string) {
 
 export function getHolidays(): Holiday[] { return ls(holidaysKey, []); }
 export function addHoliday(h: Omit<Holiday, "id">): Holiday {
-  const items = getHolidays(); const n = { ...h, id: crypto.randomUUID() };
+  const items = getHolidays(); const n = { ...h, id: generateId() };
   items.push(n); ss(holidaysKey, items); return n;
 }
 export function deleteHoliday(id: string) { ss(holidaysKey, getHolidays().filter((h) => h.id !== id)); }

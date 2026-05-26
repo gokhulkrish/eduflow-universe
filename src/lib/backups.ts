@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type BackupEntry = { id: string; name: string; size: string; tables: number; rows: number; encrypted: boolean; schedule: string; created_at: string; status: string; };
 
@@ -13,7 +14,7 @@ export function getBackups(): BackupEntry[] { return ls(backupsKey, []); }
 
 export function createBackup(name: string, encrypted = false): BackupEntry {
   const items = getBackups();
-  const n: BackupEntry = { id: crypto.randomUUID(), name, size: `${(Math.random() * 5 + 0.5).toFixed(1)} MB`, tables: 24 + Math.floor(Math.random() * 8), rows: 5000 + Math.floor(Math.random() * 15000), encrypted, schedule: "manual", created_at: new Date().toISOString(), status: "completed" };
+  const n: BackupEntry = { id: generateId(), name, size: `${(Math.random() * 5 + 0.5).toFixed(1)} MB`, tables: 24 + Math.floor(Math.random() * 8), rows: 5000 + Math.floor(Math.random() * 15000), encrypted, schedule: "manual", created_at: new Date().toISOString(), status: "completed" };
   items.unshift(n); ss(backupsKey, items); return n;
 }
 

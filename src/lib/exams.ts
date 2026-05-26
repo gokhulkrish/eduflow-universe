@@ -4,6 +4,7 @@ import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-rec
 import { readSupabaseRows } from "@/lib/supabase-query";
 import { isModuleEnabled } from "@/lib/module-access";
 import { tableExists } from "@/lib/supabase-health";
+import { generateId } from "@/lib/utils";
 
 // ── Pure helpers (no I/O) ──────────────────────────────────────
 
@@ -532,7 +533,7 @@ export async function issueTranscript(
       gpa: grades.length ? Math.round(calculateGPA(grades) * 100) / 100 : null,
       status: "issued",
       issued_at: new Date().toISOString(),
-      qr_token: crypto.randomUUID(),
+      qr_token: generateId(),
       created_by: userId,
     })
     .select("*")

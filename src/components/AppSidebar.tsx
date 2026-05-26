@@ -134,6 +134,7 @@ const campus: SidebarItem[] = [
 
 const community: SidebarItem[] = [
   { title: "Parent Portal", url: "/parents", icon: Heart },
+  { title: "Messaging & Control", url: "/settings/messaging", icon: MessageSquare },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Chat Rooms", url: "/chat", icon: MessagesSquare },
   { title: "Comms Hub", url: "/comms", icon: Megaphone },
@@ -155,6 +156,7 @@ const admin: SidebarItem[] = [
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
   { title: "Headers & Fields", url: "/settings/headers", icon: Settings },
+  { title: "Header Groups", url: "/registry/groups", icon: Settings },
   { title: "Permission Matrix", url: "/permissions", icon: Shield },
   { title: "Security & Audit", url: "/security", icon: Shield },
   { title: "User Management", url: "/user-management", icon: Shield },

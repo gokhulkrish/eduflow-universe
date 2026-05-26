@@ -1,0 +1,119 @@
+label,key,group,type,status
+Student Name,studentname,Basic Information,text,active
+Register Number,regno,Basic Information,text,active
+UMIS ID,umisid,Basic Information,text,active
+EMIS ID,emisid,Basic Information,text,active
+Status,status,Basic Information,select,active
+Salutation,salutation,Basic Information,select,active
+Institution Registration Number,institutionregistrationnumber,Basic Information,text,active
+Counselling / Admission Number,counsellingadmissionnumber,Basic Information,text,active
+AISHE Code,collegeaishecode,Institute Information,text,active
+Institute Name,collegename,Institute Information,text,active
+Affiliated University Name,affiliateduniversityname,Institute Information,text,active
+Institution Type,collegeinstitutiontype,Institute Information,text,active
+University Type,universitytype,Institute Information,text,active
+Institute Location Type,institutelocationtype,Institute Information,text,active
+Institute Postal Address,institutepostaladdress,Institute Information,textarea,active
+Institute Contact Number,institutecontactnumber,Institute Information,text,active
+Institute Email Address,instituteemailaddress,Institute Information,text,active
+Institute District / Block,institutedistrictblock,Institute Information,text,active
+Institute Zone / Ward,institutezoneward,Institute Information,text,active
+Institute Website,institutewebsite,Institute Information,text,active
+Year of Establishment,yearofestablishment,Institute Information,text,active
+Co-Education Institute,coeducationinstitute,Institute Information,select,active
+Course,coursename,Course Information,text,active
+Course Stream,coursestream,Course Information,text,active
+Course Duration (Years),coursedurationyears,Course Information,number,active
+Course Maximum Duration (Years),coursemaximumdurationyears,Course Information,number,active
+Department,department,Course Information,text,active
+Course Type,coursetype,Course Information,text,active
+Branch / Specialization,coursebranchspecialization,Course Information,text,active
+Medium of Instruction,mediumofinstruction,Course Information,text,active
+Admission Type,admissiontype,Course Information,text,active
+Course Commencement Date,coursecommencementdate,Course Information,date,active
+Studying Year,studyingyear,Course Information,text,active
+Lateral Entry,lateralentry,Course Information,select,active
+Mode of Study,modeofstudy,Course Information,text,active
+Last Qualification Mode of Study,lastqualificationmodeofstudy,Course Information,text,active
+Special Admission Quota,specialadmissionquota,Course Information,text,active
+Academic Year,academicyear,Academic Information,text,active
+Date of Birth,dob,Personal Information,date,active
+Gender,gender,Personal Information,select,active
+Blood Group,bloodgroup,Personal Information,text,active
+Nationality,nationality,Personal Information,text,active
+Religion,religion,Personal Information,text,active
+Community,community,Personal Information,select,active
+Caste,caste,Personal Information,text,active
+Community Certificate Number,communitycertificatenumber,Personal Information,text,active
+First Graduate,firstgraduate,Personal Information,select,active
+Differently Abled,differentlyabled,Personal Information,select,active
+Disability Type,disabilitytype,Personal Information,text,active
+Disability Percentage,disabilitypercentage,Personal Information,number,active
+Email,email,Contact Information,text,active
+Permanent Address,permanentaddress,Contact Information,textarea,active
+Communication Address,communicationaddress,Contact Information,textarea,active
+Locality Type,localitytype,Contact Information,text,active
+Corporation / Municipality,corporationmunicipality,Contact Information,text,active
+State,state,Contact Information,text,active
+District,district,Contact Information,text,active
+Taluk,taluk,Contact Information,text,active
+Village / Town / Locality,village_town_locality,Contact Information,text,active
+Correspondence Address,correspondence_address,Contact Information,textarea,active
+Ward,ward,Contact Information,text,active
+Postal Code,postal_code,Contact Information,text,active
+Phone Number,phone_number,Contact Information,text,active
+Email ID,email_id,Contact Information,text,active
+Website URL,website_url,Contact Information,text,active
+Latitude,latitude,Contact Information,number,active
+Longitude,longitude,Contact Information,number,active
+Mobile Number,mobile,Family Information,text,active
+Family Card Number,familycardnumber,Family Information,text,active
+Father Name,fathername,Family Information,text,active
+Father Occupation / Sector,fatheroccupationsector,Family Information,text,active
+Mother Name,mothername,Family Information,text,active
+Mother Occupation / Sector,motheroccupationsector,Family Information,text,active
+Guardian Name,guardianname,Family Information,text,active
+Guardian Occupation / Sector,guardianoccupationsector,Family Information,text,active
+Annual Family Income,annualfamilyincome,Family Information,number,active
+Income Certificate Number,incomecertificatenumber,Family Information,text,active
+Hosteller,hosteller,Hostel Information,select,active
+Hostel Join Date,hosteljoindate,Hostel Information,date,active
+Hostel Leave Date,hostelleavedate,Hostel Information,date,active
+Hostel Type,hosteltype,Hostel Information,text,active
+Aadhaar Number,aadhaarnumber,Documents & Identity,text,active
+Institute Bank Name,institutebankname,Banking Information,text,active
+Institute Bank Account Number,institutebankaccountnumber,Banking Information,text,active
+Institute Bank Account Name,institutebankaccountname,Banking Information,text,active
+Institute Bank Account Type,institutebankaccounttype,Banking Information,text,active
+Institute IFSC Code,instituteifsccode,Banking Information,text,active
+Institute Bank Branch,institutebankbranch,Banking Information,text,active
+Institute Geo Location,institutegeolocation,Institute Information,text,active
+Institution Name,institution_name,General Information,text,active
+Institution Category,institution_category,General Information,text,active
+Is Co-Education Institute,is_co_education_institute,General Information,select,active
+Head of Institute Name,headofinstitutename,Head of the Institute,text,active
+Head of Institute Designation,headofinstitutedesignation,Head of the Institute,text,active
+Head of Institute Aadhaar,headofinstituteaadhaar,Head of the Institute,text,active
+Head of Institute Address,headofinstituteaddress,Head of the Institute,textarea,active
+Head of Institute Mobile,headofinstitutemobile,Head of the Institute,text,active
+Head of Institute Email,headofinstituteemail,Head of the Institute,text,active
+HOI Salutation,hoi_salutation,Head of the Institute,select,active
+Name of the HOI,name_of_the_hoi,Head of the Institute,text,active
+HOI Gender,hoi_gender,Head of the Institute,select,active
+HOI Mobile Number,hoi_mobile_number,Head of the Institute,text,active
+HOI Phone Number,hoi_phone_number,Head of the Institute,text,active
+HOI Email ID,hoi_email_id,Head of the Institute,text,active
+HOI Aadhaar Number,hoi_aadhaar_number,Head of the Institute,text,active
+HOI PAN Number,hoi_pan_number,Head of the Institute,text,active
+Nodal Officer Name,nodalofficername,Nodal Officer,text,active
+Nodal Officer Designation,nodalofficerdesignation,Nodal Officer,text,active
+Nodal Officer Address,nodalofficeraddress,Nodal Officer,textarea,active
+Nodal Officer Mobile,nodalofficermobile,Nodal Officer,text,active
+Nodal Officer Email,nodalofficeremail,Nodal Officer,text,active
+Nodal Officer Salutation,nodal_officer_salutation,Nodal Officer,select,active
+Name of the Nodal Officer,name_of_the_nodal_officer,Nodal Officer,text,active
+Nodal Officer Gender,nodal_officer_gender,Nodal Officer,select,active
+Nodal Officer Mobile Number,nodal_officer_mobile_number,Nodal Officer,text,active
+Nodal Officer Phone Number,nodal_officer_phone_number,Nodal Officer,text,active
+Nodal Officer Email ID,nodal_officer_email_id,Nodal Officer,text,active
+Remarks,remarks,Other Information,textarea,active

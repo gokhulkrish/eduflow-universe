@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { generateId } from "@/lib/utils";
 
 interface Room {
   id: string;
@@ -39,7 +40,7 @@ export default function VideoRooms() {
   const handleCreate = () => {
     if (!title || !date || !time) { toast.error("Fill all fields"); return; }
     const all = load();
-    all.push({ id: crypto.randomUUID(), title, date, time, duration: Number(duration), host: "Current User", participants: [], status: "scheduled" });
+    all.push({ id: generateId(), title, date, time, duration: Number(duration), host: "Current User", participants: [], status: "scheduled" });
     save(all); refresh(); setOpen(false); setTitle(""); setDate(""); setTime(""); setDuration("30"); toast.success("Room created");
   };
 

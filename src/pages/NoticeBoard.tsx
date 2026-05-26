@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Notice = { id: string; title: string; body: string; priority: string; pinned: boolean; created_at: string; };
 const NOTICES_KEY = "eduflow_notices";
@@ -59,7 +60,7 @@ export default function NoticeBoard() {
             <div><Label className="text-xs" htmlFor="noticeBody">Body</Label><Textarea id="noticeBody" name="noticeBody" value={body} onChange={(e) => setBody(e.target.value)} rows={3} /></div>
             <div><Label className="text-xs" htmlFor="noticePriority">Priority</Label><select id="noticePriority" name="noticePriority" className="w-full h-9 rounded-md border px-3 text-xs" value={priority} onChange={(e) => setPriority(e.target.value)}><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !body} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), title, body, priority, pinned: false, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !body} onClick={() => { const items = ls(); items.unshift({ id: generateId(), title, body, priority, pinned: false, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

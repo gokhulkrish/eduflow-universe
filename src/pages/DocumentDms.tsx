@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Document = { id: string; documentTitle: string; documentType: string; owner: string; expiryDate: string; documentStatus: string; };
 const DMS_KEY = "eduflow_dms";
@@ -67,7 +68,7 @@ export default function DocumentDms() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="docOwner">Owner</Label><Input id="docOwner" name="docOwner" value={owner} onChange={(e) => setOwner(e.target.value)} /></div><div><Label className="text-xs" htmlFor="docExpiry">Expiry Date</Label><Input id="docExpiry" name="docExpiry" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="docStatus">Document Status</Label><Select name="docStatus" value={status} onValueChange={setStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Draft">Draft</SelectItem><SelectItem value="Under Review">Under Review</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Expired">Expired</SelectItem><SelectItem value="Archived">Archived</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), documentTitle: title, documentType: docType, owner, expiryDate: expiry, documentStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: generateId(), documentTitle: title, documentType: docType, owner, expiryDate: expiry, documentStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Procurement = { id: string; requestTitle: string; vendorName: string; assetTag: string; departmentName: string; procurementStatus: string; };
 const PROC_KEY = "eduflow_procurement";
@@ -67,7 +68,7 @@ export default function ProcurementAssets() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="procTag">Asset Tag</Label><Input id="procTag" name="procTag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="e.g. AST-001" /></div><div><Label className="text-xs" htmlFor="procDept">Department</Label><Input id="procDept" name="procDept" value={dept} onChange={(e) => setDept(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="procStatus">Procurement Status</Label><Select name="procStatus" value={status} onValueChange={setStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Requested">Requested</SelectItem><SelectItem value="Quoted">Quoted</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ordered">Ordered</SelectItem><SelectItem value="Received">Received</SelectItem><SelectItem value="Issued">Issued</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), requestTitle: title, vendorName: vendor, assetTag: tag, departmentName: dept, procurementStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: generateId(), requestTitle: title, vendorName: vendor, assetTag: tag, departmentName: dept, procurementStatus: status }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

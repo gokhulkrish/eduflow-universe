@@ -66,9 +66,7 @@ const removeStoredKey = (key: string) => {
 const clean = (value: unknown) => String(value ?? "").trim();
 
 const makeId = () =>
-  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 const normalizeHeader = (value: string) =>
   clean(value)

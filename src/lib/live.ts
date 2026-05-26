@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type LiveSession = {
   id: string; title: string; description: string | null; subject_id: string | null; class_id: string | null;
@@ -20,7 +21,7 @@ export function saveLocalSession(session: Omit<LiveSession, "id" | "created_at">
     const idx = sessions.findIndex((s) => s.id === session.id);
     if (idx >= 0) { sessions[idx] = { ...sessions[idx], ...session }; localStorage.setItem(liveSessionsKey, JSON.stringify(sessions)); emitAppSync(liveSessionsKey); return sessions[idx]; }
   }
-  const newS = { ...session, id: crypto.randomUUID(), created_at: new Date().toISOString() } as LiveSessionJoined;
+  const newS = { ...session, id: generateId(), created_at: new Date().toISOString() } as LiveSessionJoined;
   sessions.unshift(newS);
   localStorage.setItem(liveSessionsKey, JSON.stringify(sessions));
   emitAppSync(liveSessionsKey);

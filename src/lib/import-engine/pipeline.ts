@@ -7,6 +7,7 @@ import type {
 } from "./types";
 
 export const IMPORT_PIPELINE_STEPS: ImportPipelineStep[] = [
+  "analyze",
   "create",
   "map",
   "keying",
@@ -14,27 +15,38 @@ export const IMPORT_PIPELINE_STEPS: ImportPipelineStep[] = [
   "validate",
   "preview",
   "transfer",
+  "finalize",
 ];
 
 export const IMPORT_STEP_DEPENDENCY_MAP: Record<ImportPipelineStep, ImportPipelineStep[]> = {
-  create: ["map", "keying", "duplicates", "validate", "preview", "transfer"],
-  map: ["keying", "duplicates", "validate", "preview", "transfer"],
-  keying: ["duplicates", "validate", "preview", "transfer"],
-  duplicates: ["validate", "preview", "transfer"],
-  validate: ["preview", "transfer"],
-  preview: ["transfer"],
-  transfer: [],
+  analyze: ["create", "map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"],
+  create: ["map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"],
+  map: ["keying", "duplicates", "validate", "preview", "transfer", "finalize"],
+  keying: ["duplicates", "validate", "preview", "transfer", "finalize"],
+  duplicates: ["validate", "preview", "transfer", "finalize"],
+  validate: ["preview", "transfer", "finalize"],
+  preview: ["transfer", "finalize"],
+  transfer: ["finalize"],
+  finalize: [],
 };
 
 export function createImportPipelineState(): ImportPipelineState {
   return {
     sessionId: String(Date.now()),
-    currentStep: "create",
-    hash: { mapping: "", keying: "", duplicate: "", validation: "", preview: "" },
+    currentStep: "analyze",
+    hash: { analyze: "", mapping: "", keying: "", duplicate: "", validation: "", preview: "" },
     dirtySteps: {},
     lockedSteps: {},
     audit: { trace: [], snapshots: [] },
   };
+}
+
+export function computeImportAnalyzeHash(batch: ImportBatch): string {
+  return JSON.stringify({
+    headers: batch.importHeaders,
+    rowCount: batch.rowCount,
+    fileRef: (batch as any).fileRef,
+  });
 }
 
 export function computeImportMappingHash(batch: ImportBatch): string {
@@ -99,6 +111,7 @@ export function takeImportPipelineSnapshot(
   const snapshot: ImportPipelineSnapshot = {
     stage,
     timestamp: new Date().toISOString(),
+    analyzeHash: pipeline.hash.analyze,
     mappingHash: pipeline.hash.mapping,
     keyingHash: pipeline.hash.keying,
     duplicateHash: pipeline.hash.duplicate,
@@ -161,6 +174,24 @@ export function isImportStepLocked(pipeline: ImportPipelineState, stepName: stri
 
 export function resetImportStepState(pipeline: ImportPipelineState, stepName: ImportPipelineStep, batch: ImportBatch): void {
   switch (stepName) {
+    case "analyze":
+      batch.importHeaders = [];
+      batch.sourceRows = [];
+      batch.rowCount = 0;
+      pipeline.hash.analyze = "";
+      pipeline.hash.mapping = "";
+      pipeline.hash.keying = "";
+      pipeline.hash.duplicate = "";
+      pipeline.hash.validation = "";
+      pipeline.hash.preview = "";
+      break;
+    case "create":
+      pipeline.hash.mapping = "";
+      pipeline.hash.keying = "";
+      pipeline.hash.duplicate = "";
+      pipeline.hash.validation = "";
+      pipeline.hash.preview = "";
+      break;
     case "keying":
       pipeline.hash.keying = "";
       pipeline.hash.duplicate = "";
@@ -192,8 +223,8 @@ export function resetImportStepState(pipeline: ImportPipelineState, stepName: Im
       batch.updatedCount = 0;
       batch.skippedCount = 0;
       break;
+    case "finalize":
     case "map":
-    case "create":
       break;
   }
 }
@@ -273,6 +304,7 @@ export function checkStepPrerequisite(
   batch: ImportBatch,
 ): { pass: boolean; reason: string } {
   const currentHash = {
+    analyze: computeImportAnalyzeHash(batch),
     mapping: computeImportMappingHash(batch),
     keying: computeImportKeyingHash(batch),
     duplicate: computeImportDuplicateHash(batch),
@@ -281,6 +313,12 @@ export function checkStepPrerequisite(
   };
 
   switch (stepName) {
+    case "create":
+      if (pipeline.hash.analyze && pipeline.hash.analyze !== currentHash.analyze) {
+        pipeline.dirtySteps.analyze = true;
+        return { pass: false, reason: "Analysis is stale. Re-analyze the file first." };
+      }
+      break;
     case "map":
       if (!batch.importHeaders.length) {
         return { pass: false, reason: "No import headers available. Upload a file first." };
@@ -320,7 +358,12 @@ export function checkStepPrerequisite(
       }
       break;
     }
-    case "create":
+    case "finalize":
+      if (batch.status !== "transferred") {
+        return { pass: false, reason: "Transfer must complete before finalizing." };
+      }
+      break;
+    case "analyze":
       break;
   }
 
@@ -328,6 +371,7 @@ export function checkStepPrerequisite(
 }
 
 export function refreshCanonicalPipelineState(pipeline: ImportPipelineState, batch: ImportBatch): void {
+  pipeline.hash.analyze = computeImportAnalyzeHash(batch);
   pipeline.hash.mapping = computeImportMappingHash(batch);
   pipeline.hash.keying = computeImportKeyingHash(batch);
   pipeline.hash.duplicate = computeImportDuplicateHash(batch);
@@ -335,16 +379,16 @@ export function refreshCanonicalPipelineState(pipeline: ImportPipelineState, bat
   pipeline.hash.preview = computeImportPreviewHash(batch);
 
   appendImportAuditTrace(pipeline, "pipeline", "state-refreshed", {
+    analyzeHash: pipeline.hash.analyze,
     mappingHash: pipeline.hash.mapping,
     keyingHash: pipeline.hash.keying,
-    duplicateHash: pipeline.hash.duplicate,
   });
 }
 
 export function resetImportPipelineState(pipeline: ImportPipelineState): void {
   pipeline.sessionId = String(Date.now());
-  pipeline.currentStep = "create";
-  pipeline.hash = { mapping: "", keying: "", duplicate: "", validation: "", preview: "" };
+  pipeline.currentStep = "analyze";
+  pipeline.hash = { analyze: "", mapping: "", keying: "", duplicate: "", validation: "", preview: "" };
   pipeline.dirtySteps = {};
   pipeline.lockedSteps = {};
   pipeline.audit.trace = [];

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Accreditation = { id: string; qualityCycle: string; framework: string; criterion: string; evidenceStatus: string; owner: string; };
 const ACC_KEY = "eduflow_accreditation";
@@ -67,7 +68,7 @@ export default function AccreditationIQAC() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="criterion">Criterion / Metric</Label><Input id="criterion" name="criterion" value={criterion} onChange={(e) => setCriterion(e.target.value)} /></div><div><Label className="text-xs" htmlFor="evidenceStatus">Evidence Status</Label><Select value={evidence} onValueChange={setEvidence}><SelectTrigger id="evidenceStatus" className="h-9 text-xs" name="evidenceStatus"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Pending">Pending</SelectItem><SelectItem value="Collected">Collected</SelectItem><SelectItem value="Verified">Verified</SelectItem><SelectItem value="Submitted">Submitted</SelectItem><SelectItem value="Accepted">Accepted</SelectItem></SelectContent></Select></div></div>
             <div><Label className="text-xs" htmlFor="owner">Owner</Label><Input id="owner" name="owner" value={owner} onChange={(e) => setOwner(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!cycle} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), qualityCycle: cycle, framework: frame, criterion, evidenceStatus: evidence, owner }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!cycle} onClick={() => { const items = ls(); items.push({ id: generateId(), qualityCycle: cycle, framework: frame, criterion, evidenceStatus: evidence, owner }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

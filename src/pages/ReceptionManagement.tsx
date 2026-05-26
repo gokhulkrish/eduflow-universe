@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Visitor = { id: string; name: string; contact: string; purpose: string; host: string; in_time: string; out_time: string; status: string; };
 export const visitorsKey = "eduflow_visitors";
@@ -65,7 +66,7 @@ export default function ReceptionManagement() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="visitorName">Name</Label><Input id="visitorName" name="visitorName" value={name} onChange={(e) => setName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="visitorContact">Contact</Label><Input id="visitorContact" name="visitorContact" value={contact} onChange={(e) => setContact(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="visitorPurpose">Purpose</Label><Input id="visitorPurpose" name="visitorPurpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} /></div><div><Label className="text-xs" htmlFor="visitorHost">Host</Label><Input id="visitorHost" name="visitorHost" value={host} onChange={(e) => setHost(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), name, contact, purpose, host, in_time: new Date().toISOString(), out_time: "", status: "checked-in" }); ss(items); refresh(); setOpen(false); toast.success("Checked in"); }}>Check In</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { const items = ls(); items.unshift({ id: generateId(), name, contact, purpose, host, in_time: new Date().toISOString(), out_time: "", status: "checked-in" }); ss(items); refresh(); setOpen(false); toast.success("Checked in"); }}>Check In</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

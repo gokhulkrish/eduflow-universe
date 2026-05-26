@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Curriculum = { id: string; curriculumName: string; courseCode: string; semester: string; outcomeMapStatus: string; syllabusCoverage: number; attainmentBand: string; };
 const CURR_KEY = "eduflow_curriculum";
@@ -68,7 +69,7 @@ export default function CurriculumOutcomes() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="semester">Semester</Label><Input id="semester" name="semester" value={sem} onChange={(e) => setSem(e.target.value)} /></div><div><Label className="text-xs" htmlFor="mapStatus">Map Status</Label><Select name="mapStatus" value={mapStatus} onValueChange={setMapStatus}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Draft">Draft</SelectItem><SelectItem value="Mapped">Mapped</SelectItem><SelectItem value="Reviewed">Reviewed</SelectItem><SelectItem value="Approved">Approved</SelectItem></SelectContent></Select></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="coverage">Syllabus Coverage %</Label><Input id="coverage" name="coverage" type="number" value={coverage} onChange={(e) => setCoverage(e.target.value)} /></div><div><Label className="text-xs" htmlFor="band">Attainment Band</Label><Select name="band" value={band} onValueChange={setBand}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Low">Low</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="High">High</SelectItem><SelectItem value="Excellent">Excellent</SelectItem></SelectContent></Select></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), curriculumName: name, courseCode: code, semester: sem, outcomeMapStatus: mapStatus, syllabusCoverage: Number(coverage) || 0, attainmentBand: band }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name} onClick={() => { const items = ls(); items.push({ id: generateId(), curriculumName: name, courseCode: code, semester: sem, outcomeMapStatus: mapStatus, syllabusCoverage: Number(coverage) || 0, attainmentBand: band }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

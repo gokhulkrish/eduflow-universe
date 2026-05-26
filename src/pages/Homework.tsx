@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { generateId } from "@/lib/utils";
 
 interface HomeworkItem {
   id: string;
@@ -42,7 +43,7 @@ export default function Homework() {
   const handleCreate = () => {
     if (!title || !subject || !cls || !due) { toast.error("Fill all fields"); return; }
     const all = load();
-    all.push({ id: crypto.randomUUID(), title, description: desc, subject, className: cls, dueDate: due, status: "pending", createdAt: new Date().toISOString() });
+    all.push({ id: generateId(), title, description: desc, subject, className: cls, dueDate: due, status: "pending", createdAt: new Date().toISOString() });
     save(all); refresh(); setOpen(false); setTitle(""); setDesc(""); setSubject(""); setCls(""); setDue(""); toast.success("Homework assigned");
   };
 

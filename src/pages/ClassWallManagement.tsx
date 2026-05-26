@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Post = { id: string; class: string; author: string; content: string; attachment: string; created_at: string; };
 export const classWallKey = "eduflow_class_wall";
@@ -58,7 +59,7 @@ export default function ClassWallManagement() {
             <div><Label className="text-xs" htmlFor="content">Content</Label><Textarea id="content" name="content" value={content} onChange={(e) => setContent(e.target.value)} rows={3} /></div>
             <div><Label className="text-xs" htmlFor="attachment">Attachment URL (optional)</Label><Input id="attachment" name="attachment" value={attachment} onChange={(e) => setAttachment(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!selClass || !content} onClick={() => { const items = ls(); items.unshift({ id: crypto.randomUUID(), class: selClass, author, content, attachment, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!selClass || !content} onClick={() => { const items = ls(); items.unshift({ id: generateId(), class: selClass, author, content, attachment, created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Posted"); }}>Post</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

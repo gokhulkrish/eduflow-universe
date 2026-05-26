@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { generateId } from "@/lib/utils";
 
 type Research = { id: string; researchTitle: string; principalInvestigator: string; fundingAgency: string; grantAmount: number; researchStage: string; };
 const RES_KEY = "eduflow_research";
@@ -67,7 +68,7 @@ export default function ResearchInnovation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="researchAgency">Funding Agency</Label><Input id="researchAgency" name="researchAgency" value={agency} onChange={(e) => setAgency(e.target.value)} /></div><div><Label className="text-xs" htmlFor="researchAmount">Grant Amount ($)</Label><Input id="researchAmount" name="researchAmount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="researchStage">Stage</Label><Select name="researchStage" value={stage} onValueChange={setStage}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Proposal">Proposal</SelectItem><SelectItem value="Approved">Approved</SelectItem><SelectItem value="Ongoing">Ongoing</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Published">Published</SelectItem><SelectItem value="Patented">Patented</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), researchTitle: title, principalInvestigator: pi, fundingAgency: agency, grantAmount: Number(amount) || 0, researchStage: stage }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => { const items = ls(); items.push({ id: generateId(), researchTitle: title, principalInvestigator: pi, fundingAgency: agency, grantAmount: Number(amount) || 0, researchStage: stage }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

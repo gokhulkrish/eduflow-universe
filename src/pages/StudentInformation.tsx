@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PROGRAMS } from "@/lib/promotion";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 // ---- Tab 1: Uploaded Data Validation ----
 type ValidationRow = { id: string; name: string; grade: string; field: string; issue: string; status: string; };
@@ -259,7 +260,7 @@ export default function StudentInformation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="vName">Student</Label><Input id="vName" name="vName" value={vName} onChange={(e) => setVName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="vCohort">Cohort</Label><Select name="vCohort" value={vCohort} onValueChange={setVCohort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="vField">Field</Label><Input id="vField" name="vField" value={vField} onChange={(e) => setVField(e.target.value)} /></div><div><Label className="text-xs" htmlFor="vIssue">Issue</Label><Input id="vIssue" name="vIssue" value={vIssue} onChange={(e) => setVIssue(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setVOpen(false)}>Cancel</Button><Button onClick={() => { const n: ValidationRow = { id: crypto.randomUUID(), name: vName, grade: vCohort, field: vField, issue: vIssue, status: "open" }; vs([...vl(), n]); rv(); setVOpen(false); toast.success("Added"); }} disabled={!vName || !vCohort || !vField}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setVOpen(false)}>Cancel</Button><Button onClick={() => { const n: ValidationRow = { id: generateId(), name: vName, grade: vCohort, field: vField, issue: vIssue, status: "open" }; vs([...vl(), n]); rv(); setVOpen(false); toast.success("Added"); }} disabled={!vName || !vCohort || !vField}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -270,7 +271,7 @@ export default function StudentInformation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="rName">Name</Label><Input id="rName" name="rName" value={rName} onChange={(e) => setRName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="rReg">Reg No</Label><Input id="rReg" name="rReg" value={rReg} onChange={(e) => setRReg(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="rCohort">Cohort</Label><Select name="rCohort" value={rCohort} onValueChange={setRCohort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="rSec">Section</Label><Select name="rSec" value={rSec} onValueChange={setRSec}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setROpen(false)}>Cancel</Button><Button onClick={() => { rs([...rl(), { id: crypto.randomUUID(), name: rName, grade: rCohort, section: rSec, reg_no: rReg, reg_date: new Date().toISOString(), status: "active" }]); rr(); setROpen(false); toast.success("Registered"); }} disabled={!rName || !rCohort || !rReg}>Register</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setROpen(false)}>Cancel</Button><Button onClick={() => { rs([...rl(), { id: generateId(), name: rName, grade: rCohort, section: rSec, reg_no: rReg, reg_date: new Date().toISOString(), status: "active" }]); rr(); setROpen(false); toast.success("Registered"); }} disabled={!rName || !rCohort || !rReg}>Register</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -281,7 +282,7 @@ export default function StudentInformation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="aName">Name</Label><Input id="aName" name="aName" value={aName} onChange={(e) => setAName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="aCohort">Cohort</Label><Select name="aCohort" value={aCohort} onValueChange={setACohort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
             <div className="grid grid-cols-3 gap-3"><div><Label className="text-xs" htmlFor="aOverall">Overall</Label><Select name="aOverall" value={aOverall} onValueChange={setAOverall}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Excellent", "Good", "Average", "Below Avg"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="aAtt">Attendance %</Label><Input id="aAtt" name="aAtt" type="number" value={aAtt} onChange={(e) => setAAtt(e.target.value)} /></div><div><Label className="text-xs" htmlFor="aGpa">GPA</Label><Input id="aGpa" name="aGpa" type="number" step="0.1" value={aGpa} onChange={(e) => setAGpa(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setAOpen(false)}>Cancel</Button><Button onClick={() => { as([...al(), { id: crypto.randomUUID(), name: aName, grade: aCohort, overall: aOverall, attendance: aAtt, gpa: aGpa }]); ra(); setAOpen(false); toast.success("Added"); }} disabled={!aName || !aCohort}>Save</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setAOpen(false)}>Cancel</Button><Button onClick={() => { as([...al(), { id: generateId(), name: aName, grade: aCohort, overall: aOverall, attendance: aAtt, gpa: aGpa }]); ra(); setAOpen(false); toast.success("Added"); }} disabled={!aName || !aCohort}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -291,7 +292,7 @@ export default function StudentInformation() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="apName">Student</Label><Input id="apName" name="apName" value={apName} onChange={(e) => setApName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="apType">Type</Label><Select name="apType" value={apType} onValueChange={setApType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Transfer", "Name Change", "Leave", "Scholarship", "Other"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button><Button onClick={() => { aps([...apl(), { id: crypto.randomUUID(), name: apName, type: apType, status: "pending", submitted: new Date().toISOString() }]); rap(); setApOpen(false); toast.success("Submitted"); }} disabled={!apName || !apType}>Submit</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setApOpen(false)}>Cancel</Button><Button onClick={() => { aps([...apl(), { id: generateId(), name: apName, type: apType, status: "pending", submitted: new Date().toISOString() }]); rap(); setApOpen(false); toast.success("Submitted"); }} disabled={!apName || !apType}>Submit</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -302,7 +303,7 @@ export default function StudentInformation() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="dName">Name</Label><Input id="dName" name="dName" value={dName} onChange={(e) => setDName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="dCohort">Cohort</Label><Select name="dCohort" value={dCohort} onValueChange={setDCohort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div></div>
             <div><Label className="text-xs" htmlFor="dFields">Fields (comma separated)</Label><Input id="dFields" name="dFields" value={dFields} onChange={(e) => setDFields(e.target.value)} placeholder="name, dob, address, parent" /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDOpen(false)}>Cancel</Button><Button onClick={() => { ds([...dl(), { id: crypto.randomUUID(), name: dName, grade: dCohort, fields: dFields, saved: new Date().toISOString() }]); rd(); setDOpen(false); toast.success("Draft saved"); }} disabled={!dName || !dCohort}>Save</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDOpen(false)}>Cancel</Button><Button onClick={() => { ds([...dl(), { id: generateId(), name: dName, grade: dCohort, fields: dFields, saved: new Date().toISOString() }]); rd(); setDOpen(false); toast.success("Draft saved"); }} disabled={!dName || !dCohort}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type MediaItem = { id: string; name: string; type: string; url: string; size: string; uploaded_at: string; };
 export const mediaFilesKey = "eduflow_media";
@@ -59,7 +60,7 @@ export default function MediaFileManagement() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="mediaType">Type</Label><Select name="mediaType" value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="image">Image</SelectItem><SelectItem value="video">Video</SelectItem><SelectItem value="audio">Audio</SelectItem><SelectItem value="document">Document</SelectItem></SelectContent></Select></div><div><Label className="text-xs" htmlFor="mediaSize">Size</Label><Input id="mediaSize" name="mediaSize" value={size} onChange={(e) => setSize(e.target.value)} placeholder="e.g. 2.4 MB" /></div></div>
             <div><Label className="text-xs" htmlFor="mediaUrl">URL</Label><Input id="mediaUrl" name="mediaUrl" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !url} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, type, url, size, uploaded_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !url} onClick={() => { const items = ls(); items.push({ id: generateId(), name, type, url, size, uploaded_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

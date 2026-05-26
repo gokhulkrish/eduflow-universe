@@ -1,5 +1,6 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 export type Subject = { id: string; name: string; code: string; class_id: string; teacher_id: string; credits: number; };
 
@@ -9,6 +10,6 @@ function ss(k: string, v: any) { localStorage.setItem(k, JSON.stringify(v)); emi
 
 export function getSubjects(): Subject[] { return ls(subjectsMgmtKey, []); }
 export function createSubject(s: Omit<Subject, "id">): Subject {
-  const items = getSubjects(); const n = { ...s, id: crypto.randomUUID() }; items.push(n); ss(subjectsMgmtKey, items); return n;
+  const items = getSubjects(); const n = { ...s, id: generateId() }; items.push(n); ss(subjectsMgmtKey, items); return n;
 }
 export function deleteSubject(id: string) { ss(subjectsMgmtKey, getSubjects().filter((x) => x.id !== id)); }

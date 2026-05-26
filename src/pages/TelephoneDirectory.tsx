@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { generateId } from "@/lib/utils";
 
 type Contact = { id: string; name: string; role: string; phone: string; email: string; department: string; };
 export const contactsKey = "eduflow_contacts";
@@ -56,7 +57,7 @@ export default function TelephoneDirectory() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="contactPhone">Phone</Label><Input id="contactPhone" name="contactPhone" value={phone} onChange={(e) => setPhone(e.target.value)} /></div><div><Label className="text-xs" htmlFor="contactEmail">Email</Label><Input id="contactEmail" name="contactEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="contactDept">Department</Label><Select name="contactDept" value={dept} onValueChange={setDept}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="Academic">Academic</SelectItem><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Finance">Finance</SelectItem><SelectItem value="Transport">Transport</SelectItem><SelectItem value="Library">Library</SelectItem><SelectItem value="Management">Management</SelectItem></SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !phone} onClick={() => { const items = ls(); items.push({ id: crypto.randomUUID(), name, role, phone, email, department: dept }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !phone} onClick={() => { const items = ls(); items.push({ id: generateId(), name, role, phone, email, department: dept }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
