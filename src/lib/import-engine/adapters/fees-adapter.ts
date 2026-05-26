@@ -150,7 +150,7 @@ async function commitRows(
       failed++;
       errors.push({
         rowNumber: row.sourceRowIndex,
-        message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error"),
+        message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error"),
       });
     }
   }

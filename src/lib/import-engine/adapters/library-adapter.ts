@@ -109,7 +109,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       }
     } catch (err) {
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? (err as Record<string, unknown>).message ?? "Unknown error" : "Unknown error") });
+      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
     }
   }
   emitAppSync("sms.library.v1");

@@ -1570,7 +1570,7 @@ export async function commitImportRows(
         error instanceof Error
           ? error.message
           : typeof error === "object" && error !== null
-            ? ((error as Record<string, unknown>).message ?? (error as Record<string, unknown>).toString?.() ?? "Unknown import error")
+            ? (((error as Record<string, unknown>).message as string) ?? (error as Record<string, unknown>).toString?.() ?? "Unknown import error")
             : "Unknown import error";
       result.errors.push({
         rowNumber: row.sourceRowIndex + 2,

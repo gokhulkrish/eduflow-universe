@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { tableExists } from "@/lib/supabase-health";
+import { useDbList } from "@/hooks/useDbList";
 
 type Room = { id: string; block: string; room_no: string; capacity: number; occupied: number; room_type: string };
 

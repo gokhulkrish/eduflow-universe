@@ -1,12 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-<<<<<<< ours
-=======
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
->>>>>>> theirs
 
 export default defineConfig({
   plugins: [react()],
