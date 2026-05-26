@@ -10,9 +10,6 @@ export async function GET(request: NextRequest) {
   const supabase = createSupabaseClient();
   if (!supabase) return json({ data: [], error: "Supabase not configured", meta: { page: 1, limit: 50, total: 0 } }, 503);
 
-  const { error: check } = await supabase.from("monitoring_overview").select("student_id").limit(1);
-  if (check) return json({ data: [], error: null, meta: { page: 1, limit: 50, total: 0 } });
-
   const searchParams = request.nextUrl.searchParams;
   const { rows, total } = await getMonitoringOverview({
     grade: searchParams.get("grade") ?? undefined,

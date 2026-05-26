@@ -125,8 +125,21 @@ export async function getTimetableSubjects(): Promise<TimetableSubject[]> {
 
 export async function getTimetableStaff(): Promise<TimetableStaff[]> {
   if (!(await tableExists("staff"))) return [];
-  const result = await supabase.from("staff").select("id,full_name,status").eq("status", "active").order("full_name").returns<TimetableStaff[]>();
-  return readSupabaseRows(result, []);
+  const result = await supabase.from("staff").select("*").returns<Record<string, unknown>[]>();
+  const rows = readSupabaseRows(result, []);
+  return rows
+    .map((row) => ({
+      id: String(row.id ?? ""),
+      full_name: String(
+        row.full_name ??
+          [row.first_name, row.last_name].filter(Boolean).join(" ") ??
+          row.name ??
+          "Unnamed staff",
+      ).trim(),
+      status: String(row.status ?? "active"),
+    }))
+    .filter((row) => row.status === "active" || row.status === "Active")
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 }
 
 async function timetableCoreReady(): Promise<boolean> {

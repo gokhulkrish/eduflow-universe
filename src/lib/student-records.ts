@@ -242,6 +242,16 @@ const readMetaNumber = (meta: Json | null, group: string, key: string) => {
 
 const readCustomFieldValues = (meta: Json | null) => loadHeaderRegistryMeta(meta);
 
+const isSchemaCompatibilityError = (error: unknown) => {
+  const message = formatDataError(error).toLowerCase();
+  return (
+    message.includes("pgrst205") ||
+    message.includes("schema cache") ||
+    message.includes("42703") ||
+    message.includes("does not exist")
+  );
+};
+
 export const initialsForStudent = (row: Pick<StudentRegisterRow, "display_name" | "first_name" | "last_name">) => {
   const words = [row.first_name, row.last_name].filter(Boolean);
   const source = words.length ? words : String(row.display_name || "S").split(/\s+/);
@@ -255,43 +265,30 @@ export const gradeLabelForStudent = cohortLabelForStudent;
 export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
   if (!(await tableExists("students"))) return [];
 
-  const [enrollmentsReady, attendanceReady, invoicesReady] = await Promise.all([
-    tableExists("enrollments"),
-    tableExists("attendance"),
-    tableExists("fee_invoices"),
-  ]);
+  const { data: registerRows, error: registerError } = await supabase
+    .from("student_register")
+    .select("*")
+    .order("updated_at", { ascending: false });
 
-  const [studentsResult, enrollmentsResult, attendanceResult, invoicesResult] = await Promise.all([
+  if (!registerError) {
+    return (registerRows ?? []).map((row) => normalizeStudentRegisterRowFromView(row as Record<string, unknown>));
+  }
+
+  if (!isSchemaCompatibilityError(registerError)) throwDataError(registerError);
+
+  const [studentsResult, attendanceResult, invoicesResult] = await Promise.all([
     supabase.from("students").select("*").order("updated_at", { ascending: false }),
-    enrollmentsReady
-      ? supabase.from("enrollments").select("id,student_id,academic_year_id,class_level_id,section_id,roll_number,status,created_at,grade_label,section_label,stream").order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    attendanceReady
+    tableExists("attendance")
       ? supabase.from("attendance").select("student_id,status,date,created_at")
       : Promise.resolve({ data: [], error: null }),
-    invoicesReady
+    tableExists("fee_invoices")
       ? supabase.from("fee_invoices").select("student_id,status,amount,amount_paid,created_at")
       : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (studentsResult.error) throwDataError(studentsResult.error);
-  if (enrollmentsResult.error) throwDataError(enrollmentsResult.error);
   if (attendanceResult.error) throwDataError(attendanceResult.error);
   if (invoicesResult.error) throwDataError(invoicesResult.error);
-
-  const enrollmentsByStudent = new Map<string, Record<string, unknown>>();
-  for (const enrollment of enrollmentsResult.data ?? []) {
-    const studentId = String(enrollment.student_id ?? "");
-    if (!studentId) continue;
-    const current = enrollmentsByStudent.get(studentId);
-    if (!current) {
-      enrollmentsByStudent.set(studentId, enrollment as Record<string, unknown>);
-      continue;
-    }
-    const currentTime = new Date(String(current.created_at ?? "")).getTime();
-    const nextTime = new Date(String(enrollment.created_at ?? "")).getTime();
-    if (nextTime >= currentTime) enrollmentsByStudent.set(studentId, enrollment as Record<string, unknown>);
-  }
 
   const attendanceByStudent = new Map<string, { total: number; present: number }>();
   for (const attendance of attendanceResult.data ?? []) {
@@ -319,7 +316,6 @@ export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
 
   return (studentsResult.data ?? []).map((student) => {
     const studentRecord = student as Record<string, unknown>;
-    const enrollment = enrollmentsByStudent.get(String(studentRecord.id ?? "")) ?? null;
     const attendance = attendanceByStudent.get(String(studentRecord.id ?? "")) ?? { total: 0, present: 0 };
     const latestInvoice = latestInvoiceByStudent.get(String(studentRecord.id ?? "")) ?? null;
     const feeStatus = String(studentRecord.fee_status ?? latestInvoice?.status ?? "pending");
@@ -332,9 +328,9 @@ export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
       first_name: String(studentRecord.first_name ?? ""),
       last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
       admission_no: String(studentRecord.admission_no ?? ""),
-      grade: typeof enrollment?.grade_label === "string" ? enrollment.grade_label : typeof studentRecord.grade === "string" ? studentRecord.grade : null,
-      section: typeof enrollment?.section_label === "string" ? enrollment.section_label : typeof studentRecord.section === "string" ? studentRecord.section : null,
-      roll_number: typeof enrollment?.roll_number === "number" ? enrollment.roll_number : typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : null,
+      grade: typeof studentRecord.grade === "string" ? studentRecord.grade : readMetaString(studentRecord.meta as Json | null, "academic", "grade") || null,
+      section: typeof studentRecord.section === "string" ? studentRecord.section : readMetaString(studentRecord.meta as Json | null, "academic", "section") || null,
+      roll_number: typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : readMetaNumber(studentRecord.meta as Json | null, "academic", "roll"),
       attendance_percent: attendancePercent,
       fee_status: feeStatus,
       status: String(studentRecord.status ?? "active"),
@@ -344,7 +340,7 @@ export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
       gender: typeof studentRecord.gender === "string" ? studentRecord.gender : null,
       blood_group: typeof studentRecord.blood_group === "string" ? studentRecord.blood_group : null,
       phone: typeof studentRecord.phone === "string" ? studentRecord.phone : null,
-      house: typeof enrollment?.house === "string" ? enrollment.house : readMetaString(studentRecord.meta as Json | null, "academic", "house"),
+      house: typeof studentRecord.house === "string" ? studentRecord.house : readMetaString(studentRecord.meta as Json | null, "academic", "house"),
       guardian_name:
         readMetaString(studentRecord.meta as Json | null, "family", "guardianName") ||
         readMetaString(studentRecord.meta as Json | null, "family", "fatherName") ||
@@ -389,9 +385,9 @@ const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): S
   first_name: String(row.first_name ?? ""),
   last_name: typeof row.last_name === "string" ? row.last_name : null,
   admission_no: String(row.admission_no ?? ""),
-  grade: typeof row.grade === "string" ? row.grade : null,
-  section: typeof row.section === "string" ? row.section : null,
-  roll_number: typeof row.roll_number === "number" ? row.roll_number : null,
+  grade: typeof row.grade === "string" ? row.grade : readMetaString(row.meta as Json | null, "academic", "grade") || null,
+  section: typeof row.section === "string" ? row.section : readMetaString(row.meta as Json | null, "academic", "section") || null,
+  roll_number: typeof row.roll_number === "number" ? row.roll_number : readMetaNumber(row.meta as Json | null, "academic", "roll"),
   attendance_percent: typeof row.attendance_percent === "number" ? row.attendance_percent : 0,
   fee_status: String(row.fee_status ?? row.status ?? "pending"),
   status: String(row.status ?? "active"),

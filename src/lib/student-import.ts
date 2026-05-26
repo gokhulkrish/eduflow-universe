@@ -454,6 +454,40 @@ const maybeTrim = (value: string | null | undefined) => {
   return next || "";
 };
 
+const readStudentMetaString = (meta: unknown, group: string, key: string) => {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "";
+  const section = (meta as Record<string, unknown>)[group];
+  if (!section || typeof section !== "object" || Array.isArray(section)) return "";
+  const value = (section as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+};
+
+const readStudentMetaNumber = (meta: unknown, group: string, key: string) => {
+  const next = Number(readStudentMetaString(meta, group, key));
+  return Number.isFinite(next) ? next : null;
+};
+
+const describeSupabaseError = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const supabaseError = error as {
+      code?: string;
+      message?: string;
+      details?: string | null;
+      hint?: string | null;
+    };
+    return [
+      supabaseError.code,
+      supabaseError.message,
+      supabaseError.details,
+      supabaseError.hint ? `Hint: ${supabaseError.hint}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  return String(error ?? "");
+};
+
 const getFieldScore = (header: string, field: ImportFieldCandidate) => {
   const normalizedHeader = normalizeLoose(header);
   if (!normalizedHeader) return 0;
@@ -720,7 +754,7 @@ export async function parseImportFile(file: File): Promise<ParsedImportFile> {
 const readStudentDisplayName = (row: Pick<ExistingStudentRecord, "display_name" | "first_name" | "last_name">) =>
   maybeTrim(row.display_name) || [row.first_name, row.last_name].filter(Boolean).join(" ");
 
-const normalizeExistingRow = (row: Tables<"student_register">): ExistingStudentRecord => ({
+const normalizeExistingRow = (row: any): ExistingStudentRecord => ({
   student_id: String(row.student_id ?? ""),
   enrollment_id: row.enrollment_id ? String(row.enrollment_id) : null,
   class_id: null,
@@ -761,83 +795,61 @@ const normalizeExistingRow = (row: Tables<"student_register">): ExistingStudentR
   guardian_annual_income: typeof row.guardian_annual_income === "number" ? row.guardian_annual_income : null,
 });
 
-const normalizeFallbackRows = (
-  students: Tables<"students">[],
-  enrollments: Array<Partial<Tables<"enrollments">> & Pick<Tables<"enrollments">, "id" | "student_id" | "created_at">>
-): ExistingStudentRecord[] => {
-  const latestEnrollmentByStudent = new Map<string, Partial<Tables<"enrollments">> & Pick<Tables<"enrollments">, "id" | "student_id" | "created_at">>();
-  for (const enrollment of enrollments) {
-    const current = latestEnrollmentByStudent.get(enrollment.student_id);
-    if (!current) {
-      latestEnrollmentByStudent.set(enrollment.student_id, enrollment);
-      continue;
-    }
-    const currentTime = new Date(current.created_at).getTime();
-    const nextTime = new Date(enrollment.created_at).getTime();
-    if (nextTime >= currentTime) latestEnrollmentByStudent.set(enrollment.student_id, enrollment);
-  }
+const isSchemaCompatibilityError = (error: unknown) => {
+  const message = describeSupabaseError(error).toLowerCase();
+  return (
+    message.includes("pgrst205") ||
+    message.includes("schema cache") ||
+    message.includes("42703") ||
+    message.includes("does not exist")
+  );
+};
 
-  const readMetaString = (meta: unknown, group: string, key: string) => {
-    if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "";
-    const section = (meta as Record<string, unknown>)[group];
-    if (!section || typeof section !== "object" || Array.isArray(section)) return "";
-    const value = (section as Record<string, unknown>)[key];
-    return typeof value === "string" ? value : "";
-  };
-
-  const readMetaNumber = (meta: unknown, group: string, key: string) => {
-    const next = Number(readMetaString(meta, group, key));
-    return Number.isFinite(next) ? next : null;
-  };
-
-  return students.map((student) => {
-    const enrollment = latestEnrollmentByStudent.get(student.id) ?? null;
-    const meta = student.meta;
-    const academicGrade = String(enrollment?.grade_label ?? readMetaString(meta, "academic", "grade") ?? "").trim() || null;
-    const academicSection = String(enrollment?.section_label ?? readMetaString(meta, "academic", "section") ?? "").trim() || null;
-    const academicStream = String(enrollment?.stream ?? readMetaString(meta, "academic", "stream") ?? "").trim() || null;
+const normalizeLegacyRowsFromStudents = (students: Tables<"students">[]): ExistingStudentRecord[] =>
+  students.map((student) => {
+    const studentRecord = student as Record<string, unknown>;
+    const meta = studentRecord.meta;
     return {
-      student_id: student.id,
-      enrollment_id: enrollment?.id ?? null,
+      student_id: String(studentRecord.id ?? ""),
+      enrollment_id: null,
       class_id: null,
-      guardian_id: readMetaString(meta, "family", "guardianId") || null,
-      admission_no: student.admission_no,
-      first_name: student.first_name,
-      last_name: student.last_name,
-      display_name: [student.first_name, student.last_name].filter(Boolean).join(" "),
-      dob: student.dob,
-      gender: student.gender,
-      blood_group: student.blood_group,
-      nationality: student.nationality,
-      email: student.email,
-      phone: student.phone,
-      alternate_phone: student.alternate_phone,
-      address: student.address,
-      umis_id: student.umis_id,
-      emis_id: student.emis_id,
-      community: student.community,
-      first_graduate: Boolean(student.first_graduate),
-      income_verification_status: student.income_verification_status,
-      scholarship_notes: student.scholarship_notes,
-      fee_status: student.fee_status,
-      attendance_percent: Number(student.attendance_percent ?? 0),
-      status: student.status,
-      updated_at: student.updated_at,
-      academic_year: readMetaString(meta, "academic", "academicYear") || null,
-      grade: academicGrade || null,
-      section: academicSection || null,
-      roll_number: typeof enrollment?.roll_number === "number" ? enrollment.roll_number : readMetaNumber(meta, "academic", "roll"),
-      stream: academicStream || null,
-      house: readMetaString(meta, "academic", "house") || null,
-      enrollment_status: enrollment?.status ?? null,
-      guardian_name: readMetaString(meta, "family", "guardianName") || readMetaString(meta, "family", "fatherName") || readMetaString(meta, "family", "motherName") || null,
-      guardian_occupation: readMetaString(meta, "family", "guardianOccupation") || readMetaString(meta, "family", "fatherOccupation") || readMetaString(meta, "family", "motherOccupation") || null,
-      guardian_phone: readMetaString(meta, "family", "guardianPhone") || null,
-      guardian_email: readMetaString(meta, "family", "guardianEmail") || null,
-      guardian_annual_income: readMetaNumber(meta, "family", "annualIncome"),
+      guardian_id: readStudentMetaString(meta, "family", "guardianId") || null,
+      admission_no: String(studentRecord.admission_no ?? ""),
+      first_name: String(studentRecord.first_name ?? ""),
+      last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
+      display_name: [studentRecord.first_name, studentRecord.last_name].filter(Boolean).join(" "),
+      dob: typeof studentRecord.dob === "string" ? studentRecord.dob : null,
+      gender: typeof studentRecord.gender === "string" ? studentRecord.gender : null,
+      blood_group: typeof studentRecord.blood_group === "string" ? studentRecord.blood_group : null,
+      nationality: typeof studentRecord.nationality === "string" ? studentRecord.nationality : null,
+      email: typeof studentRecord.email === "string" ? studentRecord.email : null,
+      phone: typeof studentRecord.phone === "string" ? studentRecord.phone : null,
+      alternate_phone: typeof studentRecord.alternate_phone === "string" ? studentRecord.alternate_phone : null,
+      address: typeof studentRecord.address === "string" ? studentRecord.address : null,
+      umis_id: typeof studentRecord.umis_id === "string" ? studentRecord.umis_id : null,
+      emis_id: typeof studentRecord.emis_id === "string" ? studentRecord.emis_id : null,
+      community: typeof studentRecord.community === "string" ? studentRecord.community : null,
+      first_graduate: Boolean(studentRecord.first_graduate),
+      income_verification_status: typeof studentRecord.income_verification_status === "string" ? studentRecord.income_verification_status : "pending",
+      scholarship_notes: typeof studentRecord.scholarship_notes === "string" ? studentRecord.scholarship_notes : null,
+      fee_status: typeof studentRecord.fee_status === "string" ? studentRecord.fee_status : "pending",
+      attendance_percent: Number(studentRecord.attendance_percent ?? 0),
+      status: String(studentRecord.status ?? "active"),
+      updated_at: String(studentRecord.updated_at ?? ""),
+      academic_year: readStudentMetaString(meta, "academic", "academicYear") || null,
+      grade: String(studentRecord.grade ?? readStudentMetaString(meta, "academic", "grade") ?? "").trim() || null,
+      section: String(studentRecord.section ?? readStudentMetaString(meta, "academic", "section") ?? "").trim() || null,
+      roll_number: typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : readStudentMetaNumber(meta, "academic", "roll"),
+      stream: String(studentRecord.stream ?? readStudentMetaString(meta, "academic", "stream") ?? "").trim() || null,
+      house: readStudentMetaString(meta, "academic", "house") || null,
+      enrollment_status: null,
+      guardian_name: readStudentMetaString(meta, "family", "guardianName") || readStudentMetaString(meta, "family", "fatherName") || readStudentMetaString(meta, "family", "motherName") || null,
+      guardian_occupation: readStudentMetaString(meta, "family", "guardianOccupation") || readStudentMetaString(meta, "family", "fatherOccupation") || readStudentMetaString(meta, "family", "motherOccupation") || null,
+      guardian_phone: readStudentMetaString(meta, "family", "guardianPhone") || null,
+      guardian_email: readStudentMetaString(meta, "family", "guardianEmail") || null,
+      guardian_annual_income: readStudentMetaNumber(meta, "family", "annualIncome"),
     };
   });
-};
 
 export async function loadExistingStudentsForImport() {
   const [studentsResult, enrollmentsResult] = await Promise.all([
@@ -846,18 +858,22 @@ export async function loadExistingStudentsForImport() {
       .select("*")
       .order("updated_at", { ascending: false }),
     supabase
-      .from("enrollments")
-      .select("id,student_id,academic_year_id,class_level_id,section_id,roll_number,status,created_at,updated_at,grade_label,section_label,stream,meta")
-      .order("created_at", { ascending: false }),
+      .from("student_register")
+      .select("*")
+      .order("updated_at", { ascending: false }),
   ]);
 
-  if (studentsResult.error) throw new Error(studentsResult.error.message);
-  if (enrollmentsResult.error) throw new Error(enrollmentsResult.error.message);
+  if (!enrollmentsResult.error) {
+    return (enrollmentsResult.data ?? []).map((row) => normalizeExistingRow(row));
+  }
 
-  return normalizeFallbackRows(
-    studentsResult.data ?? [],
-    enrollmentsResult.data ?? []
-  );
+  if (!isSchemaCompatibilityError(enrollmentsResult.error)) {
+    throw new Error(enrollmentsResult.error.message);
+  }
+
+  if (studentsResult.error) throw new Error(studentsResult.error.message);
+
+  return normalizeLegacyRowsFromStudents(studentsResult.data ?? []);
 }
 
 const buildIdentityKey = (row: Record<ImportTargetFieldKey, string>, design: ImportMatchDesign) => {
