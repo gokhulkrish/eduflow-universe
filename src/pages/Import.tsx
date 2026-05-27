@@ -44,6 +44,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -85,6 +94,8 @@ import {
   type ParsedImportFile,
   type ImportPreviewState,
 } from "@/lib/student-import";
+import { CANONICAL_FIELDS } from "@/engine/registry/canonical";
+import { validateRow } from "@/lib/import-engine/validation";
 import {
   invalidateRegistryCache,
   loadHeaderRegistrySettings,
@@ -134,6 +145,7 @@ import {
   ensureImportHeaders,
   getImportSchemaDriftReport,
   buildGenericPreview,
+  type ImportPreviewSummary,
   type ImportSchemaDriftReport,
   type ImportValidationReport,
   type ImportValidationRuntimeSnapshot,
@@ -172,6 +184,18 @@ const createEmptyProfileDraft = () => ({
   name: "",
   description: "",
 });
+
+const ENUM_ISSUE_RE = /(.+) must be one of: (.+)/;
+
+const parseEnumIssue = (detail: string): { fieldKey: string; fieldLabel: string; validValues: string[] } | null => {
+  const match = detail.match(ENUM_ISSUE_RE);
+  if (!match) return null;
+  const fieldLabel = match[1];
+  const validValues = match[2].split(", ").map((v) => v.trim()).filter(Boolean);
+  const field = CANONICAL_FIELDS.find((f) => f.label === fieldLabel && f.enumValues);
+  if (!field) return null;
+  return { fieldKey: field.key, fieldLabel, validValues };
+};
 
 const splitListInput = (value: string) =>
   value
@@ -234,6 +258,14 @@ export default function Import() {
   const [validationRuntimeSnapshot, setValidationRuntimeSnapshot] = useState<ImportValidationRuntimeSnapshot>(() =>
     getImportValidationRuntimeSnapshot(),
   );
+  const [valueOverrides, setValueOverrides] = useState<Record<string, Record<string, string>>>({});
+  const [editTarget, setEditTarget] = useState<{
+    rowKey: string;
+    fieldKey: string;
+    fieldLabel: string;
+    currentValue: string;
+    validValues: string[];
+  } | null>(null);
 
   const pipelineRef = useRef<ImportPipelineState>(createImportPipelineState());
   const importInitRef = useRef(false);
@@ -661,9 +693,40 @@ export default function Import() {
 
   const validationBatch = useMemo<ImportBatch | null>(() => (currentBatch ? { ...currentBatch } : null), [currentBatch]);
 
+  const effectivePreview = useMemo<ImportPreviewState | null>(() => {
+    if (!preview || Object.keys(valueOverrides).length === 0) return preview;
+    const overriddenRows = preview.rows.map((row) => {
+      const overrides = valueOverrides[row.rowKey];
+      if (!overrides) return row;
+      const newMapped = { ...row.mapped };
+      for (const [fieldKey, value] of Object.entries(overrides)) {
+        newMapped[fieldKey] = value;
+      }
+      const newIssues = validateRow(newMapped);
+      return { ...row, mapped: newMapped, validationIssues: newIssues };
+    });
+    const summary = overriddenRows.reduce<ImportPreviewSummary>(
+      (acc, row) => {
+        acc.total += 1;
+        acc.valid += row.validationIssues.length ? 0 : 1;
+        acc.invalid += row.validationIssues.length ? 1 : 0;
+        acc.inserts += row.action === "insert" ? 1 : 0;
+        acc.updates += row.action === "update" ? 1 : 0;
+        acc.skips += row.action === "skip" ? 1 : 0;
+        acc.reviews += row.action === "review" ? 1 : 0;
+        acc.exactMatches += row.duplicateStatus === "exact" ? 1 : 0;
+        acc.fuzzyMatches += row.duplicateStatus === "fuzzy" ? 1 : 0;
+        acc.internalDuplicates += row.duplicateStatus === "internal-duplicate" ? 1 : 0;
+        return acc;
+      },
+      { total: 0, valid: 0, invalid: 0, inserts: 0, updates: 0, skips: 0, reviews: 0, exactMatches: 0, fuzzyMatches: 0, internalDuplicates: 0 },
+    );
+    return { rows: overriddenRows, summary };
+  }, [preview, valueOverrides]);
+
   const validationReport = useMemo<ImportValidationReport>(
-    () => buildImportValidationReport(validationBatch, preview),
-    [preview, validationBatch],
+    () => buildImportValidationReport(validationBatch, effectivePreview),
+    [effectivePreview, validationBatch],
   );
 
   const stepPct = Math.round(((step + 1) / STEPS.length) * 100);
@@ -875,7 +938,8 @@ export default function Import() {
   };
 
   const handleCommit = async () => {
-    if (!preview || !parsedFile) {
+    const commitPreview = effectivePreview ?? preview;
+    if (!commitPreview || !parsedFile) {
       toast.error("Load a file and build a preview first.");
       return;
     }
@@ -905,7 +969,7 @@ export default function Import() {
         current.status = "draft";
         setImportRuntimeActiveBatch(current.batchId);
       }
-      current.previewRows = preview.rows.map((r) => ({
+      current.previewRows = commitPreview.rows.map((r) => ({
         sourceRowIndex: r.sourceRowIndex,
         rowKey: r.rowKey,
         sourceRow: r.sourceRow,
@@ -925,7 +989,7 @@ export default function Import() {
         diffSummary: r.diffSummary,
       }));
 
-      for (const row of preview.rows) {
+      for (const row of commitPreview.rows) {
         if (row.action === "update" && row.existing) {
           storeRollbackSnapshot(current, row.rowKey, row.existing as Record<string, unknown>, "updated");
         } else if (row.action === "insert") {
@@ -933,7 +997,7 @@ export default function Import() {
         }
       }
 
-      const result = await mod.adapter.commitRows(preview.rows, current);
+      const result = await mod.adapter.commitRows(commitPreview.rows, current);
       setCommitResult(result);
 
       if (result.rowResults?.length) {
@@ -1785,7 +1849,9 @@ export default function Import() {
 
                   {validationReport.findings.length ? (
                     <div className="space-y-3">
-                      {validationReport.findings.slice(0, 8).map((finding) => (
+                      {validationReport.findings.slice(0, 8).map((finding) => {
+                        const enumInfo = finding.rowKey && finding.kind === "blocker" ? parseEnumIssue(finding.detail) : null;
+                        return (
                         <Card
                           key={finding.code}
                           className={cn(
@@ -1814,10 +1880,26 @@ export default function Import() {
                                 <p className="mt-1 text-xs text-muted-foreground">{finding.rowLabel}</p>
                               ) : null}
                             </div>
-                            <p className="max-w-xl text-sm text-muted-foreground">{finding.detail}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="max-w-xl text-sm text-muted-foreground">{finding.detail}</p>
+                              {enumInfo && effectivePreview && finding.rowKey ? (() => {
+                                const row = effectivePreview.rows.find((r) => r.rowKey === finding.rowKey);
+                                const currentRaw = row?.sourceRow?.[enumInfo.fieldKey] || row?.mapped?.[enumInfo.fieldKey] || "";
+                                return (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="shrink-0 rounded-lg"
+                                    onClick={() => setEditTarget({ ...enumInfo, rowKey: finding.rowKey!, currentValue: currentRaw })}
+                                  >
+                                    Fix
+                                  </Button>
+                                );
+                              })() : null}
+                            </div>
                           </div>
                         </Card>
-                      ))}
+                      );})}
                     </div>
                   ) : (
                     <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
@@ -1829,14 +1911,72 @@ export default function Import() {
             </div>
           )}
 
+          <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Fix validation issue</DialogTitle>
+                <DialogDescription>
+                  {editTarget ? `Update "${editTarget.fieldLabel}" for ${(() => {
+                    const row = effectivePreview?.rows.find((r) => r.rowKey === editTarget.rowKey);
+                    return row?.displayName || `row #${editTarget.rowKey}`;
+                  })()}` : ""}
+                </DialogDescription>
+              </DialogHeader>
+              {editTarget && (
+                <div className="space-y-4 py-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Current value</Label>
+                    <p className="rounded-md border border-border/60 bg-card/60 px-3 py-2 text-sm font-mono">
+                      "{editTarget.currentValue}"
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fix-value">Valid options for {editTarget.fieldLabel}</Label>
+                    <Select
+                      value={valueOverrides[editTarget.rowKey]?.[editTarget.fieldKey] ?? ""}
+                      onValueChange={(newValue) => {
+                        setValueOverrides((prev) => ({
+                          ...prev,
+                          [editTarget.rowKey]: {
+                            ...(prev[editTarget.rowKey] ?? {}),
+                            [editTarget.fieldKey]: newValue,
+                          },
+                        }));
+                      }}
+                    >
+                      <SelectTrigger id="fix-value">
+                        <SelectValue placeholder="Select a value..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {editTarget.validValues.map((v) => (
+                          <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="gap-2">
+                <DialogClose asChild>
+                  <Button variant="outline" className="rounded-lg">Cancel</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button className="rounded-lg" disabled={!editTarget || !valueOverrides[editTarget.rowKey]?.[editTarget.fieldKey]}>
+                    Apply fix
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {step === 6 && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-4">
                 {[
-                  { label: "Ready inserts", value: preview?.summary.inserts ?? 0, className: "text-success" },
-                  { label: "Ready updates", value: preview?.summary.updates ?? 0, className: "text-primary" },
-                  { label: "Review rows", value: preview?.summary.reviews ?? 0, className: "text-warning" },
-                  { label: "Invalid rows", value: preview?.summary.invalid ?? 0, className: "text-muted-foreground" },
+                  { label: "Ready inserts", value: (effectivePreview ?? preview)?.summary.inserts ?? 0, className: "text-success" },
+                  { label: "Ready updates", value: (effectivePreview ?? preview)?.summary.updates ?? 0, className: "text-primary" },
+                  { label: "Review rows", value: (effectivePreview ?? preview)?.summary.reviews ?? 0, className: "text-warning" },
+                  { label: "Invalid rows", value: (effectivePreview ?? preview)?.summary.invalid ?? 0, className: "text-muted-foreground" },
                 ].map((item) => (
                   <Card key={item.label} className="glass p-4 text-center">
                     <p className={cn("font-display text-3xl font-bold", item.className)}>{item.value}</p>
@@ -1845,13 +1985,13 @@ export default function Import() {
                 ))}
               </div>
 
-              {!preview ? (
+              {!(effectivePreview ?? preview) ? (
                 <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
                   Parse a file to see the preview.
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {preview.rows.slice(0, 8).map((row) => (
+                  {(effectivePreview ?? preview).rows.slice(0, 8).map((row) => (
                     <div key={row.rowKey} className="rounded-xl border border-border/60 bg-card/60 p-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -1904,9 +2044,9 @@ export default function Import() {
                       </div>
                     </div>
                   ))}
-                  {preview.rows.length > 8 && (
+                  {(effectivePreview ?? preview).rows.length > 8 && (
                     <p className="text-xs text-muted-foreground">
-                      Showing 8 of {preview.rows.length} preview rows. The commit will process the full batch.
+                      Showing 8 of {(effectivePreview ?? preview).rows.length} preview rows. The commit will process the full batch.
                     </p>
                   )}
                 </div>
@@ -2278,15 +2418,15 @@ export default function Import() {
                 <p className="text-xs text-muted-foreground">What the importer currently thinks it will do.</p>
               </div>
               <Badge variant="secondary">
-                {preview ? `${preview.summary.total} rows` : "Waiting"}
+                {(effectivePreview ?? preview) ? `${(effectivePreview ?? preview)!.summary.total} rows` : "Waiting"}
               </Badge>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
-                { label: "Valid rows", value: preview?.summary.valid ?? 0, tone: "text-success" },
-                { label: "Invalid rows", value: preview?.summary.invalid ?? 0, tone: "text-warning" },
-                { label: "Exact matches", value: preview?.summary.exactMatches ?? 0, tone: "text-primary" },
-                { label: "Fuzzy matches", value: preview?.summary.fuzzyMatches ?? 0, tone: "text-muted-foreground" },
+                { label: "Valid rows", value: (effectivePreview ?? preview)?.summary.valid ?? 0, tone: "text-success" },
+                { label: "Invalid rows", value: (effectivePreview ?? preview)?.summary.invalid ?? 0, tone: "text-warning" },
+                { label: "Exact matches", value: (effectivePreview ?? preview)?.summary.exactMatches ?? 0, tone: "text-primary" },
+                { label: "Fuzzy matches", value: (effectivePreview ?? preview)?.summary.fuzzyMatches ?? 0, tone: "text-muted-foreground" },
               ].map((item) => (
                 <Card key={item.label} className="border-border/60 bg-card/60 p-3 text-center">
                   <p className={cn("font-display text-2xl font-bold", item.tone)}>{item.value}</p>
@@ -2395,7 +2535,7 @@ export default function Import() {
                 <p className="text-sm font-semibold">Warnings</p>
                 <p className="text-xs text-muted-foreground">Things to confirm before transfer.</p>
               </div>
-              <Badge variant="secondary">{preview?.summary.reviews ?? 0} review rows</Badge>
+              <Badge variant="secondary">{(effectivePreview ?? preview)?.summary.reviews ?? 0} review rows</Badge>
             </div>
             <div className="mt-4 space-y-2">
               {existingError ? (

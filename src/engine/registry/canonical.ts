@@ -472,6 +472,21 @@ export const CANONICAL_FIELDS: RegistryFieldDefinition[] = [
     group: 'family',
     dbColumn: 'annual_income',
   },
+  {
+    key: 'status',
+    label: 'Student Status',
+    aliases: ['status', 'student status', 'student_status'],
+    dataType: 'enum',
+    required: false,
+    isKeyField: false,
+    isDuplicateKey: false,
+    isCustom: false,
+    isActive: true,
+    scoringWeight: 3,
+    group: 'administrative',
+    dbColumn: 'status',
+    enumValues: ['active', 'inactive', 'graduated', 'transferred', 'withdrawn', 'alumni'],
+  },
 ];
 
 export const CANONICAL_FIELD_INDEX: Record<string, RegistryFieldDefinition> = {};

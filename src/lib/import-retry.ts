@@ -8,7 +8,7 @@ function retryImport(url: string) {
   const maxRetries = 20;
 
   const attempt = () => {
-    import(url)
+    import(/* @vite-ignore */ url)
       .then(() => {
         retrying.delete(url);
       })
