@@ -453,7 +453,8 @@ export default function Students() {
       case "add-document":
       case "add-incident":
         if (!firstActive) { toast.error("Select a student first"); break; }
-        navigate(`/students/${firstActive.id}/${action.replace("add-", "")}`);
+        toast.info("Opening student profile to add related information");
+        navigate(`/students/${firstActive.id}`);
         break;
       case "assign-class":
       case "assign-section":
@@ -463,7 +464,7 @@ export default function Students() {
       case "assign-hostel":
       case "assign-fee-plan":
         if (!activeRows.length) { toast.error("Select students first"); break; }
-        navigate(`/students/assign/${action.replace("assign-", "")}?ids=${activeRows.map((r) => r.id).join(",")}`);
+        toast.info("Bulk assignment — use the Import module for batch updates");
         break;
 
       /* ── Review / Approval ── */
@@ -472,8 +473,10 @@ export default function Students() {
         applyBulkAction(action);
         break;
       case "compare-versions":
-        if (firstActive) navigate(`/students/${firstActive.id}/history`);
-        else toast.error("Select a student first");
+        if (firstActive) {
+          toast.info("Version history — opening student profile");
+          navigate(`/students/${firstActive.id}`);
+        } else toast.error("Select a student first");
         break;
       case "lock-fields":
         toast.success("Selected fields locked for editing");
@@ -489,25 +492,28 @@ export default function Students() {
       case "principal-note":
       case "parent-request":
         if (!firstActive) { toast.error("Select a student first"); break; }
-        navigate(`/students/${firstActive.id}/notes/${action}`);
+        toast.info("Opening student profile to add note");
+        navigate(`/students/${firstActive.id}`);
         break;
 
       /* ── Admin / Governance ── */
       case "permissions":
-        navigate("/settings/permissions");
+        navigate("/permissions");
         break;
       case "field-visibility":
         navigate("/settings/headers");
         break;
       case "audit-log":
-        navigate("/audit");
+        navigate("/activity-log");
         break;
       case "restore-version":
-        if (firstActive) navigate(`/students/${firstActive.id}/history`);
-        else toast.error("Select a student first");
+        if (firstActive) {
+          toast.info("Version history — opening student profile");
+          navigate(`/students/${firstActive.id}`);
+        } else toast.error("Select a student first");
         break;
       case "retention-policies":
-        navigate("/settings/retention");
+        toast.info("Retention policies — configure from Settings");
         break;
 
       default:

@@ -150,6 +150,7 @@ const MonitoringDashboard = retryableLazy(() => import("./pages/MonitoringDashbo
 const ScoringWorkspace = retryableLazy(() => import("./pages/ScoringWorkspace"));
 const MessagingControlCenter = retryableLazy(() => import("./pages/MessagingControlCenter"));
 const GenericModule = retryableLazy(() => import("./pages/GenericModule"));
+const WorkspaceRegistry = retryableLazy(() => import("./pages/WorkspaceRegistry"));
 
 import { initRegistryStorage } from "@/lib/header-registry";
 
@@ -270,6 +271,7 @@ const PATH_LABELS: Record<string, string> = {
   "/settings/headers": "Settings: Headers",
   "/settings/trace": "Settings: Startup & Trace",
   "/settings/messaging": "Settings: Messaging & Control Center",
+  "/registry": "Workspace Registry",
   "/registry/groups": "Registry: Groups",
   "/staff": "Staff",
   "/fees": "Fees",
@@ -390,6 +392,7 @@ const App = () => {
                 <Route path="/settings/headers" element={<LazyRoute element={<SettingsHeaders />} />} />
                 <Route path="/settings/trace" element={<LazyRoute element={<Settings />} />} />
                 <Route path="/settings/messaging" element={<LazyRoute element={<MessagingControlCenter />} />} />
+                <Route path="/registry" element={<LazyRoute element={<WorkspaceRegistry />} />} />
                 <Route path="/registry/groups" element={<LazyRoute element={<HeaderGroupManager />} />} />
                 <Route path="/staff" element={<LazyRoute element={<Staff />} />} />
                 <Route path="/fees" element={<LazyRoute element={<Fees />} />} />

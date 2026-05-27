@@ -156,7 +156,7 @@ const admin: SidebarItem[] = [
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
   { title: "Headers & Fields", url: "/settings/headers", icon: Settings },
-  { title: "Header Groups", url: "/registry/groups", icon: Settings },
+  { title: "Workspace Registry", url: "/registry", icon: Layers },
   { title: "Permission Matrix", url: "/permissions", icon: Shield },
   { title: "Security & Audit", url: "/security", icon: Shield },
   { title: "User Management", url: "/user-management", icon: Shield },
