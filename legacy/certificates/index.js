@@ -6,11 +6,14 @@ const { generatePDF, signCertificate } = require('./pdfService');
 const router = express.Router();
 const TEMPLATE_PATH = path.join(__dirname, 'bonafide-template.html');
 
+console.log('Certificates router initialized');
+
 function safeString(v) {
   return v === undefined || v === null ? '' : String(v);
 }
 
 function renderPreviewHTML(data) {
+  console.log('renderPreviewHTML called with:', data);
   let html = fs.readFileSync(TEMPLATE_PATH, 'utf8');
 
   const qrSrc = data.qrBase64 ? `data:image/jpeg;base64,${data.qrBase64}` : '';
@@ -43,11 +46,13 @@ function renderPreviewHTML(data) {
  * Returns rendered HTML with embedded styles for direct browser print.
  */
 router.get('/preview', (req, res) => {
+  console.log('GET /certificates/preview called');
   try {
     const html = renderPreviewHTML(req.query);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (err) {
+    console.error('Preview error:', err);
     res.status(500).send(`Certificate preview failed: ${err.message}`);
   }
 });
@@ -58,6 +63,7 @@ router.get('/preview', (req, res) => {
  * Returns: application/pdf (attachment)
  */
 router.post('/generate', async (req, res) => {
+  console.log('POST /certificates/generate called');
   try {
     const { data, qrBase64 } = req.body || {};
     const qrBuffer = qrBase64 ? Buffer.from(qrBase64, 'base64') : undefined;
@@ -67,6 +73,7 @@ router.post('/generate', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="bonafide-certificate.pdf"');
     res.send(pdfBuffer);
   } catch (err) {
+    console.error('Generate error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -76,7 +83,8 @@ router.post('/generate', async (req, res) => {
  * Body: { data: {...}, qrBase64?: string, privateKey: PEM string }
  * Returns: application/pdf + X-Certificate-Signature header
  */
-router.post('/generate-signed', async (req, res) => {
+router.post('/certificates/generate-signed', async (req, res) => {
+  console.log('POST /certificates/generate-signed called');
   try {
     const { data, qrBase64, privateKey } = req.body || {};
     const qrBuffer = qrBase64 ? Buffer.from(qrBase64, 'base64') : undefined;
@@ -91,6 +99,7 @@ router.post('/generate-signed', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="bonafide-certificate-signed.pdf"');
     res.send(pdfBuffer);
   } catch (err) {
+    console.error('Generate signed error:', err);
     res.status(500).json({ error: err.message });
   }
 });

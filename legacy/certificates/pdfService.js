@@ -5,15 +5,23 @@ const crypto = require('crypto');
 
 const TEMPLATE_PATH = path.join(__dirname, 'bonafide-template.html');
 
+console.log('PDF Service initialized, template path:', TEMPLATE_PATH);
+console.log('Template exists:', fs.existsSync(TEMPLATE_PATH));
+
 /**
  * Inject certificate data + optional QR base64 into the HTML template.
  */
 function buildHtmlTemplate(data, qrBase64 = '') {
+  console.log('Building HTML template with data:', data);
+  console.log('QR Base64 provided:', !!qrBase64);
+  
   let html = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+  console.log('Template loaded, length:', html.length);
 
   // Embed QR image so jsPDF html2canvas renders it natively
   const qrSrc = qrBase64 ? `data:image/jpeg;base64,${qrBase64}` : '';
   html = html.replace(/{{QR_SRC}}/g, qrSrc);
+  console.log('QR_SRC replaced:', qrSrc.length > 0);
 
   const replacers = {
     '{{NO}}': data.no ?? '',
@@ -32,6 +40,7 @@ function buildHtmlTemplate(data, qrBase64 = '') {
     html = html.split(placeholder).join(String(value));
   });
 
+  console.log('Template built successfully');
   return html;
 }
 
@@ -40,6 +49,9 @@ function buildHtmlTemplate(data, qrBase64 = '') {
  * Requires `html2canvas` (and `canvas` polyfill for Node) to be installed.
  */
 async function generatePDF(certificateData, qrImageBuffer) {
+  console.log('generatePDF called with:', certificateData);
+  console.log('QR Image Buffer provided:', !!qrImageBuffer);
+  
   const doc = new jsPDF({
     unit: 'mm',
     format: 'a4',
@@ -53,6 +65,7 @@ async function generatePDF(certificateData, qrImageBuffer) {
     try {
       doc.html(html, {
         callback: function () {
+          console.log('PDF generation completed');
           resolve();
         },
         x: 0,
@@ -61,11 +74,14 @@ async function generatePDF(certificateData, qrImageBuffer) {
         windowWidth: 794,
       });
     } catch (err) {
+      console.error('PDF generation error:', err);
       reject(err);
     }
   });
 
-  return Buffer.from(doc.output('arraybuffer'));
+  const output = Buffer.from(doc.output('arraybuffer'));
+  console.log('PDF output buffer created, size:', output.length);
+  return output;
 }
 
 /**
