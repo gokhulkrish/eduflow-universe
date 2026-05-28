@@ -5,7 +5,8 @@
  * via Supabase Edge Functions or API routes.
  */
 
-import { supabase } from "./supabase";
+import { createSupabaseClient } from "../../lib/supabase";
+const supabase = createSupabaseClient();
 
 export interface PdfGenerationRequest {
   requestId: string;

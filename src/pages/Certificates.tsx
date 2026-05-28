@@ -27,6 +27,8 @@ import {
   type CertTemplate, type CertRequest, type CertRequestJoined,
 } from "@/lib/certificates";
 import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-records";
+import { generateCertificateHtml, prepareCertificateData, printCertificate, CERTIFICATE_HTML_TEMPLATE } from "@/lib/certificate-styles";
+import { generatePdfServerSide, streamPdfForDownload } from "@/lib/certificate-pdf-service";
 
 const toastErr = (e: unknown) => toast.error((e as any)?.message ?? String(e));
 
@@ -253,37 +255,32 @@ export default function Certificates() {
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   function renderCertificateHtml(req: CertRequestJoined) {
-    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? DEFAULT_BONAFIDE_TEMPLATE;
-
-    // common replacements from the joined request shape
-    const replacements: Record<string, string> = {
-      student_name: req.student_name ?? "",
-      admission_no: req.admission_no ?? "",
-      template_name: req.template_name ?? "",
+    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? DEFAULT_BONAFIDE_TEMPLATE ?? CERTIFICATE_HTML_TEMPLATE;
+    const data = prepareCertificateData({
+      student_name: req.student_name,
+      admission_no: req.admission_no,
+      template_name: req.template_name ?? req.template ?? "",
       template_code: req.template_code ?? "",
-      purpose: req.purpose ?? "",
-      issued_at: req.issued_at ? new Date(req.issued_at).toLocaleDateString() : "",
-      qr_token: req.qr_token ?? "",
-      // legacy uppercase placeholders
-      NAME: req.student_name ?? "",
-      ROLL: req.admission_no ?? "",
-      YEAR: (req as any).year ?? "",
-      BRANCH: (req as any).branch ?? "",
-      ACADEMIC_YEAR: (req as any).academic_year ?? "",
-      APPLICATION_DATE: req.issued_at ? new Date(req.issued_at).toLocaleDateString() : "",
-      APPLICATION_PURPOSE: req.purpose ?? "",
-      AUTHORITY: (req as any).authority ?? "",
-      NO: (req as any).no ?? "",
-      DATED: (req as any).dated ?? (req.issued_at ? new Date(req.issued_at).toLocaleDateString() : ""),
-    };
+      purpose: req.purpose ?? undefined,
+      issued_at: req.issued_at ?? undefined,
+      qr_token: req.qr_token ?? undefined,
+      // include legacy fields for backward compatibility
+      NAME: req.student_name ?? undefined,
+      ROLL: req.admission_no ?? undefined,
+      YEAR: (req as any).year ?? undefined,
+      BRANCH: (req as any).branch ?? undefined,
+      ACADEMIC_YEAR: (req as any).academic_year ?? undefined,
+      APPLICATION_DATE: req.issued_at ?? undefined,
+      APPLICATION_PURPOSE: req.purpose ?? undefined,
+      AUTHORITY: (req as any).authority ?? undefined,
+      NO: (req as any).no ?? undefined,
+      DATED: (req as any).dated ?? req.issued_at ?? undefined,
+      qr_token_short: ((req as any).qr_token ?? "").slice(0, 16),
+      qr_src: (req as any).qr_base64 ? `data:image/png;base64,${(req as any).qr_base64}` : undefined,
+    } as Record<string, any>);
 
-    // If the template expects a QR image source, support injecting a base64 image when available
-    const qrImageBase64 = (req as any).qr_base64 ?? null;
-    const finalTpl = tpl.replace(/\{\{\s*QR_SRC\s*\}\}/g, qrImageBase64 ? `data:image/png;base64,${qrImageBase64}` : "");
-
-    return finalTpl.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_, key) => {
-      return replacements[key] ?? (req as any)[key] ?? "";
-    });
+    // generateCertificateHtml will substitute variables and conditionals
+    return generateCertificateHtml(tpl, data as Record<string, string | boolean | undefined>);
   }
 
   const openPreview = (r: CertRequestJoined) => {
@@ -292,63 +289,41 @@ export default function Certificates() {
   };
 
   const handlePrintPreview = () => {
-    if (!previewRef.current) return;
-    const html = previewRef.current.innerHTML;
-    const win = window.open("", "_blank", "noopener,noreferrer");
-    if (!win) { toast.error("Unable to open print window"); return; }
-    win.document.open();
-    win.document.write(`<html><head><title>Certificate Preview</title><style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;padding:20px} .certificate{width:800px;margin:0 auto}</style></head><body>${html}</body></html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); }, 300);
+    if (!previewReq) return;
+    try {
+      const html = renderCertificateHtml(previewReq);
+      printCertificate(html, `Certificate - ${previewReq.student_name ?? previewReq.id}`);
+    } catch (e: any) {
+      toastErr(e);
+    }
   };
 
   const handleDownloadPdf = async () => {
-    if (!previewRef.current) return;
+    if (!previewReq || !previewRef.current) return;
     try {
-      const certServer = import.meta.env.VITE_CERT_SERVER_URL;
-      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
+      // Prefer server-side PDF generation via Supabase Edge Function
+      const request = {
+        requestId: previewReq.id ?? String(Date.now()),
+        studentId: previewReq.student_id ?? previewReq.admission_no ?? "unknown",
+        studentName: previewReq.student_name ?? "",
+        admissionNo: previewReq.admission_no ?? "",
+        templateName: previewReq.template_name ?? previewReq.template ?? "",
+        templateCode: previewReq.template_code ?? "",
+        templateHtml: renderCertificateHtml(previewReq),
+        purpose: previewReq.purpose ?? undefined,
+        qrToken: previewReq.qr_token ?? "",
+        issuedAt: previewReq.issued_at ?? undefined,
+      };
 
-      // Prefer server-side PDF generation when server URL is configured
-      if (certServer && previewReq) {
-        try {
-          const server = String(certServer).replace(/\/$/, "");
-          const data = {
-            name: previewReq.student_name ?? "",
-            roll: previewReq.admission_no ?? "",
-            year: (previewReq as any).year ?? "",
-            branch: (previewReq as any).branch ?? "",
-            academicYear: (previewReq as any).academic_year ?? "",
-            applicationDate: previewReq.issued_at ? new Date(previewReq.issued_at).toLocaleDateString() : "",
-            applicationPurpose: previewReq.purpose ?? "",
-            authority: (previewReq as any).authority ?? "",
-            no: (previewReq as any).no ?? "",
-            dated: (previewReq as any).dated ?? "",
-          };
-          const qrBase64 = (previewReq as any).qr_base64 ?? null;
-
-          const res = await fetch(`${server}/certificates/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data, qrBase64 }),
-          });
-          if (!res.ok) throw new Error(await res.text());
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = name;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-          return;
-        } catch (e: any) {
-          toastErr(e);
-          // fall through to client-side generation
-        }
+      // Try server-side generation / streaming first
+      try {
+        const streamed = await streamPdfForDownload(request);
+        if (streamed.success) return;
+      } catch (e) {
+        // ignore and fallback to client-side
       }
 
+      // Client-side fallback
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       const node = previewRef.current as HTMLElement;
@@ -359,44 +334,46 @@ export default function Certificates() {
       const imgProps = (pdf as any).getImageProperties(imgData);
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(name);
+      pdf.save(`certificate-${request.requestId}.pdf`);
     } catch (e: any) {
       toast.error(e?.message ?? 'PDF generation failed');
     }
   };
 
   const handleSignedExport = async () => {
-    if (!previewRef.current) return;
-    const certServer = import.meta.env.VITE_CERT_SERVER_URL;
-    if (!certServer || !previewReq) { toast.error('Server PDF export not configured'); return; }
+    if (!previewReq) return;
     try {
-      const data = {
-        name: previewReq.student_name ?? "",
-        roll: previewReq.admission_no ?? "",
-        year: (previewReq as any).year ?? "",
-        branch: (previewReq as any).branch ?? "",
-        academicYear: (previewReq as any).academic_year ?? "",
-        applicationDate: previewReq.issued_at ? new Date(previewReq.issued_at).toLocaleDateString() : "",
-        applicationPurpose: previewReq.purpose ?? "",
-        authority: (previewReq as any).authority ?? "",
-        no: (previewReq as any).no ?? "",
-        dated: (previewReq as any).dated ?? "",
+      const request = {
+        requestId: previewReq.id ?? String(Date.now()),
+        studentId: previewReq.student_id ?? previewReq.admission_no ?? "unknown",
+        studentName: previewReq.student_name ?? "",
+        admissionNo: previewReq.admission_no ?? "",
+        templateName: previewReq.template_name ?? previewReq.template ?? "",
+        templateCode: previewReq.template_code ?? "",
+        templateHtml: renderCertificateHtml(previewReq),
+        purpose: previewReq.purpose ?? undefined,
+        qrToken: previewReq.qr_token ?? "",
+        issuedAt: previewReq.issued_at ?? undefined,
       };
-      const qrBase64 = (previewReq as any).qr_base64 ?? null;
-      const { blob, signature } = await generateSignedPdfOnServer(String(certServer), data, qrBase64);
-      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      if (signature) {
+
+      const result = await generatePdfServerSide(request as any);
+      if (result.success && result.pdfUrl) {
+        const blobRes = await fetch(result.pdfUrl);
+        const blob = await blobRes.blob();
+        const name = `certificate-${request.requestId}.pdf`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
         toast.success('Signed export complete');
-        try { await navigator.clipboard.writeText(signature); toast.success('Signature copied to clipboard'); } catch {/* ignore */}
+        return;
       }
+
+      toast.error(result.error ?? 'Signed export failed');
     } catch (e: any) {
       toastErr(e);
     }
