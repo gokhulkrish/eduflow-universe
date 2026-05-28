@@ -65,6 +65,17 @@ export type CertRequestJoined = CertRequest & {
   student_name?: string;
   admission_no?: string;
   grade?: string;
+  // Legacy / joined fields used by the UI and legacy templates
+  template_body?: string | null;
+  template_html?: string | null;
+  template?: string | null;
+  qr_base64?: string | null;
+  year?: string | null;
+  branch?: string | null;
+  academic_year?: string | null;
+  authority?: string | null;
+  no?: string | null;
+  dated?: string | null;
 };
 
 export type CertRecord = {

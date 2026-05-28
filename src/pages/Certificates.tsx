@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Award, Plus, Search, CheckCircle, XCircle, Ban, FileDown, QrCode, Loader2, Eye, Trash2, Copy, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { generatePdfOnServer, generateSignedPdfOnServer } from "@/lib/certificates-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StickyActionBar } from "@/components/StickyActionBar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,150 @@ import {
   type CertTemplate, type CertRequest, type CertRequestJoined,
 } from "@/lib/certificates";
 import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-records";
+
+const toastErr = (e: unknown) => toast.error((e as any)?.message ?? String(e));
+
+/* Legacy bonafide template (from legacy/certificates/bonafide-template.html)
+   Integrated here so previews use the same layout when template HTML isn't provided */
+const DEFAULT_BONAFIDE_TEMPLATE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCT Bonafide Certificate Template</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #f3f3f3;
+      font-family: "Times New Roman", serif;
+      color: #000;
+    }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: 28mm 22mm 24mm;
+      border: 1px solid #222;
+      position: relative;
+    }
+    .center { text-align: center; }
+    .college-name { font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .college-place { margin-top: 4px; font-size: 18px; font-weight: 700; text-transform: uppercase; }
+    .college-affiliation { margin-top: 4px; font-size: 16px; }
+    .meta { margin-top: 28px; display: flex; justify-content: space-between; font-size: 17px; }
+    .title {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-decoration: underline;
+      letter-spacing: 0.5px;
+    }
+    .content { margin-top: 34px; font-size: 20px; line-height: 2.05; text-align: justify; }
+    .fill {
+      display: inline-block;
+      min-width: 130px;
+      border-bottom: 1px dotted #000;
+      padding: 0 6px 2px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .fill-sm { min-width: 90px; }
+    .fill-md { min-width: 180px; }
+    .fill-lg { min-width: 260px; }
+    .fill-xl { min-width: 340px; }
+    .to-block { margin-top: 38px; font-size: 19px; line-height: 1.9; }
+    .signature { margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .seal-box {
+      width: 160px;
+      height: 160px;
+      border: 1px dashed #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 16px;
+    }
+    .sign-area { width: 260px; text-align: center; font-size: 18px; }
+    .sign-line { border-top: 1px solid #000; padding-top: 8px; margin-top: 60px; font-weight: 700; }
+    .qr-image {
+      position: absolute;
+      bottom: 20mm;
+      right: 10mm;
+      width: 30mm;
+      height: 30mm;
+      border: 1px solid #000;
+      object-fit: contain;
+    }
+    @page { size: A4; margin: 20mm; }
+    /* tighten print margins and QR sizing for better layout */
+    @media print {
+      .qr-image { width: 25mm; height: 25mm; right: 12mm; bottom: 18mm; }
+      .page { padding: 12mm 14mm; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page {
+        border: none;
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        min-height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="center">
+      <div class="college-name">Government College of Technology</div>
+      <div class="college-place">Coimbatore - 641013</div>
+      <div class="college-affiliation">(Affiliated to Anna University, Chennai)</div>
+    </div>
+
+    <div class="meta">
+      <div><strong>No.</strong> <span class="fill fill-md">{{NO}}</span></div>
+      <div><strong>Dated:</strong> <span class="fill fill-md">{{DATED}}</span></div>
+    </div>
+
+    <div class="title">Bonafide Certificate</div>
+
+    <div class="content">
+      This is to certify that <span class="fill fill-xl">{{NAME}}</span>
+      (Roll No. <span class="fill fill-md">{{ROLL}}</span>) is a bonafide
+      student of this college studying in <span class="fill fill-sm">{{YEAR}}</span> year
+      of Four years of B.E./B.Tech. Degree course in
+      <span class="fill fill-lg">{{BRANCH}}</span> during the academic year
+      <span class="fill fill-md">{{ACADEMIC_YEAR}}</span>.
+
+      <br><br>
+
+      This certificate is issued with reference to his/her application dated
+      <span class="fill fill-md">{{APPLICATION_DATE}}</span> to apply for
+      <span class="fill fill-lg">{{APPLICATION_PURPOSE}}</span>.
+    </div>
+
+    <div class="to-block">
+      <strong>To</strong><br>
+      <span class="fill fill-lg">{{AUTHORITY}}</span>
+    </div>
+
+    <div class="signature">
+      <div class="seal-box">Office Seal</div>
+
+      <div class="sign-area">
+        <div class="sign-line">Office of the Principal</div>
+      </div>
+    </div>
+
+    <img class="qr-image" src="{{QR_SRC}}" alt="Verification QR" />
+  </div>
+</body>
+</html>`;
 
 export default function Certificates() {
   const qc = useQueryClient();
@@ -55,13 +200,13 @@ export default function Certificates() {
   const saveTplMut = useMutation({
     mutationFn: () => saveTemplate(editTpl ? { ...editTpl, code: tplCode, name: tplName, body: tplBody, active: tplActive } : { code: tplCode, name: tplName, body: tplBody, active: tplActive }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-templates"] }); setTplOpen(false); toast.success(editTpl ? "Template updated" : "Template created"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const delTplMut = useMutation({
     mutationFn: (id: string) => deleteTemplate(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-templates"] }); toast.success("Template deleted"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   // ── Request Dialogs ──
@@ -73,19 +218,19 @@ export default function Certificates() {
   const createReqMut = useMutation({
     mutationFn: () => createRequest({ template_id: reqTplId, student_id: reqStudentId, purpose: reqPurpose || null }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); setReqOpen(false); toast.success("Request created"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const approveMut = useMutation({
     mutationFn: (id: string) => approveRequest(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Request approved"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const issueMut = useMutation({
     mutationFn: (id: string) => issueRequest(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Certificate issued"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const [revokeId, setRevokeId] = useState<string | null>(null);
@@ -93,13 +238,13 @@ export default function Certificates() {
   const revokeMut = useMutation({
     mutationFn: () => revokeRequest(revokeId!, revokeReason),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); setRevokeId(null); setRevokeReason(""); toast.success("Certificate revoked"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const delReqMut = useMutation({
     mutationFn: (id: string) => deleteRequest(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Request deleted"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   // Preview / Print
@@ -108,7 +253,9 @@ export default function Certificates() {
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   function renderCertificateHtml(req: CertRequestJoined) {
-    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? "";
+    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? DEFAULT_BONAFIDE_TEMPLATE;
+
+    // common replacements from the joined request shape
     const replacements: Record<string, string> = {
       student_name: req.student_name ?? "",
       admission_no: req.admission_no ?? "",
@@ -117,9 +264,26 @@ export default function Certificates() {
       purpose: req.purpose ?? "",
       issued_at: req.issued_at ? new Date(req.issued_at).toLocaleDateString() : "",
       qr_token: req.qr_token ?? "",
+      // legacy uppercase placeholders
+      NAME: req.student_name ?? "",
+      ROLL: req.admission_no ?? "",
+      YEAR: (req as any).year ?? "",
+      BRANCH: (req as any).branch ?? "",
+      ACADEMIC_YEAR: (req as any).academic_year ?? "",
+      APPLICATION_DATE: req.issued_at ? new Date(req.issued_at).toLocaleDateString() : "",
+      APPLICATION_PURPOSE: req.purpose ?? "",
+      AUTHORITY: (req as any).authority ?? "",
+      NO: (req as any).no ?? "",
+      DATED: (req as any).dated ?? (req.issued_at ? new Date(req.issued_at).toLocaleDateString() : ""),
     };
 
-    return tpl.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_, key) => (replacements[key] ?? (req as any)[key] ?? ""));
+    // If the template expects a QR image source, support injecting a base64 image when available
+    const qrImageBase64 = (req as any).qr_base64 ?? null;
+    const finalTpl = tpl.replace(/\{\{\s*QR_SRC\s*\}\}/g, qrImageBase64 ? `data:image/png;base64,${qrImageBase64}` : "");
+
+    return finalTpl.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_, key) => {
+      return replacements[key] ?? (req as any)[key] ?? "";
+    });
   }
 
   const openPreview = (r: CertRequestJoined) => {
@@ -142,6 +306,49 @@ export default function Certificates() {
   const handleDownloadPdf = async () => {
     if (!previewRef.current) return;
     try {
+      const certServer = import.meta.env.VITE_CERT_SERVER_URL;
+      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
+
+      // Prefer server-side PDF generation when server URL is configured
+      if (certServer && previewReq) {
+        try {
+          const server = String(certServer).replace(/\/$/, "");
+          const data = {
+            name: previewReq.student_name ?? "",
+            roll: previewReq.admission_no ?? "",
+            year: (previewReq as any).year ?? "",
+            branch: (previewReq as any).branch ?? "",
+            academicYear: (previewReq as any).academic_year ?? "",
+            applicationDate: previewReq.issued_at ? new Date(previewReq.issued_at).toLocaleDateString() : "",
+            applicationPurpose: previewReq.purpose ?? "",
+            authority: (previewReq as any).authority ?? "",
+            no: (previewReq as any).no ?? "",
+            dated: (previewReq as any).dated ?? "",
+          };
+          const qrBase64 = (previewReq as any).qr_base64 ?? null;
+
+          const res = await fetch(`${server}/certificates/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data, qrBase64 }),
+          });
+          if (!res.ok) throw new Error(await res.text());
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          return;
+        } catch (e: any) {
+          toastErr(e);
+          // fall through to client-side generation
+        }
+      }
+
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       const node = previewRef.current as HTMLElement;
@@ -152,10 +359,46 @@ export default function Certificates() {
       const imgProps = (pdf as any).getImageProperties(imgData);
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
       pdf.save(name);
     } catch (e: any) {
       toast.error(e?.message ?? 'PDF generation failed');
+    }
+  };
+
+  const handleSignedExport = async () => {
+    if (!previewRef.current) return;
+    const certServer = import.meta.env.VITE_CERT_SERVER_URL;
+    if (!certServer || !previewReq) { toast.error('Server PDF export not configured'); return; }
+    try {
+      const data = {
+        name: previewReq.student_name ?? "",
+        roll: previewReq.admission_no ?? "",
+        year: (previewReq as any).year ?? "",
+        branch: (previewReq as any).branch ?? "",
+        academicYear: (previewReq as any).academic_year ?? "",
+        applicationDate: previewReq.issued_at ? new Date(previewReq.issued_at).toLocaleDateString() : "",
+        applicationPurpose: previewReq.purpose ?? "",
+        authority: (previewReq as any).authority ?? "",
+        no: (previewReq as any).no ?? "",
+        dated: (previewReq as any).dated ?? "",
+      };
+      const qrBase64 = (previewReq as any).qr_base64 ?? null;
+      const { blob, signature } = await generateSignedPdfOnServer(String(certServer), data, qrBase64);
+      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      if (signature) {
+        toast.success('Signed export complete');
+        try { await navigator.clipboard.writeText(signature); toast.success('Signature copied to clipboard'); } catch {/* ignore */}
+      }
+    } catch (e: any) {
+      toastErr(e);
     }
   };
 
@@ -185,13 +428,13 @@ export default function Certificates() {
   const bulkMut = useMutation({
     mutationFn: () => bulkGenerateRequests(bulkTplId, bulkStudentIds, bulkPurpose || undefined),
     onSuccess: (data) => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success(`${data.length} certificates generated`); setBulkStudentIds([]); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const bulkIssueMut = useMutation({
     mutationFn: (ids: string[]) => bulkIssue(ids),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Bulk issue complete"); },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastErr(e),
   });
 
   const issued = (requests ?? []).filter((r) => r.status === "issued");
@@ -274,7 +517,7 @@ export default function Certificates() {
                     <TableCell><span className="text-xs">{r.template_name ?? "—"}</span><br /><span className="text-[10px] text-muted-foreground">{r.template_code ?? ""}</span></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.purpose ?? "—"}</TableCell>
                     <TableCell><Badge className={`border text-[10px] ${getStatusColor(r.status)}`}>{r.status}</Badge></TableCell>
-                    <TableCell><code className="text-[10px] font-mono text-muted-foreground">{r.qr_token.slice(0, 16)}…</code></TableCell>
+                    <TableCell><code className="text-[10px] font-mono text-muted-foreground">{(r.qr_token ?? "").slice(0, 16)}…</code></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {r.status === "requested" && (
@@ -353,7 +596,7 @@ export default function Certificates() {
                     <TableCell><span className="text-sm font-medium">{r.student_name ?? "—"}</span><br /><span className="text-[10px] text-muted-foreground">{r.admission_no ?? ""}</span></TableCell>
                     <TableCell className="text-xs">{r.template_name ?? "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.issued_at ? new Date(r.issued_at).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell><code className="text-[10px] font-mono text-muted-foreground">{r.qr_token.slice(0, 16)}…</code></TableCell>
+                    <TableCell><code className="text-[10px] font-mono text-muted-foreground">{(r.qr_token ?? "").slice(0, 16)}…</code></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { navigator.clipboard.writeText(r.qr_token); toast.success("Token copied"); }}><Copy className="h-3 w-3 mr-1" /> Token</Button>
@@ -463,6 +706,9 @@ export default function Certificates() {
             <div className="flex gap-2">
               <Button variant="outline" onClick={handlePrintPreview}>Print</Button>
               <Button onClick={handleDownloadPdf}>Download PDF</Button>
+              {import.meta.env.VITE_CERT_SERVER_URL && (
+                <Button variant="secondary" onClick={handleSignedExport}>Signed Export</Button>
+              )}
               <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Close</Button>
             </div>
           </DialogFooter>

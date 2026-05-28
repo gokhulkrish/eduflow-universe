@@ -1,10 +1,10 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const { generatePDF, signCertificate } = require('./pdfService');
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { generatePDF, signCertificate } from './pdfService.js';
 
 const router = express.Router();
-const TEMPLATE_PATH = path.join(__dirname, 'bonafide-template.html');
+const TEMPLATE_PATH = path.join(new URL('.', import.meta.url).pathname, 'bonafide-template.html');
 
 console.log('Certificates router initialized');
 
@@ -104,4 +104,4 @@ router.post('/certificates/generate-signed', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
