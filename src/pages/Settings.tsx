@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Settings2, Bell, Palette, Globe, Lock, Database, CreditCard, Mail,
-  RefreshCw, Waves, AlertTriangle, Activity, MessageSquare, SlidersHorizontal,
+  RefreshCw, Waves, AlertTriangle, Activity, MessageSquare, SlidersHorizontal, LayoutDashboard, Navigation,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { clearMobileShellRuntime, getMobileShellSnapshot, refreshMobileShellView
 import { buildMobileRuntimeBadgeClass, getMobileRuntimeSnapshot, subscribeMobileRuntime } from "@/lib/mobile-runtime";
 import { toast } from "sonner";
 import TraceSettings from "./TraceSettings";
+import WorkspaceControlSettings from "./WorkspaceControlSettings";
+import LandingProfileSettings from "./LandingProfileSettings";
 
 const sections = [
   { title: "GCT Identity", desc: "Name, address, branding", icon: Globe, link: "/settings/institute" },
@@ -33,13 +35,15 @@ interface TabDef { id: string; label: string; icon: typeof Activity; description
 const TABS: TabDef[] = [
   { id: "general", label: "General", icon: SlidersHorizontal, description: "Focus mode, mobile stability, and quick settings" },
   { id: "trace", label: "Startup & Trace", icon: Activity, description: "Activity trace widget and event categories" },
+  { id: "workspace", label: "Workspace", icon: LayoutDashboard, description: "Sidebar, pinned modules, recent history" },
+  { id: "landing", label: "Landing", icon: Navigation, description: "Per-role dashboard landing targets" },
   { id: "messaging", label: "Messaging", icon: MessageSquare, description: "Unified messaging surfaces control" },
 ];
 
 export default function Settings() {
   const location = useLocation();
   const navigate = useNavigate();
-  const pathTab = location.pathname === "/settings/trace" ? "trace" : location.pathname === "/settings/messaging" ? "messaging" : "general";
+  const pathTab = location.pathname === "/settings/trace" ? "trace" : location.pathname === "/settings/messaging" ? "messaging" : location.pathname === "/settings/workspace" ? "workspace" : location.pathname === "/settings/landing" ? "landing" : "general";
   const [tab, setTab] = useState(pathTab);
 
   useEffect(() => { setTab(pathTab); }, [pathTab]);
@@ -62,6 +66,8 @@ export default function Settings() {
   const switchTab = (id: string) => {
     setTab(id);
     if (id === "trace") navigate("/settings/trace", { replace: true });
+    else if (id === "workspace") navigate("/settings/workspace", { replace: true });
+    else if (id === "landing") navigate("/settings/landing", { replace: true });
     else if (id === "messaging") navigate("/settings/messaging", { replace: true });
     else navigate("/settings", { replace: true });
   };
@@ -102,6 +108,10 @@ export default function Settings() {
         <div className="flex-1 min-w-0">
           {tab === "trace" ? (
             <TraceSettings />
+          ) : tab === "workspace" ? (
+            <WorkspaceControlSettings />
+          ) : tab === "landing" ? (
+            <LandingProfileSettings />
           ) : (
             <div>
               <Card className="mb-4 border-border/40 bg-gradient-to-br from-card via-card to-secondary/20">

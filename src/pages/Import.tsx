@@ -19,6 +19,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  FolderOpen,
   Trash2,
   Undo2,
   Upload,
@@ -65,8 +66,10 @@ import { Slider } from "@/components/ui/slider";
 import { PageHeader } from "@/components/PageHeader";
 import { StickyActionBar } from "@/components/StickyActionBar";
 import ImportBatchDetailDialog from "@/components/ImportBatchDetailDialog";
+import ImportDetectedHeaders from "@/components/import/ImportDetectedHeaders";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import {
   buildAutoMappingReport,
@@ -93,8 +96,34 @@ import {
   type ImportTransferRule,
   type ParsedImportFile,
   type ImportPreviewState,
+  buildImportAiReviewQueue,
+  type AiReviewQueueResult,
+  CRITICAL_IMPORT_FIELDS,
+  scanCriticalFieldIssues,
+  type DuplicateIssue,
+  scanDuplicateIssues,
+  scanImportDuplicateAliases,
+  type DuplicateAliasIssue,
+  scanImportOrphanGroups,
+  type OrphanGroup,
+  scanImportProfileWarnings,
+  type ProfileWarning,
+  computeFieldDiffs,
+  duplicateIssueStage,
+  importFieldGroups,
+  type ImportTargetField,
+  type CriticalFieldDef,
 } from "@/lib/student-import";
+import { resolveDuplicateFeedbackLoop, resolveMissingFieldsFeedbackLoop, emitImportAlert } from "@/lib/student-workspace-messaging";
+import { cacheDuplicateGroups, loadCachedDuplicateGroups, saveDuplicateIssues, loadDuplicateIssues } from "@/lib/duplicate-issues-store";
 import { CANONICAL_FIELDS } from "@/engine/registry/canonical";
+import {
+  approveRegistryAiMapping,
+  ignoreRegistryAiHeader,
+  loadRegistryAiState,
+  saveRegistryAiState,
+  type RegistryAiState,
+} from "@/lib/registry-ai-queue";
 import { validateRow } from "@/lib/import-engine/validation";
 import {
   invalidateRegistryCache,
@@ -154,6 +183,7 @@ import {
 const STEPS = [
   { id: "analyze", title: "Analyze", icon: FileSpreadsheet, caption: "Parse + profile columns" },
   { id: "create", title: "Create Batch", icon: Save, caption: "Name + config" },
+  { id: "headers", title: "Headers", icon: ClipboardCheck, caption: "Review detected columns" },
   { id: "map", title: "Schema Mapping", icon: Cog, caption: "Map source -> target" },
   { id: "keying", title: "Keying", icon: KeyRound, caption: "Match design" },
   { id: "dupe", title: "Duplicates", icon: Database, caption: "Resolve conflicts" },
@@ -219,6 +249,7 @@ const applyRegistryPresetMapping = (
 };
 
 export default function Import() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [moduleId, setModuleId] = useState("students");
   const [mode, setMode] = useState<ImportMode>("hybrid");
@@ -266,6 +297,14 @@ export default function Import() {
     currentValue: string;
     validValues: string[];
   } | null>(null);
+  const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
+  const [mapNowTarget, setMapNowTarget] = useState<string | null>(null);
+  const [registryAiState, setRegistryAiState] = useState<RegistryAiState>(() => loadRegistryAiState());
+
+  const updateRegistryAiState = (next: RegistryAiState) => {
+    saveRegistryAiState(next);
+    setRegistryAiState(next);
+  };
 
   const pipelineRef = useRef<ImportPipelineState>(createImportPipelineState());
   const importInitRef = useRef(false);
@@ -306,7 +345,7 @@ export default function Import() {
   const tryNavigateTo = (targetStep: number) => {
     const batch = getCurrentBatch();
     if (!batch) { setStep(targetStep); return; }
-    const stepName = ["analyze", "create", "map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"][targetStep] as ImportPipelineStep;
+    const stepName = ["analyze", "create", "headers", "map", "keying", "duplicates", "validate", "preview", "transfer", "finalize"][targetStep] as ImportPipelineStep;
     const p = pipelineRef.current;
     p.currentStep = stepName as ImportPipelineStep;
     const check = checkStepPrerequisite(p, stepName as ImportPipelineStep, batch);
@@ -544,7 +583,7 @@ export default function Import() {
         await saveImportBatches([engineBatch]);
         setImportRuntimeActiveBatch(engineBatch.batchId);
         refreshCanonicalPipelineState(pipelineRef.current, engineBatch);
-        setStep(form.mode === "auto" ? 7 : 2);
+        setStep(form.mode === "auto" ? 8 : 2);
 
         if (form.mode === "auto" && !alive) return;
         if (form.mode === "auto") {
@@ -614,7 +653,7 @@ export default function Import() {
     );
     setSavedBatches((prev) => [batch, ...prev.filter((b) => b.batchId !== batch.batchId)]);
     setImportRuntimeActiveBatch(batch.batchId);
-    setStep(Math.min(step, 2));
+    setStep(Math.min(step, 3));
     invalidateImportDownstream(pipelineRef.current, "map", batch, "batch-resumed");
     refreshCanonicalPipelineState(pipelineRef.current, batch);
     toast.success(`Resumed batch "${batch.batchName}".`);
@@ -637,7 +676,7 @@ export default function Import() {
   const [preview, setPreview] = useState<ImportPreviewState | null>(null);
 
   useEffect(() => {
-    if (!parsedFile || step < 3) {
+    if (!parsedFile || step < 4) {
       if (preview !== null) setPreview(null);
       return;
     }
@@ -771,6 +810,36 @@ export default function Import() {
     }
     return getImportTargetFieldGroups(customFields);
   }, [moduleId, customFields]);
+
+  const aiReviewQueue = useMemo<AiReviewQueueResult | null>(() => {
+    if (!parsedFile) return null;
+    try {
+      return buildImportAiReviewQueue(parsedFile.headers);
+    } catch { return null; }
+  }, [parsedFile]);
+
+  const criticalFieldIssues = useMemo(() => {
+    if (!preview?.rows.length) return { issues: [], hardBlocking: 0, softWarnings: 0, byField: {} } as ReturnType<typeof scanCriticalFieldIssues>;
+    return scanCriticalFieldIssues(preview.rows);
+  }, [preview]);
+
+  const duplicateIssues = useMemo<DuplicateIssue[]>(() => {
+    if (duplicateGroups.length === 0) return [];
+    const active = currentBatch?.batchId;
+    return scanDuplicateIssues(duplicateGroups, active ?? "unknown", currentBatch?.batchName);
+  }, [duplicateGroups, currentBatch]);
+
+  const duplicateAliasIssues = useMemo<DuplicateAliasIssue[]>(() => {
+    return scanImportDuplicateAliases(customFields);
+  }, [customFields]);
+
+  const orphanGroups = useMemo<OrphanGroup[]>(() => {
+    return scanImportOrphanGroups(mapping, customFields);
+  }, [mapping, customFields]);
+
+  const profileWarnings = useMemo<ProfileWarning[]>(() => {
+    return scanImportProfileWarnings(profiles, profileDraft.name, customFields);
+  }, [profiles, profileDraft.name, customFields]);
 
   const handleRefreshExisting = async () => {
     setLoadingExisting(true);
@@ -1034,7 +1103,10 @@ export default function Import() {
       emitAppSync(importBatchSyncKey);
       setSavedBatches((prev) => prev.map((b) => (b.batchId === current.batchId ? current : b)));
 
-      setStep(7);
+      saveDuplicateIssues(duplicateIssues);
+      resolveDuplicateFeedbackLoop();
+
+      setStep(8);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Commit failed");
     } finally {
@@ -1072,6 +1144,21 @@ export default function Import() {
     } finally {
       setRollbackLoading(false);
     }
+  };
+
+  const handleApproveItem = (header: string, suggestion: string) => {
+    if (!parsedFile) return;
+    const next = approveRegistryAiMapping(header, suggestion, registryAiState);
+    updateRegistryAiState(next);
+    setMapping((prev) => ({ ...prev, [header]: suggestion as ImportTargetBinding }));
+    toast.success(`Mapped "${header}" → ${suggestion}`);
+  };
+
+  const handleIgnoreItem = (header: string) => {
+    const next = ignoreRegistryAiHeader(header, "user-dismissed", registryAiState);
+    updateRegistryAiState(next);
+    setMapping((prev) => ({ ...prev, [header]: "ignore" }));
+    toast.success(`Ignored header "${header}"`);
   };
 
   useEffect(() => {
@@ -1481,7 +1568,18 @@ export default function Import() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 2 && parsedFile && (
+            <div className="space-y-4">
+              <ImportDetectedHeaders
+                headers={parsedFile.headers}
+                mapping={mapping}
+                customFields={customFields}
+                aiReviewQueue={aiReviewQueue}
+              />
+            </div>
+          )}
+
+          {step === 3 && (
             <div className="space-y-4">
               <Card className="border-primary/20 bg-primary/5 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1534,6 +1632,43 @@ export default function Import() {
                   </div>
                 </div>
               </Card>
+
+              {parsedFile && (
+                <Card className="glass border-primary/10 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold">AI Header Mapping</p>
+                        <p className="text-xs text-muted-foreground">
+                          {parsedFile.headers.length} header{parsedFile.headers.length !== 1 ? "s" : ""} detected
+                          {aiReviewQueue && aiReviewQueue.queue.length > 0
+                            ? ` · ${parsedFile.headers.length - aiReviewQueue.queue.length} confident`
+                            : ` · ${mappingStats.mapped} mapped`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {aiReviewQueue && aiReviewQueue.queue.length > 0 ? (
+                        <>
+                          <Badge variant="outline" className="border-indigo-300 bg-indigo-50 text-indigo-700">
+                            {aiReviewQueue.queue.length} need review
+                          </Badge>
+                          <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setReviewQueueOpen(true)}>
+                            Open Review Queue
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="bg-success/10 text-success">
+                          All clear
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )}
 
               {driftReport?.hasDrift && (
                 <Card className="border-amber-200 bg-amber-50/50 p-4">
@@ -1591,7 +1726,7 @@ export default function Import() {
 
               {!parsedFile ? (
                 <Card className="border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
-                  Choose a file first. We’ll parse the headers and build a mapping automatically.
+                  Choose a file first. We'll parse the headers and build a mapping automatically.
                 </Card>
               ) : (
                 <div className="space-y-3">
@@ -1632,7 +1767,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -1679,16 +1814,24 @@ export default function Import() {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold">Potential duplicates</p>
                   <p className="text-xs text-muted-foreground">Rows grouped by identity key or matched to an existing student.</p>
                 </div>
-                <Badge variant="secondary" className="bg-warning/15 text-warning">
-                  {duplicateGroups.length} groups
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-warning/15 text-warning">
+                    {duplicateGroups.length} groups
+                  </Badge>
+                  <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => navigate("/students/duplicates")}>
+                    Resolve duplicates
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setStep(6)}>
+                    Review missing data
+                  </Button>
+                </div>
               </div>
 
               {!preview ? (
@@ -1761,7 +1904,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1816,6 +1959,47 @@ export default function Import() {
                     </div>
                     <Progress value={validationReport.score} className="mt-4 h-1.5" />
                   </Card>
+
+                  {criticalFieldIssues.hardBlocking > 0 && (
+                    <Card className="border-red-200 bg-red-50/50 p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="text-sm font-semibold text-red-800">Critical Field Analysis</p>
+                          <p className="text-xs text-red-700">
+                            {criticalFieldIssues.hardBlocking} hard-blocking field{criticalFieldIssues.hardBlocking !== 1 ? "s" : ""} require{criticalFieldIssues.hardBlocking === 1 ? "s" : ""} attention before commit.
+                          </p>
+                          <Button variant="outline" size="sm" className="mt-2 rounded-lg border-red-300 bg-white text-xs text-red-700 hover:bg-red-100" onClick={() => navigate("/students/missing-fields")}>
+                            Fix missing contact fields
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {duplicateAliasIssues.length > 0 && (
+                    <Card className="border-amber-200 bg-amber-50/50 p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="text-sm font-semibold text-amber-800">Duplicate Aliases</p>
+                          <p className="text-xs text-amber-700">
+                            {duplicateAliasIssues.length} alias group{duplicateAliasIssues.length !== 1 ? "s" : ""} shared between multiple target fields.
+                          </p>
+                          <ul className="mt-2 space-y-1">
+                            {duplicateAliasIssues.slice(0, 5).map((issue) => (
+                              <li key={issue.alias} className="text-xs text-amber-700">
+                                "<span className="font-medium">{issue.alias}</span>" → {issue.fields.map((f) => f.label).join(", ")}
+                              </li>
+                            ))}
+                          </ul>
+                          {duplicateAliasIssues.length > 5 && (
+                            <p className="text-xs text-amber-600">+{duplicateAliasIssues.length - 5} more</p>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  )}
 
                   <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
                     <Card className="border-border/60 bg-card/60 p-4">
@@ -1969,7 +2153,7 @@ export default function Import() {
             </DialogContent>
           </Dialog>
 
-          {step === 6 && (
+          {step === 7 && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-4">
                 {[
@@ -1992,57 +2176,84 @@ export default function Import() {
               ) : (
                 <div className="space-y-3">
                   {(effectivePreview ?? preview).rows.slice(0, 8).map((row) => (
-                    <div key={row.rowKey} className="rounded-xl border border-border/60 bg-card/60 p-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-medium">{row.displayName}</p>
-                            <Badge variant="secondary" className={cn(row.action === "insert" && "bg-success/15 text-success", row.action === "update" && "bg-primary/10 text-primary", row.action === "review" && "bg-warning/15 text-warning")}>
-                              {row.action}
-                            </Badge>
-                            <Badge variant="secondary">{row.matchScore}%</Badge>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {row.matchReason}
-                          </p>
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            {row.diffSummary.join(" · ")}
-                          </p>
-                          {Object.keys(row.customValues).length ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {Object.entries(row.customValues).map(([customId, value]) => {
-                                const field = customFields.find((item) => item.id === customId);
-                                return (
-                                  <Badge key={customId} variant="secondary" className="bg-secondary/80 text-xs">
-                                    {field?.label || customId}: {value || "—"}
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          ) : null}
+                    <Card key={row.rowKey} className="border-border/60 bg-card/60">
+                      <div className="flex items-stretch divide-x divide-border/40">
+                        <div className="flex w-24 shrink-0 flex-col items-center justify-center gap-1 p-3">
+                          <Badge className={cn(
+                            "text-[10px] font-semibold uppercase tracking-wider",
+                            row.validationIssues.length > 0 && "bg-destructive/15 text-destructive",
+                            row.validationIssues.length === 0 && row.action === "review" && "bg-warning/15 text-warning",
+                            row.validationIssues.length === 0 && row.action === "skip" && "bg-muted text-muted-foreground",
+                            row.validationIssues.length === 0 && (row.action === "insert" || row.action === "update") && "bg-success/15 text-success",
+                          )}>
+                            {row.validationIssues.length > 0 ? "Error" : row.action === "review" ? "Needs Review" : row.action === "skip" ? "Blocked" : "Ready"}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">{row.matchScore}%</span>
                         </div>
-                        <Select
-                          name={`actionOverrides[${row.rowKey}]`}
-                          value={actionOverrides[row.rowKey] ?? row.action}
-                          onValueChange={(value) =>
-                            setActionOverrides((current) => ({
-                              ...current,
-                              [row.rowKey]: value as ImportResolvedAction,
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="w-36">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="insert">Insert</SelectItem>
-                            <SelectItem value="update">Update</SelectItem>
-                            <SelectItem value="skip">Skip</SelectItem>
-                            <SelectItem value="review">Review</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex flex-1 flex-col gap-2 p-3">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                            <span className="font-medium text-foreground">{row.displayName}</span>
+                            <span className="text-muted-foreground">Row {row.sourceRowIndex + 1}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground">Student Key: </span>
+                              <span className="font-medium text-foreground">{row.identityKey || row.admissionNo || "—"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Match: </span>
+                              <span className="font-medium text-foreground">{row.matchReason}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Existing: </span>
+                              <span className="font-medium text-foreground">
+                                {row.existing ? `${row.existing.display_name} (${row.existing.student_id})` : "New record"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Type: </span>
+                              <span className="font-medium text-foreground">
+                                {row.duplicateGroupSize > 1 ? "Internal Duplicate" : row.action === "update" ? "Matched" : "Direct Insert"}
+                              </span>
+                            </div>
+                          </div>
+                          {row.diffSummary.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {row.diffSummary.slice(0, 4).map((diff) => (
+                                <span key={diff} className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                  {diff}
+                                </span>
+                              ))}
+                              {row.diffSummary.length > 4 && (
+                                <span className="text-[10px] text-muted-foreground">+{row.diffSummary.length - 4}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex w-20 shrink-0 items-center justify-center p-2">
+                          <Select
+                            name={`actionOverrides[${row.rowKey}]`}
+                            value={actionOverrides[row.rowKey] ?? row.action}
+                            onValueChange={(value) =>
+                              setActionOverrides((current) => ({
+                                ...current,
+                                [row.rowKey]: value as ImportResolvedAction,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-full text-[10px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="insert" className="text-xs">Insert</SelectItem>
+                              <SelectItem value="update" className="text-xs">Update</SelectItem>
+                              <SelectItem value="skip" className="text-xs">Skip</SelectItem>
+                              <SelectItem value="review" className="text-xs">Review</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                   {(effectivePreview ?? preview).rows.length > 8 && (
                     <p className="text-xs text-muted-foreground">
@@ -2054,7 +2265,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 7 && (
+          {step === 8 && (
             <div className="space-y-4 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
                 <CheckCircle2 className="h-8 w-8 text-success" />
@@ -2118,7 +2329,7 @@ export default function Import() {
             </div>
           )}
 
-          {step === 8 && (
+          {step === 9 && (
             <div className="space-y-4 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
                 <CheckCircle2 className="h-8 w-8 text-success" />
@@ -2198,15 +2409,15 @@ export default function Import() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            {step < 7 ? (
+            {step < 8 ? (
               <Button onClick={() => tryNavigateTo(step + 1)} className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            ) : step === 7 ? (
+            ) : step === 8 ? (
               commitResult ? (
                 <Button
-                  onClick={() => { setStep(8); }}
+                  onClick={() => { setStep(9); }}
                   className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
                 >
                   Next: Finalize
@@ -2301,6 +2512,93 @@ export default function Import() {
               Save Current Setup
             </Button>
           </StickyActionBar>
+
+          {parsedFile && (
+            <Card className="glass p-4">
+              <p className="text-sm font-semibold mb-3">Diagnostics</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium">AI Review Queue</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {aiReviewQueue ? `${aiReviewQueue.queue.length} pending` : "—"}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => setReviewQueueOpen(true)} disabled={!aiReviewQueue?.queue.length}>
+                      Open
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <span className="text-xs font-medium">Critical Fields</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={cn("text-[10px]", criticalFieldIssues.hardBlocking > 0 ? "border-red-200 text-red-700" : "border-green-200 text-green-700")}>
+                      {criticalFieldIssues.hardBlocking > 0
+                        ? `${criticalFieldIssues.hardBlocking} blocking`
+                        : criticalFieldIssues.softWarnings > 0
+                          ? `${criticalFieldIssues.softWarnings} warnings`
+                          : "All good"}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => navigate("/students/missing-fields")}>
+                      View
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-indigo-500" />
+                    <span className="text-xs font-medium">Duplicates</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {duplicateIssues.length > 0 ? `${duplicateIssues.filter((d) => duplicateIssueStage(d) === "detected" || duplicateIssueStage(d) === "in-review").length} pending` : "—"}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => navigate("/students/duplicates")} disabled={duplicateIssues.length === 0}>
+                      Open
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-medium">Duplicate Aliases</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {duplicateAliasIssues.length > 0 ? `${duplicateAliasIssues.length} issues` : "—"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-medium">Orphan Groups</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {orphanGroups.length > 0 ? `${orphanGroups.length} groups` : "—"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <span className="text-xs font-medium">Profile Warnings</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">
+                      {profileWarnings.length > 0 ? `${profileWarnings.length} warnings` : "—"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           <Card className="glass p-4">
             <div className="flex items-center justify-between gap-2">
@@ -2573,6 +2871,74 @@ export default function Import() {
         </div>
       </div>
       <ImportBatchDetailDialog batch={detailBatch} open={!!detailBatch} onOpenChange={(open) => { if (!open) setDetailBatch(null); }} />
+      <Dialog open={reviewQueueOpen} onOpenChange={setReviewQueueOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>AI Review Queue</DialogTitle>
+            <DialogDescription>
+              Review suggested mappings from the AI registry engine.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {aiReviewQueue?.queue.map((item) => {
+              const alreadyApproved = registryAiState.rules.some((r) => r.normalizedHeader === item.detectedHeader);
+              const alreadyIgnored = registryAiState.ignoredHeaders.some((r) => r.normalizedHeader === item.detectedHeader);
+              return (
+                <div key={item.id} className="rounded-xl border border-border/60 bg-card/60 p-4 space-y-2" data-item-id={item.id} data-header-name={item.detectedHeader}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{item.detectedHeader}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Type: {item.type} · Confidence: {item.confidence}
+                      </p>
+                    </div>
+                    <Badge variant={item.type === "conflict" ? "outline" : "secondary"} className={cn(
+                      item.type === "conflict" ? "border-amber-200 text-amber-700" : "border-indigo-200 text-indigo-700 bg-indigo-50"
+                    )}>
+                      {item.type}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.suggestions.map((s) => (
+                      <Badge key={s.field.key} variant="outline" className="border-primary/30 text-primary bg-primary/5">
+                        {s.field.label} ({s.score}%)
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {item.suggestions.map((s) => (
+                      <Button
+                        key={s.field.key}
+                        size="sm"
+                        variant="default"
+                        className="review-approve-btn rounded-lg text-xs h-7"
+                        onClick={() => handleApproveItem(item.detectedHeader, s.field.key)}
+                        disabled={alreadyApproved || alreadyIgnored}
+                      >
+                        Map: {s.field.label}
+                      </Button>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="review-ignore-btn rounded-lg text-xs h-7 text-warning hover:text-warning"
+                      onClick={() => handleIgnoreItem(item.detectedHeader)}
+                      disabled={alreadyApproved || alreadyIgnored}
+                    >
+                      Ignore
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {(!aiReviewQueue || aiReviewQueue.queue.length === 0) && (
+              <div className="rounded-xl border border-dashed border-border/60 bg-card/40 p-6 text-center text-sm text-muted-foreground">
+                No items in the review queue.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

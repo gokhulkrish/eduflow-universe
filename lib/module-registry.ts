@@ -245,7 +245,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "certificates",
     "label": "Certificates",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -440,7 +440,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "collegeInfo",
     "label": "Institute Information",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -625,7 +625,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "attendance",
     "label": "Attendance Management",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -731,7 +731,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "people",
     "label": "People Directory",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -891,7 +891,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "communication",
     "label": "Communication Hub",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1001,7 +1001,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "hostel",
     "label": "Hostel",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1028,7 +1028,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "transport",
     "label": "Transport",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1056,7 +1056,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "library",
     "label": "Library",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",

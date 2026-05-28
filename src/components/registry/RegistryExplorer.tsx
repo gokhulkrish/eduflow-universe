@@ -13,23 +13,12 @@ import {
   type ExplorerFilterOptions,
 } from "@/lib/registry-explorer";
 import { loadRegistryAiState } from "@/lib/registry-ai-queue";
+import { DEFAULT_GROUPS } from "@/lib/registry-groups";
 import ExplorerFieldTable from "./ExplorerFieldTable";
 
-const GROUP_OPTIONS = [
-  { value: 'basicInfo', label: 'Basic Information' },
-  { value: 'instituteInfo', label: 'Institute Information' },
-  { value: 'courseInfo', label: 'Course Information' },
-  { value: 'academic', label: 'Academic Information' },
-  { value: 'personal', label: 'Personal Information' },
-  { value: 'contact', label: 'Contact Information' },
-  { value: 'family', label: 'Family Information' },
-  { value: 'hostel', label: 'Hostel Information' },
-  { value: 'documents', label: 'Documents & Identity' },
-  { value: 'other', label: 'Other Information' },
-  { value: 'general', label: 'General Information' },
-  { value: 'headOfInstitute', label: 'Head of the Institute' },
-  { value: 'nodalOfficer', label: 'Nodal Officer' },
-];
+const GROUP_OPTIONS = DEFAULT_GROUPS
+  .sort((a, b) => a.order - b.order)
+  .map((g) => ({ value: g.key, label: g.label }));
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },

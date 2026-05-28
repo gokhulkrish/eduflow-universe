@@ -33,10 +33,13 @@ import { buildRegistrySections, getHeaderFieldMeta, invalidateRegistryCache, loa
 import { importStorageKeys } from "@/lib/student-import";
 import { subscribeAppSync } from "@/lib/app-sync";
 import { toast } from "sonner";
+import { useStudentCapability } from "@/hooks/useStudentCapability";
+import { traceStudentFieldChange, traceStudentAction } from "@/lib/student-workspace-messaging";
 
 export default function AddStudent() {
   const navigate = useNavigate();
   const { studentId } = useParams();
+  const { canEdit } = useStudentCapability();
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [registrySettings, setRegistrySettings] = useState(() => loadHeaderRegistrySettings());
@@ -74,10 +77,13 @@ export default function AddStudent() {
     toast.success("Header registry refreshed");
   };
   const save = async () => {
-    if (submitting) return;
+    if (submitting || !canEdit) return;
     setSubmitting(true);
     try {
       await saveStudentRecord(values);
+      traceStudentAction(studentId ? "Student record updated" : "Student record created");
+      const changed = Object.entries(values).filter(([, v]) => v);
+      changed.slice(0, 5).forEach(([k, v]) => traceStudentFieldChange(k, v));
       toast.success("Student saved to register");
       setTimeout(() => navigate("/students"), 600);
     } catch (error) {

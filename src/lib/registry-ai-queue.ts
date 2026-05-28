@@ -13,6 +13,7 @@ export interface ReviewSuggestion {
 }
 
 export interface ReviewQueueItem {
+  id: string;
   type: "unmapped" | "low-confidence" | "conflict";
   detectedHeader: string;
   confidence: number;
@@ -25,18 +26,41 @@ export interface RegistryAiDiagnostics {
   unmapped: number;
 }
 
+export interface HeaderMappingRule {
+  normalizedHeader: string;
+  fieldKey: string;
+  module: "student";
+  createdAt: string;
+  updatedAt: string;
+  source: "approved" | "manual";
+}
+
+export interface IgnoredHeaderRule {
+  normalizedHeader: string;
+  module: "student";
+  reason?: string;
+  createdAt: string;
+}
+
 export interface RegistryAiState {
   enabled: boolean;
   autoSuggest: boolean;
   autoLearn: boolean;
   minimumScore: number;
   approvedMappings: Record<string, string>;
+  rules: HeaderMappingRule[];
   rejectedMappings: Record<string, string[]>;
+  ignoredHeaders: IgnoredHeaderRule[];
   learnedAliases: Record<string, string[]>;
   reviewQueue: ReviewQueueItem[];
   suggestionsByHeader: Record<string, ReviewSuggestion[]>;
   explanationsByHeader: Record<string, string[]>;
   diagnostics: RegistryAiDiagnostics;
+}
+
+let _idCounter = 0;
+export function generateQueueId(): string {
+  return `q-${Date.now()}-${++_idCounter}`;
 }
 
 export function createDefaultAiState(): RegistryAiState {
@@ -46,7 +70,9 @@ export function createDefaultAiState(): RegistryAiState {
     autoLearn: false,
     minimumScore: 40,
     approvedMappings: {},
+    rules: [],
     rejectedMappings: {},
+    ignoredHeaders: [],
     learnedAliases: {},
     reviewQueue: [],
     suggestionsByHeader: {},
@@ -61,7 +87,35 @@ export function loadRegistryAiState(): RegistryAiState {
     const raw = localStorage.getItem(REGISTRY_AI_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<RegistryAiState>;
-      return { ...createDefaultAiState(), ...parsed };
+      const state = { ...createDefaultAiState(), ...parsed };
+
+      if (parsed.ignoredHeaders && typeof parsed.ignoredHeaders === "object" && !Array.isArray(parsed.ignoredHeaders)) {
+        const old = parsed.ignoredHeaders as unknown as Record<string, string>;
+        state.ignoredHeaders = Object.entries(old).map(([header, reason]) => ({
+          normalizedHeader: normalizeRegistryToken(header),
+          module: "student" as const,
+          reason: reason || undefined,
+          createdAt: new Date().toISOString(),
+        }));
+      }
+
+      const oldApproved = parsed.approvedMappings ?? {};
+      if (Object.keys(oldApproved).length > 0 && state.rules.length === 0) {
+        state.rules = Object.entries(oldApproved).map(([header, fieldKey]) => ({
+          normalizedHeader: normalizeRegistryToken(header),
+          fieldKey,
+          module: "student" as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          source: "approved" as const,
+        }));
+      }
+
+      if (!Array.isArray(state.ignoredHeaders)) {
+        state.ignoredHeaders = [];
+      }
+
+      return state;
     }
   } catch {}
   return createDefaultAiState();
@@ -101,20 +155,22 @@ export function computeRegistryMatchScore(
   const aliases = (canonicalField.aliases ?? []).map(a => normalizeRegistryToken(a));
   const learnedAliases = (state.learnedAliases[detected] ?? []).map(a => normalizeRegistryToken(a));
 
-  /* ── previously approved mapping ── */
   const approved = state.approvedMappings[detected];
   if (approved === canonicalField.key) {
     return { score: 100, reasons: ["Previously approved mapping"] };
   }
 
-  /* ── previously rejected ── */
+  const isIgnored = state.ignoredHeaders.some(r => r.normalizedHeader === detected && r.module === "student");
+  if (isIgnored) {
+    return { score: -80, reasons: ["Header globally ignored"] };
+  }
+
   const rejected = state.rejectedMappings[detected] ?? [];
   const wasRejected = rejected.some(r => normalizeRegistryToken(r) === key);
   if (wasRejected) {
     return { score: -80, reasons: ["Previously rejected mapping"] };
   }
 
-  /* ── exact matches ── */
   if (detected === key) {
     reasons.push("Exact canonical key match");
     return { score: 100, reasons };
@@ -134,7 +190,6 @@ export function computeRegistryMatchScore(
     return { score: 85, reasons };
   }
 
-  /* ── token overlap scoring ── */
   const detectedTokens = tokenizeRegistryValue(detectedHeader);
   const fieldTokens = tokenizeRegistryValue(canonicalField.key + " " + canonicalField.label);
   for (const alias of aliases) {
@@ -161,7 +216,6 @@ export function computeRegistryMatchScore(
     return { score: 10 + Math.round(overlapRatio * 20), reasons };
   }
 
-  /* ── partial substring match (fallback) ── */
   const keyContains = key.includes(detected) || detected.includes(key);
   const labelContains = label.includes(detected) || detected.includes(label);
   if (keyContains || labelContains) {
@@ -204,7 +258,7 @@ export function rebuildRegistryAiReviewQueue(
 
     if (suggestions.length === 0) {
       diagnostics.unmapped++;
-      queue.push({ type: "unmapped", detectedHeader: header, confidence: 0, suggestions: [] });
+      queue.push({ id: generateQueueId(), type: "unmapped", detectedHeader: header, confidence: 0, suggestions: [] });
       continue;
     }
 
@@ -213,12 +267,10 @@ export function rebuildRegistryAiReviewQueue(
 
     if (top.score < 55) {
       diagnostics.lowConfidence++;
-      queue.push({ type: "low-confidence", detectedHeader: header, confidence: top.score, suggestions });
+      queue.push({ id: generateQueueId(), type: "low-confidence", detectedHeader: header, confidence: top.score, suggestions });
     } else if (second && Math.abs(top.score - second.score) < 8) {
       diagnostics.conflicts++;
-      queue.push({ type: "conflict", detectedHeader: header, confidence: top.score, suggestions });
-    } else {
-      queue.push({ type: "conflict", detectedHeader: header, confidence: top.score, suggestions: [top] });
+      queue.push({ id: generateQueueId(), type: "conflict", detectedHeader: header, confidence: top.score, suggestions });
     }
   }
 
@@ -237,7 +289,25 @@ export function approveRegistryAiMapping(
   state: RegistryAiState,
 ): RegistryAiState {
   const detected = normalizeRegistryToken(header);
+  const now = new Date().toISOString();
+
   const approvedMappings = { ...state.approvedMappings, [detected]: fieldKey };
+
+  const rules = [...state.rules];
+  const existingIdx = rules.findIndex(r => r.normalizedHeader === detected && r.module === "student");
+  const newRule: HeaderMappingRule = {
+    normalizedHeader: detected,
+    fieldKey,
+    module: "student",
+    createdAt: existingIdx === -1 ? now : rules[existingIdx].createdAt,
+    updatedAt: now,
+    source: "approved",
+  };
+  if (existingIdx === -1) {
+    rules.push(newRule);
+  } else {
+    rules[existingIdx] = newRule;
+  }
 
   const learnedAliases = { ...state.learnedAliases };
   const existing = learnedAliases[detected] ?? [];
@@ -254,7 +324,17 @@ export function approveRegistryAiMapping(
     }
   }
 
-  return { ...state, approvedMappings, rejectedMappings, learnedAliases };
+  return { ...state, approvedMappings, rules, rejectedMappings, learnedAliases };
+}
+
+export function removeReviewQueueItem(
+  itemId: string,
+  state: RegistryAiState,
+): RegistryAiState {
+  return {
+    ...state,
+    reviewQueue: state.reviewQueue.filter(q => q.id !== itemId),
+  };
 }
 
 export function rejectRegistryAiMapping(
@@ -272,6 +352,60 @@ export function rejectRegistryAiMapping(
       ...state.rejectedMappings,
       [detected]: [...existing, fieldKey],
     },
+  };
+}
+
+export function ignoreRegistryAiHeader(
+  header: string,
+  reason: string,
+  state: RegistryAiState,
+): RegistryAiState {
+  const detected = normalizeRegistryToken(header);
+  const alreadyIgnored = state.ignoredHeaders.some(
+    r => r.normalizedHeader === detected && r.module === "student",
+  );
+  if (alreadyIgnored) return state;
+
+  const newRule: IgnoredHeaderRule = {
+    normalizedHeader: detected,
+    module: "student",
+    reason: reason || undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  return {
+    ...state,
+    ignoredHeaders: [...state.ignoredHeaders, newRule],
+  };
+}
+
+export function removeIgnoredHeader(
+  header: string,
+  state: RegistryAiState,
+): RegistryAiState {
+  const detected = normalizeRegistryToken(header);
+  return {
+    ...state,
+    ignoredHeaders: state.ignoredHeaders.filter(
+      r => !(r.normalizedHeader === detected && r.module === "student"),
+    ),
+  };
+}
+
+export function removeApprovedRule(
+  header: string,
+  fieldKey: string,
+  state: RegistryAiState,
+): RegistryAiState {
+  const detected = normalizeRegistryToken(header);
+  const approvedMappings = { ...state.approvedMappings };
+  delete approvedMappings[detected];
+  return {
+    ...state,
+    approvedMappings,
+    rules: state.rules.filter(
+      r => !(r.normalizedHeader === detected && r.fieldKey === fieldKey),
+    ),
   };
 }
 

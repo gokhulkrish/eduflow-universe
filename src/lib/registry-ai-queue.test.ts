@@ -116,8 +116,9 @@ describe("rebuildRegistryAiReviewQueue", () => {
     ];
     const state = createDefaultAiState();
     const next = rebuildRegistryAiReviewQueue(["Student Name", "email", "unknown_field"], fields, state);
-    expect(next.reviewQueue.length).toBe(3);
-    expect(next.diagnostics.unmapped).toBeGreaterThanOrEqual(0);
+    expect(next.reviewQueue.length).toBe(1);
+    expect(next.reviewQueue[0].type).toBe("unmapped");
+    expect(next.diagnostics.unmapped).toBe(1);
   });
 });
 
@@ -157,7 +158,7 @@ describe("getRegistryAiStatusLabel", () => {
   });
 
   it("shows pending count when queue exists", () => {
-    const state: RegistryAiState = { ...createDefaultAiState(), reviewQueue: [{ type: "unmapped", detectedHeader: "x", confidence: 0, suggestions: [] }] };
+    const state: RegistryAiState = { ...createDefaultAiState(), reviewQueue: [{ id: "test-1", type: "unmapped", detectedHeader: "x", confidence: 0, suggestions: [] }] };
     expect(getRegistryAiStatusLabel(state).text).toBe("1 pending");
   });
 });

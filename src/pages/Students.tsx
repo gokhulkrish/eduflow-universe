@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import StudentProfileDrawer from "@/components/students/StudentProfileDrawer";
 import {
   Users, Search, Plus, Filter, Download, Copy, Edit3, Eye, FileText, Trash2,
   Clipboard, ClipboardPaste, Printer, RefreshCw, Settings2, ChevronDown, AlertTriangle, Loader2,
@@ -28,6 +29,8 @@ import { subscribeAppSync } from "@/lib/app-sync";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePagination } from "@/hooks/usePagination";
+import { useStudentCapability } from "@/hooks/useStudentCapability";
+import { traceStudentExport, traceStudentPrint } from "@/lib/student-workspace-messaging";
 import { TablePagination } from "@/components/TablePagination";
 import { RegisteredStudentsRibbon, ColumnSettingsDesigner, FilterSettingsDesigner, RegistryGroupManager } from "@/components/registered-students";
 import { REGISTEREDRIBBONACTIONS, confirmBulkUpdate, getRegisteredClipboardState, setRegisteredClipboardState } from "@/components/registered-students";
@@ -122,12 +125,14 @@ const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] 
   }));
 
 export default function Students() {
+  const { canExport, canPrint, canEdit } = useStudentCapability();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [filterSettingsOpen, setFilterSettingsOpen] = useState(false);
   const [registryGroupOpen, setRegistryGroupOpen] = useState(false);
   const [splitDetail, setSplitDetail] = useState<StudentTableRow | null>(null);
+  const [drawerStudent, setDrawerStudent] = useState<StudentTableRow | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
@@ -255,7 +260,10 @@ export default function Students() {
       case "open-add-student": navigate("/students/new"); break;
       case "edit-record": openFirst("edit"); break;
       case "view-record": openFirst("view"); break;
-      case "pdf-record": window.print(); break;
+      case "pdf-record":
+        if (!canPrint) { toast.error("Print not permitted for your profile"); break; }
+        traceStudentPrint();
+        window.print(); break;
       case "delete-record":
         if (activeRows.length) {
           logAction("delete", activeRows.map((row) => row.id));
@@ -334,7 +342,7 @@ export default function Students() {
         toast.info("Toggle highlight-missing via Format > Focus / Highlight Missing");
         break;
       case "duplicate-detect":
-        toast.info(`Checked ${activeRows.length} record(s) — no duplicates found`);
+        navigate("/students/duplicates");
         break;
       case "fill-down":
         if (activeRows.length > 1) toast.success(`Filled down ${activeRows.length - 1} row(s)`);
@@ -355,12 +363,19 @@ export default function Students() {
         break;
 
       /* ── Export ── */
-      case "export-csv": downloadStudentsCsv(activeRows); break;
+      case "export-csv":
+        if (!canExport) { toast.error("Export not permitted for your profile"); break; }
+        traceStudentExport("CSV");
+        downloadStudentsCsv(activeRows); break;
       case "export-xlsx":
+        if (!canExport) { toast.error("Export not permitted for your profile"); break; }
+        traceStudentExport("XLSX");
         downloadStudentsCsv(activeRows);
         toast.info("XLSX export uses CSV format — install xlsx library for native support");
         break;
       case "export-json": {
+        if (!canExport) { toast.error("Export not permitted for your profile"); break; }
+        traceStudentExport("JSON");
         const json = JSON.stringify(activeRows, null, 2);
         const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
         const link = document.createElement("a");
@@ -372,13 +387,20 @@ export default function Students() {
         break;
       }
       case "export-gov-format":
+        if (!canExport) { toast.error("Export not permitted for your profile"); break; }
+        traceStudentExport("GOV");
         downloadStudentsCsv(activeRows);
         toast.info("Government format export");
         break;
       case "download-report":
+        if (!canExport) { toast.error("Export not permitted for your profile"); break; }
+        traceStudentExport("Report");
         downloadStudentsCsv(activeRows);
         break;
-      case "print-grid": window.print(); break;
+      case "print-grid":
+        if (!canPrint) { toast.error("Print not permitted for your profile"); break; }
+        traceStudentPrint();
+        window.print(); break;
 
       /* ── Import ── */
       case "open-import": navigate("/import"); break;
@@ -449,11 +471,20 @@ export default function Students() {
       case "add-sibling":
       case "add-address":
       case "add-bank":
+        if (!firstActive) { toast.error("Select a student first"); break; }
+        navigate(`/students/${firstActive.id}/parent`);
+        break;
       case "add-health":
+        if (!firstActive) { toast.error("Select a student first"); break; }
+        navigate(`/students/${firstActive.id}/health`);
+        break;
       case "add-document":
+        if (!firstActive) { toast.error("Select a student first"); break; }
+        navigate(`/students/${firstActive.id}/document`);
+        break;
       case "add-incident":
         if (!firstActive) { toast.error("Select a student first"); break; }
-        toast.info("Opening student profile to add related information");
+        toast.info("Incident reporting coming soon");
         navigate(`/students/${firstActive.id}`);
         break;
       case "assign-class":
@@ -464,7 +495,7 @@ export default function Students() {
       case "assign-hostel":
       case "assign-fee-plan":
         if (!activeRows.length) { toast.error("Select students first"); break; }
-        toast.info("Bulk assignment — use the Import module for batch updates");
+        navigate(`/students/assign/${action.replace("assign-", "")}?ids=${activeRows.map((r) => r.id).join(",")}`);
         break;
 
       /* ── Review / Approval ── */
@@ -473,10 +504,8 @@ export default function Students() {
         applyBulkAction(action);
         break;
       case "compare-versions":
-        if (firstActive) {
-          toast.info("Version history — opening student profile");
-          navigate(`/students/${firstActive.id}`);
-        } else toast.error("Select a student first");
+        if (firstActive) navigate(`/students/${firstActive.id}/history`);
+        else toast.error("Select a student first");
         break;
       case "lock-fields":
         toast.success("Selected fields locked for editing");
@@ -492,8 +521,7 @@ export default function Students() {
       case "principal-note":
       case "parent-request":
         if (!firstActive) { toast.error("Select a student first"); break; }
-        toast.info("Opening student profile to add note");
-        navigate(`/students/${firstActive.id}`);
+        navigate(`/students/${firstActive.id}/notes/${action}`);
         break;
 
       /* ── Admin / Governance ── */
@@ -507,10 +535,8 @@ export default function Students() {
         navigate("/activity-log");
         break;
       case "restore-version":
-        if (firstActive) {
-          toast.info("Version history — opening student profile");
-          navigate(`/students/${firstActive.id}`);
-        } else toast.error("Select a student first");
+        if (firstActive) navigate(`/students/${firstActive.id}/history`);
+        else toast.error("Select a student first");
         break;
       case "retention-policies":
         toast.info("Retention policies — configure from Settings");
@@ -529,9 +555,11 @@ export default function Students() {
         icon={<Users className="h-6 w-6" />}
         actions={
           <>
-            <Button variant="outline" className="rounded-xl" onClick={() => downloadStudentsCsv(activeRows)}>
-              <Download className="mr-2 h-4 w-4" />Export
-            </Button>
+            {canExport && (
+              <Button variant="outline" className="rounded-xl" onClick={() => { traceStudentExport("CSV"); downloadStudentsCsv(activeRows); }}>
+                <Download className="mr-2 h-4 w-4" />Export
+              </Button>
+            )}
             {selected.size > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -719,7 +747,9 @@ export default function Students() {
                       </td>
                       <td className="py-3"><Badge variant="secondary" className="capitalize">{s.status ?? "active"}</Badge></td>
                       <td className="py-3 pr-2 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/students/${s.id}`)}><Edit3 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDrawerStudent(s)}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -767,7 +797,7 @@ export default function Students() {
                         feeColor[normalizeFeeStatus(s.fees)] ?? "bg-secondary text-secondary-foreground border-border",
                       )}>{s.fees}</span>
                       <div className="flex gap-2 pt-1">
-                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate(`/students/${s.id}`)}>View</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setDrawerStudent(s)}>View</Button>
                         <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => navigate(`/students/${s.id}?mode=edit`)}>Edit</Button>
                       </div>
                     </div>
@@ -878,6 +908,25 @@ export default function Students() {
           )}
         </div>
       </Card>
+
+      {drawerStudent && (
+        <StudentProfileDrawer
+          studentId={drawerStudent.id}
+          name={drawerStudent.name}
+          admissionNo={drawerStudent.admission_no}
+          cohort={drawerStudent.cohort}
+          roll={drawerStudent.roll}
+          attendance={drawerStudent.attendance}
+          fees={drawerStudent.fees}
+          avatar={drawerStudent.avatar}
+          email={drawerStudent.email}
+          community={drawerStudent.community}
+          district={drawerStudent.district}
+          status={drawerStudent.status}
+          open={drawerStudent !== null}
+          onOpenChange={(open) => { if (!open) setDrawerStudent(null); }}
+        />
+      )}
     </div>
   );
 }

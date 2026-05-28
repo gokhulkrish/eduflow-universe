@@ -276,19 +276,16 @@ describe("full pipeline integration", () => {
     const state = createDefaultAiState();
     const nextState = rebuildRegistryAiReviewQueue(detectedNames, catalog, state);
 
-    // Step 5: AI queue produces correct classifications
-    expect(nextState.reviewQueue.length).toBeGreaterThanOrEqual(1);
-    const studentNameItem = nextState.reviewQueue.find(i => i.detectedHeader === "Student Name");
-    expect(studentNameItem).toBeDefined();
-    expect(studentNameItem!.confidence).toBeGreaterThan(50);
+    // Step 5: AI queue produces correct classifications (confident mappings excluded)
+    expect(nextState.reviewQueue.length).toBe(1);
+    const unknownItem = nextState.reviewQueue.find(i => i.detectedHeader === "Unknown Field XYZ");
+    expect(unknownItem).toBeDefined();
+    expect(unknownItem!.type).toBe("unmapped");
 
-    // Step 6: Approve a mapping
-    if (studentNameItem && studentNameItem.suggestions.length > 0) {
-      const bestKey = studentNameItem.suggestions[0].field.key;
-      const approved = approveRegistryAiMapping("Student Name", bestKey, nextState);
-      expect(approved.approvedMappings).toHaveProperty("student name");
-      expect(approved.approvedMappings["student name"]).toBe(bestKey);
-    }
+    // Step 6: Approve a mapping for a header
+    const approved = approveRegistryAiMapping("Student Name", "studentName", nextState);
+    expect(approved.approvedMappings).toHaveProperty("student name");
+    expect(approved.approvedMappings["student name"]).toBe("studentName");
   });
 
   it("CSV output matches generator input format", () => {

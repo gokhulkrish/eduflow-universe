@@ -19,6 +19,7 @@ export type StudentRegisterRow = {
   first_name: string;
   last_name: string | null;
   admission_no: string;
+  regno: string;
   grade: string | null;
   section: string | null;
   roll_number: number | null;
@@ -97,6 +98,7 @@ export const studentSections: SectionDef[] = [
     description: "Program, roll number, and section assignment.",
     fields: [
       { name: "admissionNo", label: "Admission No", placeholder: "ADM-2026-0184" },
+      { name: "regno", label: "Register Number (REGNO)", placeholder: "ADM-2026-0184", required: true },
       { name: "grade", label: "Program / Semester", type: "select", options: ["B.A. Sem 1", "B.A. Sem 2", "B.Com Sem 1", "B.Com Sem 2", "B.Sc Sem 1", "B.Sc Sem 2", "BBA Sem 1", "BBA Sem 2"] },
       { name: "section", label: "Section", type: "select", options: ["A", "B", "C", "D"] },
       { name: "roll", label: "Roll Number", type: "number" },
@@ -152,6 +154,7 @@ const requiredText = z.string().trim().min(1);
 const studentPayloadSchema = z.object({
   firstName: requiredText,
   admissionNo: requiredText,
+  regno: requiredText,
   lastName: nullableText,
   dob: nullableText,
   gender: nullableText,
@@ -328,6 +331,7 @@ export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
       first_name: String(studentRecord.first_name ?? ""),
       last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
       admission_no: String(studentRecord.admission_no ?? ""),
+      regno: String(studentRecord.regno ?? studentRecord.admission_no ?? ""),
       grade: typeof studentRecord.grade === "string" ? studentRecord.grade : readMetaString(studentRecord.meta as Json | null, "academic", "grade") || null,
       section: typeof studentRecord.section === "string" ? studentRecord.section : readMetaString(studentRecord.meta as Json | null, "academic", "section") || null,
       roll_number: typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : readMetaNumber(studentRecord.meta as Json | null, "academic", "roll"),
@@ -359,6 +363,7 @@ const normalizeStudentRegisterRowFromView = (row: Record<string, unknown>): Stud
   first_name: String(row.first_name ?? ""),
   last_name: typeof row.last_name === "string" ? row.last_name : null,
   admission_no: String(row.admission_no ?? ""),
+  regno: String(row.regno ?? row.admission_no ?? ""),
   grade: typeof row.grade === "string" ? row.grade : null,
   section: typeof row.section === "string" ? row.section : null,
   roll_number: typeof row.roll_number === "number" ? row.roll_number : null,
@@ -385,6 +390,7 @@ const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): S
   first_name: String(row.first_name ?? ""),
   last_name: typeof row.last_name === "string" ? row.last_name : null,
   admission_no: String(row.admission_no ?? ""),
+  regno: String(row.regno ?? row.admission_no ?? ""),
   grade: typeof row.grade === "string" ? row.grade : readMetaString(row.meta as Json | null, "academic", "grade") || null,
   section: typeof row.section === "string" ? row.section : readMetaString(row.meta as Json | null, "academic", "section") || null,
   roll_number: typeof row.roll_number === "number" ? row.roll_number : readMetaNumber(row.meta as Json | null, "academic", "roll"),
@@ -434,6 +440,7 @@ export async function fetchStudentFormValues(studentId: string): Promise<Student
     enrollmentId: enrollment?.id ?? "",
     guardianId: readMetaString(student.meta, "family", "guardianId"),
     admissionNo: student.admission_no ?? "",
+    regno: (student as Record<string, unknown>).regno as string ?? student.admission_no ?? "",
     firstName: student.first_name ?? "",
     lastName: student.last_name ?? "",
     dob: student.dob ?? "",
@@ -479,7 +486,8 @@ export async function saveStudentRecord(values: StudentFormValues) {
   const userId = auth.user?.id ?? null;
   const studentId = clean(values.studentId);
 
-  const studentPayload: TablesInsert<"students"> | TablesUpdate<"students"> = {
+  const studentPayload = {
+    regno: parsed.regno,
     admission_no: parsed.admissionNo,
     first_name: parsed.firstName,
     last_name: parsed.lastName,
@@ -503,12 +511,16 @@ export async function saveStudentRecord(values: StudentFormValues) {
   };
 
   const { data: savedStudent, error: studentError } = studentId
-    ? await supabase.from("students").update(studentPayload).eq("id", studentId).select("*").single()
+    ? await supabase.from("students").update(studentPayload as TablesUpdate<"students">).eq("id", studentId).select("*").single()
     : await supabase.from("students").insert(studentPayload as TablesInsert<"students">).select("*").single();
 
   if (studentError) {
     const se = studentError as { code?: string; status?: number; message?: string; details?: string };
     if (!studentId && (se.code === "23505" || se.status === 409)) {
+      const detail = (se.details ?? "").toLowerCase();
+      if (detail.includes("regno")) {
+        throw new Error(`A student with register number "${String(studentPayload.regno)}" already exists.`);
+      }
       throw new Error(`A student with admission number "${studentPayload.admission_no}" already exists.`);
     }
     throwDataError(studentError);
@@ -632,13 +644,14 @@ export async function ensureStudentExists(
     const { data: created, error } = await supabase
       .from("students")
       .insert({
+        regno: key,
         admission_no: key,
         first_name: firstName,
         last_name: lastName,
         status: "active",
         created_by: userId,
         updated_by: userId,
-      } as TablesInsert<"students">)
+      } as never)
       .select("id")
       .single();
 

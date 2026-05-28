@@ -38,3 +38,67 @@ export type {
   LegacyMessageFilter,
   LegacyMessageSummary,
 } from "./communications";
+
+export {
+  bridgeLegacyCertificates,
+} from "../../../legacy/compat/certificates";
+export type {
+  LegacyCertificatesResult,
+} from "../../../legacy/compat/certificates";
+
+export {
+  bridgeLegacyInstituteInfo,
+} from "../../../legacy/compat/instituteInfo";
+export type {
+  LegacyInstituteInfo,
+} from "../../../legacy/compat/instituteInfo";
+
+export {
+  listAttendanceLegacyCompatible,
+} from "../../../legacy/compat/attendance";
+export type {
+  LegacyAttendanceFilter,
+  LegacyAttendanceRecord,
+} from "../../../legacy/compat/attendance";
+
+export {
+  listHostelRoomsLegacy,
+} from "../../../legacy/compat/hostel";
+export type {
+  LegacyHostelRoom,
+  LegacyHostelFilter,
+} from "../../../legacy/compat/hostel";
+
+export {
+  listTransportRoutesLegacy,
+} from "../../../legacy/compat/transport";
+export type {
+  LegacyTransportRoute,
+  LegacyTransportFilter,
+} from "../../../legacy/compat/transport";
+
+export {
+  listLibraryCatalogLegacy,
+  listLibraryLoansLegacy,
+} from "../../../legacy/compat/library";
+export type {
+  LegacyLibraryCatalogItem,
+  LegacyLibraryLoan,
+  LegacyLibraryFilter,
+} from "../../../legacy/compat/library";
+
+export {
+  listPeopleLegacy,
+} from "../../../legacy/compat/people";
+export type {
+  LegacyPeopleFilter,
+} from "../../../legacy/compat/people";
+
+export {
+  listCommsLegacy,
+  getDeliveryStats,
+} from "../../../legacy/compat/communication";
+export type {
+  LegacyCommsFilter,
+  LegacyCommsResult,
+} from "../../../legacy/compat/communication";

@@ -107,9 +107,17 @@ async function loadSubjectiveScoreByStudent(): Promise<Map<string, number | null
   return latestNumericByStudent(rows);
 }
 
+export type MonitoringAlerts = {
+  mobileMissing: number;
+  emisMissing: number;
+  bankApbPending: number;
+  totalStudents: number;
+};
+
 export async function getMonitoringOverview(filters?: MonitoringFilter): Promise<{
   rows: MonitoringOverviewRow[];
   total: number;
+  alerts: MonitoringAlerts;
 }> {
   const students = await fetchStudentRegister();
   const examPercentByStudent = await loadExamPercentByStudent().catch(() => new Map<string, number | null>());
@@ -148,9 +156,27 @@ export async function getMonitoringOverview(filters?: MonitoringFilter): Promise
   const limit = Math.min(100, Math.max(1, filters?.limit ?? 50));
   const offset = Math.max(0, filters?.offset ?? 0);
 
+  const mobileMissing = students.filter((s) => !s.phone?.trim()).length;
+  let emisMissing = 0;
+  try {
+    if (await tableExists("students")) {
+      const { count } = await supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .or("emis_id.is.null,emis_id.eq.");
+      emisMissing = count ?? 0;
+    }
+  } catch { emisMissing = 0; }
+
   return {
     rows: sorted.slice(offset, offset + limit),
     total: sorted.length,
+    alerts: {
+      mobileMissing,
+      emisMissing,
+      bankApbPending: 0,
+      totalStudents: students.length,
+    },
   };
 }
 

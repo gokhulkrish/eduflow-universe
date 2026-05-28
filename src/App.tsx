@@ -12,6 +12,7 @@ import Mfa from "./pages/Mfa";
 import { moduleConfigs } from "./pages/module-configs";
 import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import RouteAccessGuard from "@/components/RouteAccessGuard";
 import { LEGACY_ROUTE_ALIASES } from "@/lib/legacy-adapter";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeAppSync } from "@/lib/app-sync";
@@ -103,6 +104,15 @@ const Live = retryableLazy(() => import("./pages/Live"));
 const AI = retryableLazy(() => import("./pages/AI"));
 const OnlineExams = retryableLazy(() => import("./pages/OnlineExams"));
 const Comms = retryableLazy(() => import("./pages/Comms"));
+const CommsTemplates = retryableLazy(() => import("./pages/CommsTemplates"));
+const CommsCampaigns = retryableLazy(() => import("./pages/CommsCampaigns"));
+const CommsBulkComposer = retryableLazy(() => import("./pages/CommsBulkComposer"));
+const CommsLogs = retryableLazy(() => import("./pages/CommsLogs"));
+const CommsNotices = retryableLazy(() => import("./pages/CommsNotices"));
+const CommsEmergency = retryableLazy(() => import("./pages/CommsEmergency"));
+const CommsFeedback = retryableLazy(() => import("./pages/CommsFeedback"));
+const CommsClassWall = retryableLazy(() => import("./pages/CommsClassWall"));
+const CommsAutomation = retryableLazy(() => import("./pages/CommsAutomation"));
 const PlacementCell = retryableLazy(() => import("./pages/PlacementCell"));
 const LeaveMgmt = retryableLazy(() => import("./pages/LeaveMgmt"));
 const Events = retryableLazy(() => import("./pages/Events"));
@@ -151,6 +161,14 @@ const ScoringWorkspace = retryableLazy(() => import("./pages/ScoringWorkspace"))
 const MessagingControlCenter = retryableLazy(() => import("./pages/MessagingControlCenter"));
 const GenericModule = retryableLazy(() => import("./pages/GenericModule"));
 const WorkspaceRegistry = retryableLazy(() => import("./pages/WorkspaceRegistry"));
+const WorkspaceControlSettings = retryableLazy(() => import("./pages/WorkspaceControlSettings"));
+const StudentDetailLayout = retryableLazy(() => import("./pages/StudentDetailLayout"));
+const BulkAssign = retryableLazy(() => import("./pages/BulkAssign"));
+const DuplicatesWorkspace = retryableLazy(() => import("./pages/DuplicatesWorkspace"));
+const DataQualityDashboard = retryableLazy(() => import("./pages/DataQualityDashboard"));
+const MissingCriticalFields = retryableLazy(() => import("./pages/MissingCriticalFields"));
+const LandingProfileSettings = retryableLazy(() => import("./pages/LandingProfileSettings"));
+const CapabilityProfilesPage = retryableLazy(() => import("./pages/CapabilityProfilesPage"));
 
 import { initRegistryStorage } from "@/lib/header-registry";
 
@@ -258,11 +276,20 @@ const PATH_LABELS: Record<string, string> = {
   "/": "Dashboard",
   "/students": "Students",
   "/students/new": "Add Student",
+  "/students/assign/:action": "Students: Bulk Assign",
+  "/students/:id/parent": "Student: Parent",
+  "/students/:id/history": "Student: History",
+  "/students/:id/notes/:type": "Student: Notes",
+  "/students/:id/health": "Student: Health",
+  "/students/:id/document": "Student: Documents",
+  "/students/duplicates": "Duplicates",
+  "/students/missing-fields": "Missing Critical Fields",
   "/admissions": "Admissions",
   "/exams": "Exams",
   "/import": "Import",
   "/attendance": "Attendance",
   "/automation": "Automation",
+  "/data-quality": "Data Quality",
   "/monitor": "Monitoring",
   "/scoring": "Scoring",
   "/migration": "Migration",
@@ -271,6 +298,8 @@ const PATH_LABELS: Record<string, string> = {
   "/settings/headers": "Settings: Headers",
   "/settings/trace": "Settings: Startup & Trace",
   "/settings/messaging": "Settings: Messaging & Control Center",
+  "/settings/workspace": "Settings: Workspace Controls",
+  "/settings/landing": "Settings: Landing Profiles",
   "/registry": "Workspace Registry",
   "/registry/groups": "Registry: Groups",
   "/staff": "Staff",
@@ -374,16 +403,20 @@ const App = () => {
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/mfa" element={<Mfa />} />
-              <Route element={<ErrorBoundary><ProtectedRoute><AppLayout /></ProtectedRoute></ErrorBoundary>}>
+              <Route element={<ErrorBoundary><ProtectedRoute><RouteAccessGuard><AppLayout /></RouteAccessGuard></ProtectedRoute></ErrorBoundary>}>
                 <Route path="/" element={<LazyRoute element={<Dashboard />} />} />
                 <Route path="/students" element={<LazyRoute element={<Students />} />} />
                 <Route path="/students/new" element={<LazyRoute element={<AddStudent />} />} />
-                <Route path="/students/:studentId" element={<LazyRoute element={<AddStudent />} />} />
+                <Route path="/students/:studentId/*" element={<LazyRoute element={<StudentDetailLayout />} />} />
+                <Route path="/students/assign/:action" element={<LazyRoute element={<BulkAssign />} />} />
+                <Route path="/students/duplicates" element={<LazyRoute element={<DuplicatesWorkspace />} />} />
+                <Route path="/students/missing-fields" element={<LazyRoute element={<MissingCriticalFields />} />} />
                 <Route path="/admissions" element={<LazyRoute element={<Admissions />} />} />
                 <Route path="/exams" element={<LazyRoute element={<Exams />} />} />
                 <Route path="/import" element={<LazyRoute element={<Import />} />} />
                 <Route path="/attendance" element={<LazyRoute element={<ErrorBoundary><Attendance /></ErrorBoundary>} />} />
                 <Route path="/automation" element={<LazyRoute element={<Automation />} />} />
+                <Route path="/data-quality" element={<LazyRoute element={<DataQualityDashboard />} />} />
                 <Route path="/monitor" element={<LazyRoute element={<MonitoringDashboard />} />} />
                 <Route path="/scoring" element={<LazyRoute element={<ScoringWorkspace />} />} />
                 <Route path="/migration" element={<LazyRoute element={<Migration />} />} />
@@ -392,6 +425,9 @@ const App = () => {
                 <Route path="/settings/headers" element={<LazyRoute element={<SettingsHeaders />} />} />
                 <Route path="/settings/trace" element={<LazyRoute element={<Settings />} />} />
                 <Route path="/settings/messaging" element={<LazyRoute element={<MessagingControlCenter />} />} />
+                <Route path="/settings/workspace" element={<LazyRoute element={<WorkspaceControlSettings />} />} />
+                <Route path="/settings/landing" element={<LazyRoute element={<LandingProfileSettings />} />} />
+                <Route path="/permissions/profiles" element={<LazyRoute element={<CapabilityProfilesPage />} />} />
                 <Route path="/registry" element={<LazyRoute element={<WorkspaceRegistry />} />} />
                 <Route path="/registry/groups" element={<LazyRoute element={<HeaderGroupManager />} />} />
                 <Route path="/staff" element={<LazyRoute element={<Staff />} />} />
@@ -411,6 +447,15 @@ const App = () => {
                 <Route path="/ai" element={<LazyRoute element={<AI />} />} />
                 <Route path="/online-exams" element={<LazyRoute element={<OnlineExams />} />} />
                 <Route path="/comms" element={<LazyRoute element={<Comms />} />} />
+                <Route path="/comms/templates" element={<LazyRoute element={<CommsTemplates />} />} />
+                <Route path="/comms/campaigns" element={<LazyRoute element={<CommsCampaigns />} />} />
+                <Route path="/comms/bulk" element={<LazyRoute element={<CommsBulkComposer />} />} />
+                <Route path="/comms/logs" element={<LazyRoute element={<CommsLogs />} />} />
+                <Route path="/comms/notices" element={<LazyRoute element={<CommsNotices />} />} />
+                <Route path="/comms/emergency" element={<LazyRoute element={<CommsEmergency />} />} />
+                <Route path="/comms/feedback" element={<LazyRoute element={<CommsFeedback />} />} />
+                <Route path="/comms/class-wall" element={<LazyRoute element={<CommsClassWall />} />} />
+                <Route path="/comms/automation" element={<LazyRoute element={<CommsAutomation />} />} />
                 <Route path="/placement" element={<LazyRoute element={<PlacementCell />} />} />
                 <Route path="/leave" element={<LazyRoute element={<LeaveMgmt />} />} />
                 <Route path="/events" element={<LazyRoute element={<Events />} />} />

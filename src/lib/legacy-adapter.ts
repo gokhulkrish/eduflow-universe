@@ -22,6 +22,8 @@ import { legacyFeatureMap } from "../../legacyFeatureMap";
 import { queryLegacyStudentRegister, getLegacyStudentById } from "../../legacy/compat/studentReadAdapter";
 import { validateImportRow } from "../../legacy/compat/importValidation";
 import { legacyCalculateScore, legacyCalculateOverallGrade } from "../../legacy/compat/scoringEngine";
+import { bridgeLegacyCertificates } from "../../legacy/compat/certificates";
+import { bridgeLegacyInstituteInfo } from "../../legacy/compat/instituteInfo";
 
 type LegacyRouteAliasEntry = readonly [legacy: string, modern: string];
 type LegacyStorageAliasEntry = readonly [legacy: string, modern: string];
@@ -45,6 +47,10 @@ const LEGACY_ROUTE_ALIAS_ENTRIES: LegacyRouteAliasEntry[] = [
   ["add-student", "/students/new"],
   ["/partialStudentsave", "/student-information"],
   ["partial-saved-students", "/student-information"],
+  ["/studentCertificates", "/certificates"],
+  ["student-certificates", "/certificates"],
+  ["/viewCertificates", "/certificates"],
+  ["view-certificates", "/certificates"],
   ["/collegeInfo", "/settings/institute"],
   ["college-info", "/settings/institute"],
   ["/courseInfo", "/course-information"],
@@ -57,6 +63,30 @@ const LEGACY_ROUTE_ALIAS_ENTRIES: LegacyRouteAliasEntry[] = [
   ["settings-backup", "/settings"],
   ["/userManagement", "/user-management"],
   ["user-management", "/user-management"],
+  ["/markAttendance", "/attendance"],
+  ["mark-attendance", "/attendance"],
+  ["/attendanceSheet", "/attendance"],
+  ["attendance-sheet", "/attendance"],
+  ["/employeeDirectory", "/student-information"],
+  ["employee-directory", "/student-information"],
+  ["/staffDirectory", "/student-information"],
+  ["staff-directory", "/student-information"],
+  ["/announcements", "/comms"],
+  ["announcements", "/comms"],
+  ["/notifications", "/comms"],
+  ["notifications", "/comms"],
+  ["/hostelRooms", "/hostel"],
+  ["hostel-rooms", "/hostel"],
+  ["/roomAllotment", "/hostel"],
+  ["room-allotment", "/hostel"],
+  ["/busRoutes", "/transport"],
+  ["bus-routes", "/transport"],
+  ["/vehicleManagement", "/transport"],
+  ["vehicle-management", "/transport"],
+  ["/bookCatalog", "/library"],
+  ["book-catalog", "/library"],
+  ["/issueBook", "/library"],
+  ["issue-book", "/library"],
 ];
 
 const LEGACY_STORAGE_ALIAS_ENTRIES: LegacyStorageAliasEntry[] = [
@@ -212,6 +242,16 @@ export function bridgeLegacyScoreCalculation(marksObtained: number | null, maxMa
 
 export function bridgeLegacyImportValidation(row: Record<string, string>, fieldMap: Record<string, string>) {
   return validateImportRow(row, fieldMap);
+}
+
+export function bridgeLegacyCertificatesQuery(filters?: {
+  status?: string; student_id?: string; template_id?: string;
+}) {
+  return bridgeLegacyCertificates(filters);
+}
+
+export function bridgeLegacyInstituteSettings(filters?: Record<string, unknown>) {
+  return bridgeLegacyInstituteInfo(filters);
 }
 
 export function translateLegacyRegistryPayload(input: Record<string, unknown> = {}) {

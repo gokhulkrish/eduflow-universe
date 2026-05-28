@@ -26,6 +26,7 @@ import { loadAccessibleModuleKeys } from "@/lib/module-access";
 import { APP_ACCESS_RULES } from "@/lib/global-access-registry";
 import { canOpenCommandCenter } from "@/lib/command-center-access";
 import { subscribeAppSync } from "@/lib/app-sync";
+import { getLandingForRole } from "@/stores/landingProfiles";
 import { MONITORING_REFRESH_SYNC_KEY, canUseMonitoringApi, resolveMonitoringContext } from "@/lib/monitoring-refresh";
 import type { DashboardMetric } from "../../core/monitoring/snapshot";
 
@@ -174,7 +175,9 @@ export default function Dashboard() {
   });
 
   const hasCommandCenter = !isLoading && !authLoading && canOpenCommandCenter(roles);
-  const preferredLandingPaths = useMemo(() => [
+
+  const profileLandingPath = useMemo(() => getLandingForRole(roles), [roles]);
+  const fallbackPaths = useMemo(() => [
     "/students",
     "/attendance",
     "/reports",
@@ -190,11 +193,16 @@ export default function Dashboard() {
   const landingTarget = useMemo(() => {
     if (!accessibleKeys) return null;
 
-    return preferredLandingPaths
+    if (profileLandingPath) {
+      const rule = APP_ACCESS_RULES.find((r) => r.path === profileLandingPath && accessibleKeys.has(r.key));
+      if (rule?.path) return rule.path;
+    }
+
+    return fallbackPaths
       .map((path) => APP_ACCESS_RULES.find((rule) => rule.path === path && accessibleKeys.has(rule.key)))
       .filter((rule): rule is NonNullable<typeof rule> => Boolean(rule))
       .map((rule) => rule.path!)[0] ?? null;
-  }, [accessibleKeys, preferredLandingPaths]);
+  }, [accessibleKeys, profileLandingPath, fallbackPaths]);
 
   const landingProfile = useMemo(() => {
     if (!landingTarget) return null;

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Bell, CheckSquare, ClipboardList, AlertTriangle, Radio, MessageSquare,
   Plus, Trash2, Pin, PinOff, Edit3, Archive, ToggleLeft, ToggleRight,
-  Circle, CheckCircle2,
+  Circle, CheckCircle2, Mail, MailOpen, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -16,6 +16,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useFlashNews, type FlashNewsItem, type FlashNewsSeverity, type FlashNewsPosition, type FlashNewsStyle } from "@/stores/flashNews";
+import { generateId } from "@/lib/utils";
+
+// ── Notifications store ────────────────────────────────────────
+
+interface NotificationItem { id: string; title: string; message: string; type: "info" | "success" | "warning" | "error"; read: boolean; createdAt: string; }
+const NOTIFICATIONS_KEY = "sms.notifications.v1";
+function loadNotifications(): NotificationItem[] { try { return JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY) ?? "[]"); } catch { return []; } }
+function saveNotifications(v: NotificationItem[]) { localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(v)); }
+
+// ── Reminders store ────────────────────────────────────────────
+
+interface ReminderItem { id: string; title: string; description: string; dueDate: string; priority: "low" | "medium" | "high"; completed: boolean; createdAt: string; }
+const REMINDERS_KEY = "sms.reminders.v1";
+function loadReminders(): ReminderItem[] { try { return JSON.parse(localStorage.getItem(REMINDERS_KEY) ?? "[]"); } catch { return []; } }
+function saveReminders(v: ReminderItem[]) { localStorage.setItem(REMINDERS_KEY, JSON.stringify(v)); }
+
+// ── Alerts store ───────────────────────────────────────────────
+
+interface AlertItem { id: string; title: string; message: string; severity: "low" | "medium" | "high" | "critical"; acknowledged: boolean; createdAt: string; }
+const ALERTS_KEY = "sms.alerts.v1";
+function loadAlerts(): AlertItem[] { try { return JSON.parse(localStorage.getItem(ALERTS_KEY) ?? "[]"); } catch { return []; } }
+function saveAlerts(v: AlertItem[]) { localStorage.setItem(ALERTS_KEY, JSON.stringify(v)); }
 
 // ── Existing surface storage readers ──────────────────────────
 
@@ -220,11 +242,361 @@ function TodoList() {
   );
 }
 
-function PlaceholderList({ label }: { label: string }) {
+// ── Notifications ──────────────────────────────────────────────
+
+const NOTIFICATION_TYPE_COLORS: Record<NotificationItem["type"], string> = {
+  info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  warning: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+
+function NotificationEditor({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState<NotificationItem["type"]>("info");
+
+  const handleSave = () => {
+    if (!title.trim()) { toast.error("Title is required"); return; }
+    const all = loadNotifications();
+    all.push({
+      id: generateId(),
+      title: title.trim(),
+      message: message.trim(),
+      type,
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
+    saveNotifications(all);
+    toast.success("Notification created");
+    setTitle(""); setMessage(""); setType("info");
+    onClose();
+  };
+
   return (
-    <p className="text-sm text-muted-foreground py-8 text-center">
-      {label} management is coming soon. Use the dedicated page for now.
-    </p>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle>New Notification</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="notif-title">Title</Label>
+            <Input id="notif-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Notification headline" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notif-msg">Message (optional)</Label>
+            <Textarea id="notif-msg" value={message} onChange={(e) => setMessage(e.target.value)} rows={2} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notif-type">Type</Label>
+            <Select value={type} onValueChange={(v) => setType(v as NotificationItem["type"])}>
+              <SelectTrigger id="notif-type"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="info">Info</SelectItem>
+                <SelectItem value="success">Success</SelectItem>
+                <SelectItem value="warning">Warning</SelectItem>
+                <SelectItem value="error">Error</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave}>Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NotificationList() {
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const refresh = useCallback(() => setItems(loadNotifications()), []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const iv = setInterval(refresh, 30000); return () => clearInterval(iv); }, [refresh]);
+
+  const markRead = (id: string) => {
+    const next = items.map((n) => n.id === id ? { ...n, read: !n.read } : n);
+    saveNotifications(next); setItems(next);
+  };
+
+  const remove = (id: string) => {
+    const next = items.filter((n) => n.id !== id);
+    saveNotifications(next); setItems(next);
+    toast.success("Notification removed");
+  };
+
+  const clearAll = () => {
+    saveNotifications([]); setItems([]);
+    toast.success("All notifications cleared");
+  };
+
+  const unread = items.filter((n) => !n.read).length;
+  const UNREAD_LABELS: Record<NotificationItem["type"], string> = { info: "Info", success: "Success", warning: "Warning", error: "Error" };
+
+  return (
+    <div className="space-y-2">
+      <NotificationEditor open={editorOpen} onClose={() => setEditorOpen(false)} />
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{items.length} total</span>
+          <span className="font-medium text-foreground">{unread} unread</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={clearAll}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />Clear all
+            </Button>
+          )}
+          <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => setEditorOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Add
+          </Button>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">No notifications yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {[...items].reverse().map((item) => (
+            <div key={item.id} className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              item.read ? "border-border/40 opacity-70" : "border-primary/20 bg-primary/5"
+            }`}>
+              <Badge variant="secondary" className={`text-[10px] shrink-0 ${NOTIFICATION_TYPE_COLORS[item.type]}`}>{UNREAD_LABELS[item.type]}</Badge>
+              <div className="flex-1 min-w-0">
+                <p className={`truncate ${item.read ? "text-muted-foreground" : "font-medium"}`}>{item.title}</p>
+                {item.message && <p className="truncate text-[11px] text-muted-foreground">{item.message}</p>}
+              </div>
+              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(item.createdAt).toLocaleDateString()}</span>
+              <button onClick={() => markRead(item.id)} className="shrink-0 text-muted-foreground hover:text-foreground" title={item.read ? "Mark unread" : "Mark read"}>
+                {item.read ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+              <button onClick={() => remove(item.id)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Reminders ──────────────────────────────────────────────────
+
+const REMINDER_PRIORITY_COLORS: Record<ReminderItem["priority"], string> = {
+  low: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400",
+  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+};
+
+function ReminderEditor({ open, onClose, editItem }: { open: boolean; onClose: () => void; editItem?: ReminderItem }) {
+  const [title, setTitle] = useState(editItem?.title ?? "");
+  const [description, setDescription] = useState(editItem?.description ?? "");
+  const [dueDate, setDueDate] = useState(editItem?.dueDate ?? "");
+  const [priority, setPriority] = useState<ReminderItem["priority"]>(editItem?.priority ?? "medium");
+
+  const handleSave = () => {
+    if (!title.trim()) { toast.error("Title is required"); return; }
+    if (!dueDate.trim()) { toast.error("Due date is required"); return; }
+    const all = loadReminders();
+    if (editItem) {
+      const idx = all.findIndex((r) => r.id === editItem.id);
+      if (idx >= 0) { all[idx] = { ...all[idx], title: title.trim(), description: description.trim(), dueDate, priority }; }
+      saveReminders(all);
+      toast.success("Reminder updated");
+    } else {
+      all.push({ id: generateId(), title: title.trim(), description: description.trim(), dueDate, priority, completed: false, createdAt: new Date().toISOString() });
+      saveReminders(all);
+      toast.success("Reminder created");
+    }
+    setTitle(""); setDescription(""); setDueDate(""); setPriority("medium");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle>{editItem ? "Edit Reminder" : "New Reminder"}</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="rem-title">Title</Label>
+            <Input id="rem-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Reminder title" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="rem-desc">Description (optional)</Label>
+            <Textarea id="rem-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="rem-due">Due Date</Label>
+              <Input id="rem-due" type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rem-priority">Priority</Label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as ReminderItem["priority"])}>
+                <SelectTrigger id="rem-priority"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave}>{editItem ? "Update" : "Create"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReminderList() {
+  const [items, setItems] = useState<ReminderItem[]>([]);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<ReminderItem | undefined>();
+  const refresh = useCallback(() => setItems(loadReminders()), []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const toggleComplete = (id: string) => {
+    const next = items.map((r) => r.id === id ? { ...r, completed: !r.completed } : r);
+    saveReminders(next); setItems(next);
+  };
+
+  const remove = (id: string) => {
+    const next = items.filter((r) => r.id !== id);
+    saveReminders(next); setItems(next);
+    toast.success("Reminder removed");
+  };
+
+  const openEditor = (item?: ReminderItem) => { setEditing(item); setEditorOpen(true); };
+  const overdue = items.filter((r) => !r.completed && new Date(r.dueDate).getTime() < Date.now()).length;
+  const upcoming = items.filter((r) => !r.completed && new Date(r.dueDate).getTime() >= Date.now()).length;
+  const PRIORITY_LABEL: Record<ReminderItem["priority"], string> = { low: "Low", medium: "Medium", high: "High" };
+
+  return (
+    <div className="space-y-2">
+      <ReminderEditor open={editorOpen} onClose={() => { setEditorOpen(false); setEditing(undefined); }} editItem={editing} />
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{items.length} total</span>
+          <span className="text-amber-600 font-medium">{overdue} overdue</span>
+          <span>{upcoming} upcoming</span>
+          <span>{items.filter((r) => r.completed).length} done</span>
+        </div>
+        <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => openEditor()}>
+          <Plus className="h-3.5 w-3.5" /> Add
+        </Button>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">No reminders yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {[...items].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map((item) => {
+            const isOverdue = !item.completed && new Date(item.dueDate).getTime() < Date.now();
+            return (
+              <div key={item.id} className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+                item.completed ? "border-border/40 opacity-60" : isOverdue ? "border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800" : "border-border/40"
+              }`}>
+                <button onClick={() => toggleComplete(item.id)} className="shrink-0 text-muted-foreground hover:text-emerald-500" title={item.completed ? "Reopen" : "Mark done"}>
+                  {item.completed ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4" />}
+                </button>
+                <Badge variant="secondary" className={`text-[10px] shrink-0 ${REMINDER_PRIORITY_COLORS[item.priority]}`}>{PRIORITY_LABEL[item.priority]}</Badge>
+                <div className="flex-1 min-w-0">
+                  <p className={`truncate ${item.completed ? "line-through text-muted-foreground" : ""}`}>{item.title}</p>
+                  {item.description && <p className="truncate text-[11px] text-muted-foreground">{item.description}</p>}
+                </div>
+                <span className={`text-[10px] shrink-0 ${isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
+                  {isOverdue ? "Overdue" : new Date(item.dueDate).toLocaleDateString()}
+                </span>
+                <button onClick={() => openEditor(item)} className="shrink-0 text-muted-foreground hover:text-foreground" title="Edit"><Edit3 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => remove(item.id)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Alerts ─────────────────────────────────────────────────────
+
+const ALERT_SEVERITY_COLORS: Record<AlertItem["severity"], string> = {
+  low: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400",
+  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+
+function AlertList() {
+  const [items, setItems] = useState<AlertItem[]>([]);
+  const refresh = useCallback(() => setItems(loadAlerts()), []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const acknowledge = (id: string) => {
+    const next = items.map((a) => a.id === id ? { ...a, acknowledged: !a.acknowledged } : a);
+    saveAlerts(next); setItems(next);
+  };
+
+  const remove = (id: string) => {
+    const next = items.filter((a) => a.id !== id);
+    saveAlerts(next); setItems(next);
+    toast.success("Alert dismissed");
+  };
+
+  const clearAll = () => {
+    saveAlerts([]); setItems([]);
+    toast.success("All alerts cleared");
+  };
+
+  const unacknowledged = items.filter((a) => !a.acknowledged).length;
+  const SEVERITY_LABEL: Record<AlertItem["severity"], string> = { low: "Low", medium: "Medium", high: "High", critical: "Critical" };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{items.length} total</span>
+          <span className="font-medium text-foreground">{unacknowledged} unacknowledged</span>
+        </div>
+        {items.length > 0 && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={clearAll}>
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />Clear all
+          </Button>
+        )}
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">No alerts yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {[...items].reverse().map((item) => (
+            <div key={item.id} className={`flex items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+              item.acknowledged ? "border-border/40 opacity-70" : "border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800"
+            }`}>
+              <Badge variant="secondary" className={`text-[10px] shrink-0 ${ALERT_SEVERITY_COLORS[item.severity]}`}>{SEVERITY_LABEL[item.severity]}</Badge>
+              <div className="flex-1 min-w-0">
+                <p className={`truncate ${item.acknowledged ? "text-muted-foreground" : "font-medium"}`}>{item.title}</p>
+                {item.message && <p className="truncate text-[11px] text-muted-foreground">{item.message}</p>}
+              </div>
+              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(item.createdAt).toLocaleDateString()}</span>
+              <button onClick={() => acknowledge(item.id)} className="shrink-0 text-muted-foreground hover:text-foreground" title={item.acknowledged ? "Mark unresolved" : "Acknowledge"}>
+                {item.acknowledged ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+              <button onClick={() => remove(item.id)} className="shrink-0 text-muted-foreground hover:text-destructive" title="Dismiss"><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -330,11 +702,11 @@ function FlashNewsPanel() {
 // ── Main page ─────────────────────────────────────────────────
 
 const TAB_RENDER: Record<TabId, () => JSX.Element> = {
-  reminders: () => <PlaceholderList label="Reminders" />,
+  reminders: ReminderList,
   todos: TodoList,
-  notifications: () => <PlaceholderList label="Notifications" />,
+  notifications: NotificationList,
   notices: NoticeList,
-  alerts: () => <PlaceholderList label="Alerts" />,
+  alerts: AlertList,
   "flash-news": FlashNewsPanel,
 };
 

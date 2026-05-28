@@ -179,7 +179,7 @@
 | 016 Attendance Service | ✅ LIVE | mark/upload/override | `core/attendance/service.ts`, `docs/migration/05-*.md` |
 | 017 Assessment Engine | ✅ LIVE | scoring compat | `legacy/compat/scoringEngine.ts`, `docs/migration/06-*.md` |
 | 018 Subjective Scoring | ✅ LIVE | standardized 1-10 scoring | `core/scoring/subjectiveToStandard.ts`, `docs/migration/07-*.md` |
-| 019 Comms Engine | ⚡ BRIDGE | template/campaign/log tables | `core/comms/service.ts`, `20260524171000_communications_tables.sql` |
+| 019 Comms Engine | ✅ LIVE | template/campaign/log tables + 9 UI pages | `core/comms/service.ts`, `20260524171000_communications_tables.sql`, `CommsTemplates.tsx`, `CommsCampaigns.tsx`, `CommsBulkComposer.tsx`, `CommsLogs.tsx`, `CommsNotices.tsx`, `CommsEmergency.tsx`, `CommsFeedback.tsx`, `CommsClassWall.tsx`, `CommsAutomation.tsx` |
 | 020 Audit Service | ✅ LIVE | centralized audit | `core/audit/service.ts`, `docs/migration/10-*.md` |
 | 021 Monitor Dashboard | ✅ LIVE | monitoring_overview view | `core/monitoring/service.ts`, `20260524172000_monitoring_projection.sql` |
 | 022 Promotion Engine | ✅ LIVE | Supabase-backed promotion | `core/academics/promotion.ts`, `20260524173000_promotion_tables.sql`, `PromotionEngine.tsx` |
@@ -189,4 +189,4 @@
 | 026 Feature Toggles | ✅ LIVE | business-level toggles | `src/lib/featureToggles.ts` |
 | 027 Seed Data | ✅ LIVE | default templates, rules | `20260524180000_seed_new_tables.sql` |
 
-All **27 patches** are LIVE or at BRIDGE stage. The migration is complete — remaining work is feature enhancement and legacy pack page creation.
+All **27 patches** are ✅ LIVE. The migration is complete — all core services, UI pages, routes, and sidebar entries are implemented and wired.

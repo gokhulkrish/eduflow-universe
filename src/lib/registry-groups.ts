@@ -1,4 +1,5 @@
 import { inferAutomaticHeaderGroup, findMismatchedFields } from "@/lib/auto-header-grouping";
+import { useActivityTrace } from "@/stores/activityTrace";
 
 export type FieldGroupKey =
   | 'basicInfo'
@@ -9,6 +10,8 @@ export type FieldGroupKey =
   | 'courseInfo'
   | 'personal'
   | 'hostel'
+  | 'scholarship'
+  | 'banking'
   | 'general'
   | 'headOfInstitute'
   | 'nodalOfficer'
@@ -20,6 +23,12 @@ export interface RegistryGroup {
   label: string;
   order: number;
   isDefault?: boolean;
+  description?: string;
+  module?: string;
+  fieldCount?: number;
+  isSystem?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RegistryFieldConfig {
@@ -47,19 +56,21 @@ export function normalizeToKey(name: string): string {
 }
 
 export const DEFAULT_GROUPS: RegistryGroup[] = [
-  { key: 'basicInfo',      label: 'Basic Information',        order: 1,  isDefault: true },
-  { key: 'instituteInfo',  label: 'Institute Information',    order: 2,  isDefault: true },
-  { key: 'academic',       label: 'Academic Details',         order: 3,  isDefault: true },
-  { key: 'family',         label: 'Family Information',       order: 4,  isDefault: true },
-  { key: 'contact',        label: 'Contact Information',      order: 5,  isDefault: true },
-  { key: 'courseInfo',     label: 'Course Information',       order: 6,  isDefault: true },
-  { key: 'personal',       label: 'Personal Information',     order: 7,  isDefault: true },
-  { key: 'hostel',         label: 'Hostel Information',       order: 8,  isDefault: true },
-  { key: 'general',        label: 'General Information',      order: 9,  isDefault: true },
-  { key: 'headOfInstitute',label: 'Head of the Institute',    order: 10, isDefault: true },
-  { key: 'nodalOfficer',   label: 'Nodal Officer',            order: 11, isDefault: true },
-  { key: 'documents',      label: 'Documents & Identity',     order: 12, isDefault: true },
-  { key: 'other',          label: 'Other Information',        order: 99, isDefault: true },
+  { key: 'basicInfo',      label: 'Basic Information',        order: 1,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'instituteInfo',  label: 'Institute Information',    order: 2,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'academic',       label: 'Academic Details',         order: 3,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'family',         label: 'Family Information',       order: 4,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'contact',        label: 'Contact Information',      order: 5,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'courseInfo',     label: 'Course Information',       order: 6,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'personal',       label: 'Personal Information',     order: 7,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'hostel',         label: 'Hostel Information',       order: 8,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'scholarship',    label: 'Scholarship Information',  order: 9,  isDefault: true, module: 'student', isSystem: true },
+  { key: 'banking',        label: 'Banking Information',       order: 10, isDefault: true, module: 'student', isSystem: true },
+  { key: 'general',        label: 'General Information',      order: 11, isDefault: true, module: 'student', isSystem: true },
+  { key: 'headOfInstitute',label: 'Head of the Institute',    order: 12, isDefault: true, module: 'student', isSystem: true },
+  { key: 'nodalOfficer',   label: 'Nodal Officer',            order: 13, isDefault: true, module: 'student', isSystem: true },
+  { key: 'documents',      label: 'Documents & Identity',     order: 14, isDefault: true, module: 'student', isSystem: true },
+  { key: 'other',          label: 'Other Information',        order: 99, isDefault: true, module: 'student', isSystem: true },
 ];
 
 const FIELD_GROUP_MAP: Record<string, string> = {
@@ -129,7 +140,7 @@ const FIELD_GROUP_MAP: Record<string, string> = {
   firstGraduate: 'other',
   firstgraduate: 'personal',
   incomeVerified: 'other',
-  scholarshipNotes: 'other',
+  scholarshipNotes: 'scholarship',
   status: 'other',
   transportRoute: 'other',
   hostelName: 'other',
@@ -494,7 +505,15 @@ export function ensureHeaderFieldGroups(scope: string): RegistryGroup[] {
 
 export function saveHeaderGroupList(scope: string, groups: RegistryGroup[]): void {
   if (!isBrowser()) return;
-  try { localStorage.setItem(groupsKey(scope), JSON.stringify(groups)); } catch {}
+  try {
+    localStorage.setItem(groupsKey(scope), JSON.stringify(groups));
+    useActivityTrace.getState().push({
+      category: "persistence",
+      title: `Group list saved (${groups.length} groups)`,
+      detail: `scope: ${scope}`,
+      source: "registry-groups",
+    });
+  } catch {}
 }
 
 export function getHeaderFieldEntries(scope: string): RegistryFieldConfig[] {
@@ -543,7 +562,15 @@ export function saveRegistryFieldAdvancedConfig(
     });
   }
   if (isBrowser()) {
-    try { localStorage.setItem(fieldsKey(scope), JSON.stringify(entries)); } catch {}
+    try {
+      localStorage.setItem(fieldsKey(scope), JSON.stringify(entries));
+      useActivityTrace.getState().push({
+        category: "persistence",
+        title: `Field config saved: ${fieldKey}`,
+        detail: `groupKey: ${config.groupKey ?? "—"}, type: ${config.type ?? "—"}`,
+        source: "registry-groups",
+      });
+    } catch {}
   }
   return entries;
 }
@@ -564,7 +591,14 @@ export function moveRegistryFieldBetweenGroups(
     f.key === fieldKey ? { ...f, groupKey: targetGroupKey, order: maxOrder, updatedAt: NOW() } : f,
   );
   if (isBrowser()) {
-    try { localStorage.setItem(fieldsKey(scope), JSON.stringify(updated)); } catch {}
+    try {
+      localStorage.setItem(fieldsKey(scope), JSON.stringify(updated));
+      useActivityTrace.getState().push({
+        category: "persistence",
+        title: `Field moved to group: ${fieldKey} → ${targetGroupKey}`,
+        source: "registry-groups",
+      });
+    } catch {}
   }
   return updated;
 }
@@ -602,4 +636,58 @@ export function ensureAliases(existing: string[] | undefined, header: string): s
   const set = new Set((existing ?? []).map(a => a.toLowerCase()));
   set.add(header.toLowerCase());
   return Array.from(set);
+}
+
+/* ── Group Diagnostics ── */
+
+export function computeFieldCounts(scope: string): Record<string, number> {
+  const fields = getHeaderFieldEntries(scope);
+  const counts: Record<string, number> = {};
+  for (const f of fields) {
+    if (f.status === "active") counts[f.groupKey] = (counts[f.groupKey] ?? 0) + 1;
+  }
+  return counts;
+}
+
+export function findOrphanGroups(scope: string): { group: RegistryGroup; fieldCount: number }[] {
+  const groups = ensureHeaderFieldGroups(scope);
+  const counts = computeFieldCounts(scope);
+  return groups
+    .filter((g) => !counts[g.key] || counts[g.key] === 0)
+    .map((g) => ({ group: g, fieldCount: 0 }));
+}
+
+export interface GroupOverlap {
+  a: string;
+  b: string;
+  aLabel: string;
+  bLabel: string;
+  similarity: number;
+}
+
+function wordOverlap(a: string, b: string): number {
+  const aWords = new Set(a.toLowerCase().split(/\s+/));
+  const bWords = new Set(b.toLowerCase().split(/\s+/));
+  const common = [...aWords].filter((w) => bWords.has(w));
+  return common.length / Math.max(aWords.size, bWords.size);
+}
+
+export function findOverlappingGroups(scope: string, threshold = 0.4): GroupOverlap[] {
+  const groups = ensureHeaderFieldGroups(scope);
+  const overlaps: GroupOverlap[] = [];
+  for (let i = 0; i < groups.length; i++) {
+    for (let j = i + 1; j < groups.length; j++) {
+      const sim = wordOverlap(groups[i].label, groups[j].label);
+      if (sim >= threshold) {
+        overlaps.push({
+          a: groups[i].key,
+          b: groups[j].key,
+          aLabel: groups[i].label,
+          bLabel: groups[j].label,
+          similarity: Math.round(sim * 100) / 100,
+        });
+      }
+    }
+  }
+  return overlaps;
 }

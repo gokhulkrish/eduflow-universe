@@ -7,6 +7,13 @@ import { ensureStudentExists, studentRegisterSyncKey } from "@/lib/student-recor
 import { tableExists, tablesExist } from "@/lib/supabase-health";
 import { trackFetchedHeader } from "@/lib/header-registry";
 import { generateId } from "@/lib/import-engine/core";
+import { getCanonicalRegistryCatalog } from "@/lib/canonical-student-fields";
+import {
+  loadRegistryAiState,
+  rebuildRegistryAiReviewQueue,
+  type ReviewQueueItem,
+  type RegistryAiDiagnostics,
+} from "@/lib/registry-ai-queue";
 
 export const importTransferRules = [
   "New Entry Only",
@@ -40,7 +47,7 @@ export const importFieldGroups = [
       { key: "fullName", label: "Full Name", aliases: ["name", "student_name", "studentname", "full_name", "student full name"] },
       { key: "firstName", label: "First Name", aliases: ["first_name", "firstname", "given_name", "student first name"] },
       { key: "lastName", label: "Last Name", aliases: ["last_name", "lastname", "surname", "family_name"] },
-      { key: "admissionNo", label: "Admission No", aliases: ["admission_no", "admission number", "registration_no", "register number", "reg_no", "roll_no"] },
+      { key: "admissionNo", label: "Admission No", aliases: ["admission_no", "admission number", "registration_no", "register number", "reg_no", "regno", "roll_no"] },
       { key: "dob", label: "Date of Birth", aliases: ["dob", "birthdate", "date of birth", "dateofbirth"] },
       { key: "gender", label: "Gender", aliases: ["gender", "sex"] },
       { key: "bloodGroup", label: "Blood Group", aliases: ["blood group", "bloodgroup", "blood"] },
@@ -100,7 +107,7 @@ export const importFieldGroups = [
 ] as const;
 
 export type ImportTargetFieldKey =
-  | "fullName" | "firstName" | "lastName" | "admissionNo" | "dob" | "gender" | "bloodGroup" | "nationality" | "status"
+  | "fullName" | "firstName" | "lastName" | "admissionNo" | "regno" | "dob" | "gender" | "bloodGroup" | "nationality" | "status"
   | "grade" | "section" | "roll" | "stream" | "house" | "academicYear" | "feeStatus" | "attendancePercent"
   | "email" | "phone" | "alternatePhone" | "address" | "district" | "block"
   | "fatherName" | "fatherOccupation" | "motherName" | "motherOccupation" | "guardianName" | "guardianOccupation" | "guardianPhone" | "guardianEmail" | "annualIncome"
@@ -232,6 +239,7 @@ export type ExistingStudentRecord = {
   class_id: string | null;
   guardian_id: string | null;
   admission_no: string;
+  regno: string;
   first_name: string;
   last_name: string | null;
   display_name: string;
@@ -760,6 +768,7 @@ const normalizeExistingRow = (row: any): ExistingStudentRecord => ({
   class_id: null,
   guardian_id: row.guardian_id ? String(row.guardian_id) : null,
   admission_no: String(row.admission_no ?? ""),
+  regno: String(row.regno ?? row.admission_no ?? ""),
   first_name: String(row.first_name ?? ""),
   last_name: typeof row.last_name === "string" ? row.last_name : null,
   display_name: String(row.display_name ?? ""),
@@ -815,6 +824,7 @@ const normalizeLegacyRowsFromStudents = (students: Tables<"students">[]): Existi
       class_id: null,
       guardian_id: readStudentMetaString(meta, "family", "guardianId") || null,
       admission_no: String(studentRecord.admission_no ?? ""),
+      regno: String(studentRecord.regno ?? studentRecord.admission_no ?? ""),
       first_name: String(studentRecord.first_name ?? ""),
       last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
       display_name: [studentRecord.first_name, studentRecord.last_name].filter(Boolean).join(" "),
@@ -1013,6 +1023,7 @@ const deriveMappedRow = (
 
 const validateRow = (row: Record<ImportTargetFieldKey, string>) => {
   const issues: string[] = [];
+  if (!maybeTrim(row.regno)) issues.push("Missing register number (regno)");
   if (!maybeTrim(row.admissionNo)) issues.push("Missing admission number");
   if (!maybeTrim(row.firstName)) issues.push("Missing first name");
   if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) issues.push("Email looks invalid");
@@ -1025,6 +1036,8 @@ const validateRow = (row: Record<ImportTargetFieldKey, string>) => {
   if (row.annualIncome && row.annualIncome && Number.isNaN(Number(row.annualIncome.replace(/[^0-9.-]/g, "")))) {
     issues.push("Annual income must be numeric");
   }
+  if (row.emisId && !/^[a-zA-Z0-9\-]+$/.test(row.emisId)) issues.push("EMIS ID contains invalid characters");
+  if (row.phone && !/^\+?[0-9\s\-\(\)]{7,20}$/.test(row.phone)) issues.push("Phone format invalid");
   return issues;
 };
 
@@ -1317,7 +1330,9 @@ const buildStudentPayload = (
   };
 
   const source = row.mapped;
-  const base: TablesInsert<"students"> | TablesUpdate<"students"> = {
+  const regnoValue = source.regno || source.admissionNo || existing?.regno || existing?.admission_no || "";
+  const base = {
+    regno: regnoValue,
     admission_no: source.admissionNo || existing?.admission_no || "",
     first_name: firstName,
     last_name: lastName || null,
@@ -1368,10 +1383,12 @@ const buildStudentPayload = (
       ...base,
       created_by: userId,
       attendance_percent: source.attendancePercent ? Number(source.attendancePercent) : 0,
-    };
+    } as TablesInsert<"students">;
   }
 
+  const existingRegno = (existing as Record<string, unknown>)?.regno as string | undefined;
   return {
+    regno: pickTextValue((source.regno || source.admissionNo), (existingRegno ?? existing.admission_no), rule) ?? (existingRegno ?? existing.admission_no),
     admission_no: pickTextValue(source.admissionNo, existing.admission_no, rule) ?? existing.admission_no,
     first_name: source.firstName || splitFullName(source.fullName).firstName || existing.first_name,
     last_name: pickTextValue(source.lastName, existing.last_name, rule),
@@ -1610,6 +1627,329 @@ export async function commitImportRows(
   emitAppSync(studentRegisterSyncKey);
 
   return result;
+}
+
+// ── AI Review Queue bridge ────────────────────────────────────────────
+
+export type AiReviewQueueResult = {
+  queue: ReviewQueueItem[];
+  diagnostics: RegistryAiDiagnostics;
+  suggestionsByHeader: Record<string, ReviewQueueItem["suggestions"]>;
+  explanationsByHeader: Record<string, string[]>;
+};
+
+export function buildImportAiReviewQueue(headers: string[]): AiReviewQueueResult {
+  const canonicalFields = getCanonicalRegistryCatalog();
+  const aiState = loadRegistryAiState();
+  const nextState = rebuildRegistryAiReviewQueue(headers, canonicalFields, aiState);
+  return {
+    queue: nextState.reviewQueue,
+    diagnostics: nextState.diagnostics,
+    suggestionsByHeader: nextState.suggestionsByHeader,
+    explanationsByHeader: nextState.explanationsByHeader,
+  };
+}
+
+// ── Critical field scanner ────────────────────────────────────────────
+
+export type CriticalFieldLevel = "hard-required" | "soft-required";
+
+export type CriticalFieldDef = {
+  key: ImportTargetFieldKey;
+  label: string;
+  level: CriticalFieldLevel;
+};
+
+export const CRITICAL_IMPORT_FIELDS: CriticalFieldDef[] = [
+  { key: "fullName", label: "Student Name", level: "hard-required" },
+  { key: "admissionNo", label: "Register/Admission Number", level: "hard-required" },
+  { key: "phone", label: "Student/Parent Mobile", level: "hard-required" },
+  { key: "firstName", label: "First Name", level: "soft-required" },
+  { key: "email", label: "Email", level: "soft-required" },
+  { key: "dob", label: "Date of Birth", level: "soft-required" },
+  { key: "emisId", label: "EMIS ID", level: "soft-required" },
+];
+
+export type CriticalFieldIssue = {
+  field: CriticalFieldDef;
+  rowIndex: number;
+  rowKey: string;
+};
+
+export type CriticalFieldScanResult = {
+  issues: CriticalFieldIssue[];
+  hardBlocking: number;
+  softWarnings: number;
+  byField: Record<ImportTargetFieldKey, { label: string; count: number; level: CriticalFieldLevel }>;
+};
+
+export function scanCriticalFieldIssues(
+  rows: ImportPreviewRow[],
+  fields: CriticalFieldDef[] = CRITICAL_IMPORT_FIELDS,
+): CriticalFieldScanResult {
+  const issues: CriticalFieldIssue[] = [];
+  const byField = {} as Record<ImportTargetFieldKey, { label: string; count: number; level: CriticalFieldLevel }>;
+
+  for (const row of rows) {
+    for (const field of fields) {
+      const value = row.mapped[field.key];
+      if (!value?.trim()) {
+        issues.push({ field, rowIndex: row.sourceRowIndex, rowKey: row.rowKey });
+        if (!byField[field.key]) {
+          byField[field.key] = { label: field.label, count: 0, level: field.level };
+        }
+        byField[field.key].count++;
+      }
+    }
+  }
+
+  const hardBlocking = issues.filter((i) => i.field.level === "hard-required").length;
+  const softWarnings = issues.filter((i) => i.field.level === "soft-required").length;
+
+  return { issues, hardBlocking, softWarnings, byField };
+}
+
+export type FieldDiff = {
+  fieldKey: ImportTargetFieldKey;
+  label: string;
+  existingValue: string | null;
+  incomingValue: string;
+};
+
+const FIELD_KEY_TO_EXISTING_RECORD_KEY: Record<string, string> = {
+  firstName: "first_name",
+  lastName: "last_name",
+  fullName: "display_name",
+  admissionNo: "admission_no",
+  dob: "dob",
+  gender: "gender",
+  bloodGroup: "blood_group",
+  nationality: "nationality",
+  email: "email",
+  phone: "phone",
+  alternatePhone: "alternate_phone",
+  address: "address",
+  umisId: "umis_id",
+  emisId: "emis_id",
+  community: "community",
+  firstGraduate: "first_graduate",
+  feeStatus: "fee_status",
+  status: "status",
+  grade: "grade",
+  section: "section",
+  roll: "roll_number",
+  stream: "stream",
+  house: "house",
+  academicYear: "academic_year",
+  guardianName: "guardian_name",
+  guardianOccupation: "guardian_occupation",
+  guardianPhone: "guardian_phone",
+  guardianEmail: "guardian_email",
+  annualIncome: "guardian_annual_income",
+  attendancePercent: "attendance_percent",
+};
+
+const fieldLabelByKey: Record<string, string> = {};
+for (const group of importFieldGroups) {
+  for (const field of group.fields) {
+    fieldLabelByKey[field.key] = field.label;
+  }
+}
+
+export function computeFieldDiffs(
+  existing: ExistingStudentRecord | null,
+  mapped: Record<ImportTargetFieldKey, string>,
+): FieldDiff[] {
+  const diffs: FieldDiff[] = [];
+  for (const [fieldKey, existingKey] of Object.entries(FIELD_KEY_TO_EXISTING_RECORD_KEY)) {
+    const existingValue = existing ? clean((existing as Record<string, unknown>)[existingKey]) : null;
+    const incomingValue = clean(mapped[fieldKey as ImportTargetFieldKey]);
+    if (!existingValue && !incomingValue) continue;
+    if (existingValue === incomingValue) continue;
+    diffs.push({
+      fieldKey: fieldKey as ImportTargetFieldKey,
+      label: fieldLabelByKey[fieldKey] ?? fieldKey,
+      existingValue: existingValue || null,
+      incomingValue,
+    });
+  }
+  return diffs;
+}
+
+export type DuplicateIssue = {
+  id: string;
+  module: "student";
+  type: "duplicate-record";
+  keyField: "regno";
+  identityKey: string;
+  existingRecordId: string | null;
+  existingRecordLabel: string | null;
+  newRowIndex: number;
+  newRowLabel: string;
+  importBatchId: string;
+  batchName: string;
+  resolution: "pending" | "resolved" | "ignored";
+  fieldDiffs: FieldDiff[];
+  mergeResolution: "master" | "field-pick" | null;
+  mergedValues: Record<string, string> | null;
+  source: "import-csv" | "import-manual" | "api" | "bulk-upload" | "unknown";
+};
+
+export function duplicateIssueStage(issue: DuplicateIssue): "detected" | "in-review" | "merged" | "resolved" | "ignored" {
+  if (issue.resolution === "ignored") return "ignored";
+  if (issue.resolution === "resolved" && issue.mergeResolution) return "merged";
+  if (issue.resolution === "resolved") return "resolved";
+  if (issue.mergeResolution) return "in-review";
+  return "detected";
+}
+
+const DUPLICATE_STAGES = ["detected", "in-review", "merged", "resolved", "ignored"] as const;
+
+const DUPLICATE_SOURCES = ["import-csv", "import-manual", "api", "bulk-upload", "unknown"] as const;
+
+export function scanDuplicateIssues(
+  duplicateGroups: { identityKey: string; rows: ImportPreviewRow[] }[],
+  batchId: string,
+  batchName?: string,
+  source?: DuplicateIssue["source"],
+): DuplicateIssue[] {
+  const issues: DuplicateIssue[] = [];
+  let idCounter = 0;
+  for (const group of duplicateGroups) {
+    for (const row of group.rows) {
+      if (!row.existing && group.rows.length <= 1) continue;
+      issues.push({
+        id: `dup-${batchId}-${++idCounter}`,
+        module: "student",
+        type: "duplicate-record",
+        keyField: "regno",
+        identityKey: group.identityKey,
+        existingRecordId: row.existing?.student_id ?? null,
+        existingRecordLabel: row.existing ? `${row.existing.first_name ?? ""} ${row.existing.last_name ?? ""}`.trim() || row.existing.student_id : null,
+        newRowIndex: row.sourceRowIndex,
+        newRowLabel: row.mapped.fullName || row.mapped.firstName || `Row ${row.sourceRowIndex}`,
+        importBatchId: batchId,
+        batchName: batchName ?? batchId,
+        resolution: "pending",
+        fieldDiffs: computeFieldDiffs(row.existing, row.mapped),
+        mergeResolution: null,
+        mergedValues: null,
+        source: source ?? "import-csv",
+      });
+    }
+  }
+  return issues;
+}
+
+export type DuplicateAliasIssue = {
+  alias: string;
+  fields: { key: string; label: string }[];
+};
+
+export function scanImportDuplicateAliases(
+  customFields: ImportCustomFieldDefinition[] = [],
+): DuplicateAliasIssue[] {
+  const aliasMap = new Map<string, { key: string; label: string }[]>();
+  const allFields = [
+    ...importTargetFields.map((f) => ({ key: f.key, label: f.label, aliases: [...f.aliases, f.label] })),
+    ...customFields.map((f) => ({ key: f.key, label: f.label, aliases: [f.label, ...f.aliases] })),
+  ];
+  for (const field of allFields) {
+    for (const alias of field.aliases) {
+      const norm = alias.toLowerCase().trim();
+      if (!norm) continue;
+      if (!aliasMap.has(norm)) aliasMap.set(norm, []);
+      const entries = aliasMap.get(norm)!;
+      if (!entries.some((e) => e.key === field.key)) {
+        entries.push({ key: field.key, label: field.label });
+      }
+    }
+  }
+  return Array.from(aliasMap.entries())
+    .filter(([, fields]) => fields.length > 1)
+    .map(([alias, fields]) => ({ alias, fields }));
+}
+
+export type OrphanGroup = {
+  title: string;
+  fieldCount: number;
+  mappedCount: number;
+};
+
+export function scanImportOrphanGroups(
+  mapping: Record<string, ImportTargetBinding>,
+  customFields: ImportCustomFieldDefinition[] = [],
+): OrphanGroup[] {
+  const mappedKeys = new Set(
+    Object.values(mapping).filter((v): v is Exclude<ImportTargetBinding, "ignore"> => v !== "ignore"),
+  );
+  const allFieldKeys = new Set<string>();
+  for (const group of importFieldGroups) {
+    for (const field of group.fields) {
+      allFieldKeys.add(field.key);
+    }
+  }
+  for (const cf of customFields) {
+    allFieldKeys.add(cf.key);
+  }
+  return importFieldGroups
+    .map((group) => {
+      const mappedInGroup = group.fields.filter((f) => mappedKeys.has(f.key)).length;
+      return {
+        title: group.title,
+        fieldCount: group.fields.length,
+        mappedCount: mappedInGroup,
+      };
+    })
+    .filter((g) => g.mappedCount === 0);
+}
+
+export type ProfileWarning = {
+  type: "empty-mapping" | "stale-custom-fields" | "name-conflict";
+  profileId: string;
+  profileName: string;
+  detail: string;
+};
+
+export function scanImportProfileWarnings(
+  profiles: ImportProfile[],
+  draftName: string,
+  customFields: ImportCustomFieldDefinition[] = [],
+): ProfileWarning[] {
+  const warnings: ProfileWarning[] = [];
+  const validCustomIds = new Set(customFields.map((cf) => cf.id));
+
+  for (const profile of profiles) {
+    if (Object.keys(profile.mapping ?? {}).length === 0) {
+      warnings.push({
+        type: "empty-mapping",
+        profileId: profile.id,
+        profileName: profile.name,
+        detail: `"${profile.name}" has no field mappings`,
+      });
+    }
+    const staleCustomIds = (profile.customFieldIds ?? []).filter((id) => !validCustomIds.has(id));
+    if (staleCustomIds.length > 0) {
+      warnings.push({
+        type: "stale-custom-fields",
+        profileId: profile.id,
+        profileName: profile.name,
+        detail: `"${profile.name}" references ${staleCustomIds.length} custom field(s) that no longer exist`,
+      });
+    }
+  }
+
+  const draftNameClean = draftName.trim().toLowerCase();
+  if (draftNameClean && profiles.some((p) => p.name.trim().toLowerCase() === draftNameClean)) {
+    warnings.push({
+      type: "name-conflict",
+      profileId: "",
+      profileName: draftName.trim(),
+      detail: `A profile named "${draftName.trim()}" already exists and will be overwritten on save`,
+    });
+  }
+
+  return warnings;
 }
 
 export async function loadImportBatchHistory(limit = 10): Promise<ImportBatchHistoryEntry[]> {

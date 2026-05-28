@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Layers, ListTree, Activity, Search } from "lucide-react";
+import { Layers, ListTree, Search, LayoutGrid } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import HeaderGroupManager from "./HeaderGroupManager";
+import GroupManagerPane from "@/components/registry/GroupManagerPane";
 import RegistryExplorer from "@/components/registry/RegistryExplorer";
 
 interface TabDef { id: string; label: string; icon: typeof Layers; description: string; }
@@ -13,6 +14,7 @@ const TABS: TabDef[] = [
 
 export default function WorkspaceRegistry() {
   const [tab, setTab] = useState("groups");
+  const [groupView, setGroupView] = useState<"cards" | "table">("cards");
   const activeTab = TABS.find((t) => t.id === tab) ?? TABS[0];
 
   return (
@@ -48,11 +50,35 @@ export default function WorkspaceRegistry() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold">{activeTab.label}</h2>
-            <p className="text-xs text-muted-foreground">{activeTab.description}</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">{activeTab.label}</h2>
+              <p className="text-xs text-muted-foreground">{activeTab.description}</p>
+            </div>
+            {tab === "groups" && (
+              <div className="flex items-center gap-1 rounded-lg border border-border/40 p-0.5">
+                <button
+                  onClick={() => setGroupView("cards")}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                    groupView === "cards" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Cards
+                </button>
+                <button
+                  onClick={() => setGroupView("table")}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                    groupView === "table" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <ListTree className="h-3.5 w-3.5" /> Table
+                </button>
+              </div>
+            )}
           </div>
-          {tab === "groups" ? <HeaderGroupManager /> : <RegistryExplorer />}
+          {tab === "groups" ? (
+            groupView === "cards" ? <GroupManagerPane /> : <HeaderGroupManager />
+          ) : <RegistryExplorer />}
         </div>
       </div>
     </div>
