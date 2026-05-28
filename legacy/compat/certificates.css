@@ -1,0 +1,17 @@
+@media print {
+  .certificate-container {
+    margin-top: 2cm;
+    margin-bottom: 2cm;
+    margin-left: 1cm;
+    margin-right: 1cm;
+  }
+
+  .qr-image {
+    position: absolute;
+    bottom: 2cm;
+    right: 2cm;
+    width: 3cm;
+    height: 3cm;
+    border: 1px solid #000;
+  }
+}
