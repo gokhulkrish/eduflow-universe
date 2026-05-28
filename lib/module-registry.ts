@@ -245,7 +245,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "certificates",
     "label": "Certificates",
-    "status": "live",
+    "status": "needs-wiring",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -440,7 +440,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "collegeInfo",
     "label": "Institute Information",
-    "status": "live",
+    "status": "needs-wiring",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",

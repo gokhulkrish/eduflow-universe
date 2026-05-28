@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Award, Plus, Search, CheckCircle, XCircle, Ban, FileDown, QrCode, Loader2, Eye, Trash2, Copy, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -101,6 +101,63 @@ export default function Certificates() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Request deleted"); },
     onError: (e) => toast.error(e.message),
   });
+
+  // Preview / Print
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewReq, setPreviewReq] = useState<CertRequestJoined | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
+  function renderCertificateHtml(req: CertRequestJoined) {
+    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? "";
+    const replacements: Record<string, string> = {
+      student_name: req.student_name ?? "",
+      admission_no: req.admission_no ?? "",
+      template_name: req.template_name ?? "",
+      template_code: req.template_code ?? "",
+      purpose: req.purpose ?? "",
+      issued_at: req.issued_at ? new Date(req.issued_at).toLocaleDateString() : "",
+      qr_token: req.qr_token ?? "",
+    };
+
+    return tpl.replace(/\{\{\s*([\w\.]+)\s*\}\}/g, (_, key) => (replacements[key] ?? (req as any)[key] ?? ""));
+  }
+
+  const openPreview = (r: CertRequestJoined) => {
+    setPreviewReq(r);
+    setPreviewOpen(true);
+  };
+
+  const handlePrintPreview = () => {
+    if (!previewRef.current) return;
+    const html = previewRef.current.innerHTML;
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) { toast.error("Unable to open print window"); return; }
+    win.document.open();
+    win.document.write(`<html><head><title>Certificate Preview</title><style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;padding:20px} .certificate{width:800px;margin:0 auto}</style></head><body>${html}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 300);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!previewRef.current) return;
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      const node = previewRef.current as HTMLElement;
+      const canvas = await html2canvas(node, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const imgProps = (pdf as any).getImageProperties(imgData);
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const name = previewReq ? `certificate-${previewReq.id || Date.now()}.pdf` : `certificate.pdf`;
+      pdf.save(name);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'PDF generation failed');
+    }
+  };
 
   // ── QR Verify ──
   const [qrToken, setQrToken] = useState("");
@@ -300,7 +357,7 @@ export default function Certificates() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { navigator.clipboard.writeText(r.qr_token); toast.success("Token copied"); }}><Copy className="h-3 w-3 mr-1" /> Token</Button>
-                        <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => window.print()}><Download className="h-3 w-3 mr-1" /> Print</Button>
+                        <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => openPreview(r)}><Download className="h-3 w-3 mr-1" /> Preview</Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -391,6 +448,23 @@ export default function Certificates() {
               {saveTplMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {editTpl ? "Update" : "Create"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════ PREVIEW DIALOG ══════ */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-2xl p-0">
+          <DialogHeader><DialogTitle>Certificate Preview</DialogTitle></DialogHeader>
+          <div className="p-6" ref={previewRef} style={{ background: '#fff' }}>
+            <div className="certificate" dangerouslySetInnerHTML={{ __html: previewReq ? renderCertificateHtml(previewReq) : '' }} />
+          </div>
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePrintPreview}>Print</Button>
+              <Button onClick={handleDownloadPdf}>Download PDF</Button>
+              <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Close</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

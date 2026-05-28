@@ -159,6 +159,18 @@ export const MIGRATION_PATCH_FLAGS: MigrationFlagDefinition[] = [
     description: "Parity matrix, cutover controls, and retirement gating.",
     defaultEnabled: true,
   },
+  {
+    key: "patch-023-certificates-bridge-wiring",
+    label: "Patch 023: Certificates bridge wiring",
+    description: "Incremental compatibility for certificate templates, requests, QR verification, and issuance workflows.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-024-collegeinfo-bridge-wiring",
+    label: "Patch 024: CollegeInfo bridge wiring",
+    description: "Incremental compatibility for institute profile, accreditation info, contact details, and governance records.",
+    defaultEnabled: true,
+  },
 ];
 
 const isBrowser = () => typeof window !== "undefined";

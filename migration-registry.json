@@ -55,6 +55,16 @@
       "key": "patch-010-erp-context",
       "label": "Patch 010: ERP context",
       "defaultEnabled": true
+    },
+    {
+      "key": "patch-023-certificates-bridge-wiring",
+      "label": "Patch 023: Certificates bridge wiring",
+      "defaultEnabled": true
+    },
+    {
+      "key": "patch-024-collegeinfo-bridge-wiring",
+      "label": "Patch 024: CollegeInfo bridge wiring",
+      "defaultEnabled": true
     }
   ]
 }
