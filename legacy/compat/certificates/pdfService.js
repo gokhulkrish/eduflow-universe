@@ -1,19 +1,85 @@
 const jsPDF = require('jspdf');
+const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 
 /**
- * Generates a PDF certificate from certificate data.
- * @param {Object} certificateData - Contains certificate details (name, date, etc.)
- * @returns {Buffer} PDF buffer
+ * Loads the Bonafide certificate HTML template and replaces placeholders
+ * with actual certificate data.
+ *
+ * @param {Object} data - Certificate data
+ * @param {string} data.name - Student name
+ * @param {string} data.roll - Roll number
+ * @param {string} data.year - Academic year (e.g., "III")
+ * @param {string} data.branch - Branch / Department
+ * @param {string} data.academicYear - Academic year (e.g., "2025-2026")
+ * @param {string} data.applicationDate - Application date (e.g., "DD-MM-YYYY")
+ * @param {string} data.applicationPurpose - Purpose (e.g., "Bus Pass")
+ * @param {string} data.authority - Receiving authority / organization name
+ * @param {string} data.no - Certificate number
+ * @param {string} data.dated - Date of issue
+ * @returns {string} HTML string ready for jsPDF
  */
-function generatePDF(certificateData) {
-  const doc = new jsPDF();
-  doc.setFontSize(14);
-  doc.text(`Certificate for ${certificateData.name}`, 10, 20);
-  doc.text(`Issued: ${certificateData.issuedAt}`, 10, 30);
-  doc.text(`Valid Until: ${certificateData.validUntil}`, 10, 40);
-  doc.addImage(qrImageBuffer, 'JPEG', 'qr.png', 10, 50, 30); // QR image from print layout
-  return doc.output('buffer');
+function buildHtmlTemplate(data) {
+  const templatePath = path.join(__dirname, 'bonafide-template.html');
+  let html = fs.readFileSync(templatePath, 'utf8');
+
+  const replacers = {
+    '{{NO}}': data.no || '',
+    '{{DATED}}': data.dated || '',
+    '{{NAME}}': data.name || '',
+    '{{ROLL}}': data.roll || '',
+    '{{YEAR}}': data.year || '',
+    '{{BRANCH}}': data.branch || '',
+    '{{ACADEMIC_YEAR}}': data.academicYear || '',
+    '{{APPLICATION_DATE}}': data.applicationDate || '',
+    '{{APPLICATION_PURPOSE}}': data.applicationPurpose || '',
+    '{{AUTHORITY}}': data.authority || '',
+  };
+
+  Object.entries(replacers).forEach(([placeholder, value]) => {
+    const regex = new RegExp(placeholder, 'g');
+    html = html.replace(regex, value);
+  });
+
+  return html;
+}
+
+/**
+ * Generates a PDF certificate from certificate data.
+ * @param {Object} certificateData - Contains certificate details
+ * @param {Buffer} qrImageBuffer - QR image buffer (JPEG/PNG)
+ * @returns {Promise<Buffer>} PDF buffer
+ */
+async function generatePDF(certificateData, qrImageBuffer) {
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  // Load and render the HTML template
+  const html = buildHtmlTemplate(certificateData);
+  await doc.html(html, {
+    callback: function () {
+      // Add QR image at bottom right
+      if (qrImageBuffer) {
+        const qrBase64 = qrImageBuffer.toString('base64');
+        doc.addImage(
+          qrBase64,
+          'JPEG',
+          150, // x
+          250, // y
+          30,  // width
+          30   // height
+        );
+      }
+    },
+    x: 10,
+    y: 10,
+    width: 190, // width of the content
+  });
+
+  return doc.output('arraybuffer');
 }
 
 /**
