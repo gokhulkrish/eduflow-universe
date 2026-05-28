@@ -1,19 +1,26 @@
 @media print {
-  .page {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100%;
-    box-shadow: none;
-    border: none;
+  body {
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
-  
+
+  .page {
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+  }
+
   .qr-image {
-    position: fixed;
-    bottom: 2cm;
-    right: 1cm;
-    width: 3cm;
-    height: 3cm;
-    border: 1px solid #000;
+    position: fixed !important;
+    bottom: 20mm !important;
+    right: 10mm !important;
+    width: 30mm !important;
+    height: 30mm !important;
+    border: 1px solid #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

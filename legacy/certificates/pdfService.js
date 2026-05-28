@@ -3,89 +3,78 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const TEMPLATE_PATH = path.join(__dirname, 'bonafide-template.html');
+
 /**
- * Loads the Bonafide certificate HTML template and replaces placeholders
- * with actual certificate data.
- *
- * @param {Object} data - Certificate data
- * @param {string} data.name - Student name
- * @param {string} data.roll - Roll number
- * @param {string} data.year - Academic year (e.g., "III")
- * @param {string} data.branch - Branch / Department
- * @param {string} data.academicYear - Academic year (e.g., "2025-2026")
- * @param {string} data.applicationDate - Application date (e.g., "DD-MM-YYYY")
- * @param {string} data.applicationPurpose - Purpose (e.g., "Bus Pass")
- * @param {string} data.authority - Receiving authority / organization name
- * @param {string} data.no - Certificate number
- * @param {string} data.dated - Date of issue
- * @returns {string} HTML string ready for jsPDF
+ * Inject certificate data + optional QR base64 into the HTML template.
  */
-function buildHtmlTemplate(data) {
-  const templatePath = path.join(__dirname, 'bonafide-template.html');
-  let html = fs.readFileSync(templatePath, 'utf8');
+function buildHtmlTemplate(data, qrBase64 = '') {
+  let html = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+
+  // Embed QR image so jsPDF html2canvas renders it natively
+  const qrSrc = qrBase64 ? `data:image/jpeg;base64,${qrBase64}` : '';
+  html = html.replace(/{{QR_SRC}}/g, qrSrc);
 
   const replacers = {
-    '{{NO}}': data.no || '',
-    '{{DATED}}': data.dated || '',
-    '{{NAME}}': data.name || '',
-    '{{ROLL}}': data.roll || '',
-    '{{YEAR}}': data.year || '',
-    '{{BRANCH}}': data.branch || '',
-    '{{ACADEMIC_YEAR}}': data.academicYear || '',
-    '{{APPLICATION_DATE}}': data.applicationDate || '',
-    '{{APPLICATION_PURPOSE}}': data.applicationPurpose || '',
-    '{{AUTHORITY}}': data.authority || '',
+    '{{NO}}': data.no ?? '',
+    '{{DATED}}': data.dated ?? '',
+    '{{NAME}}': data.name ?? '',
+    '{{ROLL}}': data.roll ?? '',
+    '{{YEAR}}': data.year ?? '',
+    '{{BRANCH}}': data.branch ?? '',
+    '{{ACADEMIC_YEAR}}': data.academicYear ?? '',
+    '{{APPLICATION_DATE}}': data.applicationDate ?? '',
+    '{{APPLICATION_PURPOSE}}': data.applicationPurpose ?? '',
+    '{{AUTHORITY}}': data.authority ?? '',
   };
 
   Object.entries(replacers).forEach(([placeholder, value]) => {
-    const regex = new RegExp(placeholder, 'g');
-    html = html.replace(regex, value);
+    html = html.split(placeholder).join(String(value));
   });
 
   return html;
 }
 
 /**
- * Generates a PDF certificate from certificate data.
- * @param {Object} certificateData - Contains certificate details
- * @param {Buffer} qrImageBuffer - QR image buffer (JPEG/PNG)
- * @returns {Promise<Buffer>} PDF buffer
+ * Generate a PDF Buffer from certificate data.
+ * Requires `html2canvas` (and `canvas` polyfill for Node) to be installed.
  */
 async function generatePDF(certificateData, qrImageBuffer) {
   const doc = new jsPDF({
     unit: 'mm',
     format: 'a4',
+    orientation: 'portrait',
   });
 
-  // Load and render the HTML template
-  const html = buildHtmlTemplate(certificateData);
-  
-  // Add QR image at bottom right (1cm right, 2cm bottom)
-  if (qrImageBuffer) {
-    const qrBase64 = qrImageBuffer.toString('base64');
-    // Position: 1cm from right = 210 - 10 - 30 = 170mm, 2cm from bottom = 297 - 20 - 30 = 247mm
-    doc.addImage(qrBase64, 'JPEG', 170, 247, 30, 30);
-  }
+  const qrBase64 = qrImageBuffer ? qrImageBuffer.toString('base64') : '';
+  const html = buildHtmlTemplate(certificateData, qrBase64);
 
-  await doc.html(html, {
-    x: 10,
-    y: 10,
-    width: 190,
+  await new Promise((resolve, reject) => {
+    try {
+      doc.html(html, {
+        callback: function () {
+          resolve();
+        },
+        x: 0,
+        y: 0,
+        width: 210,
+        windowWidth: 794,
+      });
+    } catch (err) {
+      reject(err);
+    }
   });
 
-  return doc.output('arraybuffer');
+  return Buffer.from(doc.output('arraybuffer'));
 }
 
 /**
- * Signs a certificate with a private key (example implementation).
- * @param {Buffer} certificateData - Certificate data to sign
- * @param {Buffer} privateKey - Private key for signing
- * @returns {Buffer} Signed certificate
+ * RSA-SHA256 sign the PDF buffer.
  */
-function signCertificate(certificateData, privateKey) {
+function signCertificate(pdfBuffer, privateKeyPem) {
   const sign = crypto.createSign('RSA-SHA256');
-  sign.update(certificateData.toString());
-  return sign.sign(privateKey, 'base64');
+  sign.update(pdfBuffer);
+  return sign.sign(privateKeyPem, 'base64');
 }
 
-module.exports = { generatePDF, signCertificate };
+module.exports = { buildHtmlTemplate, generatePDF, signCertificate };
