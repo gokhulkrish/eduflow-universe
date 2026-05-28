@@ -42,15 +42,6 @@ function buildHtmlTemplate(data) {
     html = html.replace(regex, value);
   });
 
-  // Add QR image at bottom right (1cm right, 2cm bottom)
-  const qrBase64 = fs.readFileSync(path.join(__dirname, 'bonafide-template.png'), 'base64');
-  if (qrBase64) {
-    const qrWidth = 30;
-    const qrHeight = 30;
-    const qrPosition = { x: 170, y: 247 }; // 1cm right, 2cm bottom
-    html += `<div class="qr-image" style="width: ${qrWidth}px; height: ${qrHeight}px;">${qrBase64}</div>`;
-  }
-
   return html;
 }
 
@@ -68,19 +59,18 @@ async function generatePDF(certificateData, qrImageBuffer) {
 
   // Load and render the HTML template
   const html = buildHtmlTemplate(certificateData);
+  
+  // Add QR image at bottom right (1cm right, 2cm bottom)
+  if (qrImageBuffer) {
+    const qrBase64 = qrImageBuffer.toString('base64');
+    // Position: 1cm from right = 210 - 10 - 30 = 170mm, 2cm from bottom = 297 - 20 - 30 = 247mm
+    doc.addImage(qrBase64, 'JPEG', 170, 247, 30, 30);
+  }
+
   await doc.html(html, {
-    callback: function () {
-      // Add QR image at bottom right
-      if (qrImageBuffer) {
-        const qrWidth = 30;
-        const qrHeight = 30;
-        const qrPosition = { x: 170, y: 247 }; // 1cm right, 2cm bottom
-        html += `<div class="qr-image" style="width: ${qrWidth}px; height: ${qrHeight}px;">${qrImageBuffer.toString('base64')}</div>`;
-      }
-    },
     x: 10,
     y: 10,
-    width: 190, // width of the content
+    width: 190,
   });
 
   return doc.output('arraybuffer');

@@ -1,0 +1,19 @@
+@media print {
+  .page {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    box-shadow: none;
+    border: none;
+  }
+  
+  .qr-image {
+    position: fixed;
+    bottom: 2cm;
+    right: 1cm;
+    width: 3cm;
+    height: 3cm;
+    border: 1px solid #000;
+  }
+}
