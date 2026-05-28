@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GCT Bonafide Certificate Template</title>
   <style>
     * { box-sizing: border-box; }
@@ -13,7 +13,7 @@
     .college-place { margin-top: 4px; font-size: 18px; font-weight: 700; text-transform: uppercase; }
     .college-affiliation { margin-top: 4px; font-size: 16px; }
     .meta { margin-top: 28px; display: flex; justify-content: space-between; font-size: 17px; }
-    .title { margin-top: 26px; text-align: center; font-size: 24px; font-weight: 700; text-transform: uppercase; text-decoration: underline; letter-spacing: 0.5px; }
+    .title { margin-top: 26px; text-align: center; font-size: 24px; font-weight: 700; text-decoration: underline; letter-spacing: 0.5px; }
     .content { margin-top: 34px; font-size: 20px; line-height: 2.05; text-align: justify; }
     .fill { display: inline-block; min-width: 130px; border-bottom: 1px dotted #000; padding: 0 6px 2px; text-align: center; font-weight: 700; }
     .fill-sm { min-width: 90px; }
@@ -25,7 +25,7 @@
     .seal-box { width: 160px; height: 160px; border: 1px dashed #444; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 16px; }
     .sign-area { width: 260px; text-align: center; font-size: 18px; }
     .sign-line { border-top: 1px solid #000; padding-top: 8px; margin-top: 60px; font-weight: 700; }
-    @media print { body { background: #fff; padding: 0; } .page { box-shadow: none; border: none; width: 100%; min-height: auto; margin: 0; } }
+    .qr-image { position: absolute; bottom: 20px; right: 10px; width: 30px; height: 30px; border: 1px solid #000; }
   </style>
 </head>
 <body>
@@ -38,7 +38,7 @@
 
     <div class="meta">
       <div><strong>No.</strong> <span class="fill fill-md">{{NO}}</span></div>
-      <div><strong>Dated:</strong> <span class="fill fill-md">{{DATED}}</span></div>
+      <div><strong>DATED:</strong> <span class="fill fill-md">{{DATED}}</span></div>
     </div>
 
     <div class="title">Bonafide Certificate</div>
@@ -70,6 +70,8 @@
         <div class="sign-line">Office of the Principal</div>
       </div>
     </div>
+
+    <div class="qr-image"></div>
   </div>
 </body>
 </html>

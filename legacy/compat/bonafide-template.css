@@ -1,0 +1,14 @@
+@media print {
+  .page {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+  }
+  .to-block {
+    page-break-before: always;
+  }
+  .qr-image {
+    page-break-after: always;
+  }
+}

@@ -8,41 +8,14 @@ const crypto = require('crypto');
  * with actual certificate data.
  *
  * @param {Object} data - Certificate data
- * @param {string} data.name - Student name
- * @param {string} data.roll - Roll number
- * @param {string} data.year - Academic year (e.g., "III")
- * @param {string} data.branch - Branch / Department
- * @param {string} data.academicYear - Academic year (e.g., "2025-2026")
- * @param {string} data.applicationDate - Application date (e.g., "DD-MM-YYYY")
- * @param {string} data.applicationPurpose - Purpose (e.g., "Bus Pass")
- * @param {string} data.authority - Receiving authority / organization name
- * @param {string} data.no - Certificate number
- * @param {string} data.dated - Date of issue
- * @returns {string} HTML string ready for jsPDF
+ * @param {Buffer} qrImageBuffer - QR image buffer (JPEG/PNG)
+ * @returns {Promise<Buffer>} PDF buffer
  */
 function buildHtmlTemplate(data) {
   const templatePath = path.join(__dirname, 'bonafide-template.html');
   let html = fs.readFileSync(templatePath, 'utf8');
 
-  const replacers = {
-    '{{NO}}': data.no || '',
-    '{{DATED}}': data.dated || '',
-    '{{NAME}}': data.name || '',
-    '{{ROLL}}': data.roll || '',
-    '{{YEAR}}': data.year || '',
-    '{{BRANCH}}': data.branch || '',
-    '{{ACADEMIC_YEAR}}': data.academicYear || '',
-    '{{APPLICATION_DATE}}': data.applicationDate || '',
-    '{{APPLICATION_PURPOSE}}': data.applicationPurpose || '',
-    '{{AUTHORITY}}': data.authority || '',
-  };
-
-  Object.entries(replacers).forEach(([placeholder, value]) => {
-    const regex = new RegExp(placeholder, 'g');
-    html = html.replace(regex, value);
-  });
-
-  // Add QR image at bottom right (1cm right, 2cm bottom)
+  // Add QR image at bottom right
   const qrBase64 = fs.readFileSync(path.join(__dirname, 'bonafide-template.png'), 'base64');
   if (qrBase64) {
     const qrWidth = 30;
@@ -50,6 +23,14 @@ function buildHtmlTemplate(data) {
     const qrPosition = { x: 170, y: 247 }; // 1cm right, 2cm bottom
     html += `<div class="qr-image" style="width: ${qrWidth}px; height: ${qrHeight}px;">${qrBase64}</div>`;
   }
+
+  // Add student name
+  html += `<div class="content">${data.name}</div>`;
+  html += `<div class="content">${data.roll}</div>`;
+  html += `<div class="content">${data.year}</div>`;
+  html += `<div class="content">${data.academicYear}</div>`;
+  html += `<div class="content">${data.branch}</div>`;
+  html += `<div class="content">${data.academic_year}</div>`;
 
   return html;
 }
@@ -74,7 +55,7 @@ async function generatePDF(certificateData, qrImageBuffer) {
       if (qrImageBuffer) {
         const qrWidth = 30;
         const qrHeight = 30;
-        const qrPosition = { x: 170, y: 247 }; // 1cm right, 2cm bottom
+        const qrPosition = { x: 10, y: 10 }; // 10px from top, 10px from left
         html += `<div class="qr-image" style="width: ${qrWidth}px; height: ${qrHeight}px;">${qrImageBuffer.toString('base64')}</div>`;
       }
     },
