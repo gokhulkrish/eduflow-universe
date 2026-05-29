@@ -67,6 +67,10 @@ export const BRIDGE_REQUIRED_MODULES = {
     label: "Institute Information",
     bridgeModule: "@/legacy/compat/instituteInfo",
     patchKey: "patch-024-collegeinfo-bridge-wiring",
-    bridgeFunctions: ["bridgeLegacyInstituteInfo", "parseInstituteProfile"],
+    bridgeFunctions: ["bridgeLegacyInstituteInfo", "parseInstituteProfile", "validateInstituteProfile"],
+    storageAliases: ["sms.institute.record", "eduflow.institute.profile", "sms.collegeInfo.v1"],
+    routeAliases: ["/collegeInfo", "college-info"],
+    dbTable: "institute_profile",
+    apiRoutes: ["/api/institute/profile", "/api/institute/headers", "/api/institute/settings/history"],
   },
 };
