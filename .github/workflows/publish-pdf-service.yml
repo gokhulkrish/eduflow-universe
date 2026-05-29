@@ -3,6 +3,10 @@ name: Build and Publish Playwright PDF Service
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-push:
     name: Build and Push Docker Image to GHCR
