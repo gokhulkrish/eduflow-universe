@@ -456,7 +456,7 @@ export const CANONICAL_FIELDS: RegistryFieldDefinition[] = [
     scoringWeight: 3,
     group: 'administrative',
     dbColumn: 'income_verified',
-    enumValues: ['Verified', 'Pending', 'Not Required'],
+    enumValues: ['pending', 'agreed', 'appealed', 'verified', 'rejected'],
   },
   {
     key: 'annualIncome',

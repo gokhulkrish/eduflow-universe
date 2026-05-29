@@ -1445,6 +1445,12 @@ const toPgInteger = (value: string | undefined): number | null => {
   return num;
 };
 
+const VALID_ENROLLMENT_STATUSES = new Set(['active', 'completed', 'promoted', 'transferred', 'withdrawn']);
+const toValidEnrollmentStatus = (value: string | undefined | null, fallback = "active"): string => {
+  if (value && VALID_ENROLLMENT_STATUSES.has(value.toLowerCase())) return value.toLowerCase();
+  return fallback;
+};
+
 const buildEnrollmentPayload = (
   row: ImportPreviewRow,
   studentId: string,
@@ -1468,7 +1474,7 @@ const buildEnrollmentPayload = (
     stream: source.stream || row.existing?.stream || null,
     house: source.house || row.existing?.house || null,
     roll_number: source.roll ? toPgInteger(source.roll) : row.existing?.roll_number ?? null,
-    status: (source.status || "active").toLowerCase() as TablesInsert<"enrollments">["status"],
+    status: toValidEnrollmentStatus(source.status) as TablesInsert<"enrollments">["status"],
     meta: {
       import: importMeta,
     } as Json,
@@ -1487,7 +1493,7 @@ const buildEnrollmentPayload = (
       stream: row.existing?.stream || source.stream || null,
       house: row.existing?.house || source.house || null,
       roll_number: row.existing?.roll_number != null ? row.existing.roll_number : (source.roll ? toPgInteger(source.roll) : null),
-      status: row.existing?.enrollment_status || (source.status || "active").toLowerCase(),
+      status: toValidEnrollmentStatus(row.existing?.enrollment_status || source.status),
       meta: { import: importMeta } as Json,
     } as TablesUpdate<"enrollments">;
   }
@@ -1506,7 +1512,7 @@ const buildEnrollmentPayload = (
     stream: source.stream || row.existing?.stream || null,
     house: source.house || row.existing?.house || null,
     roll_number: source.roll ? toPgInteger(source.roll) : (row.existing?.roll_number ?? null),
-    status: (source.status || row.existing?.enrollment_status || "active").toLowerCase() as TablesUpdate<"enrollments">["status"],
+    status: toValidEnrollmentStatus(source.status || row.existing?.enrollment_status) as TablesUpdate<"enrollments">["status"],
     meta: { import: importMeta } as Json,
   } as TablesUpdate<"enrollments">;
 };
