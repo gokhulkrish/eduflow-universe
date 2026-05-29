@@ -1,6 +1,6 @@
 import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
-import { Building2, MapPin, Save, RotateCcw, Image as ImageIcon } from "lucide-react";
+import { Building2, MapPin, Save, RotateCcw, Image as ImageIcon, Database, CloudOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,11 @@ import {
 } from "@/lib/header-registry";
 import { importStorageKeys, loadCustomImportFields } from "@/lib/student-import";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { useAuth } from "@/hooks/useAuth";
 
 const CONFIG_KEY = `${instituteRegistryStorageKey}.config`;
+
+const API_BASE = "/api/institute/profile";
 
 const defaults = {
   identity: {
@@ -58,13 +61,47 @@ function writeConfig(config: Record<string, string>) {
   window.localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
+async function apiLoadProfile(institutionId: string) {
+  try {
+    const res = await fetch(`${API_BASE}?institutionId=${encodeURIComponent(institutionId)}`);
+    if (!res.ok) return null;
+    const { profile } = await res.json();
+    return profile;
+  } catch { return null; }
+}
+
+async function apiSaveProfile(institutionId: string, identity: Record<string, string>, userId?: string) {
+  try {
+    const res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ institutionId, identity, userId }),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
+function flattenToConfig(identity: typeof defaults.identity, contact: typeof defaults.contact, head: typeof defaults.head, nodal: typeof defaults.nodal): Record<string, string> {
+  const config: Record<string, string> = {};
+  for (const [group, map] of Object.entries(keyMap)) {
+    for (const [prop, key] of Object.entries(map)) {
+      const value = ({ identity, contact, head, nodal } as any)[group][prop];
+      if (value) config[normalizeHeaderKey(key)] = value;
+    }
+  }
+  config._updatedAt = new Date().toISOString();
+  return config;
+}
+
 export default function InstituteSettings() {
+  const { user } = useAuth();
   const [identity, setIdentity] = useState(defaults.identity);
   const [contact, setContact] = useState(defaults.contact);
   const [head, setHead] = useState(defaults.head);
   const [nodal, setNodal] = useState(defaults.nodal);
   const [registryHeaders, setRegistryHeaders] = useState(() => getHeaderFields("institute").length);
   const [customCount, setCustomCount] = useState(() => loadCustomImportFields().length);
+  const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     const config = readConfig();
@@ -74,6 +111,20 @@ export default function InstituteSettings() {
     setHead({ name: v("principal_name", defaults.head.name), role: v("principal_role", defaults.head.role), email: v("principal_email", defaults.head.email), phone: v("principal_phone", defaults.head.phone) });
     setNodal({ name: v("nodal_officer_name", defaults.nodal.name), role: v("nodal_officer_role", defaults.nodal.role), email: v("nodal_officer_email", defaults.nodal.email), phone: v("nodal_officer_phone", defaults.nodal.phone) });
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) { setApiAvailable(false); return; }
+    apiLoadProfile(user.id).then((profile) => {
+      if (profile?.identity) {
+        const id = profile.identity;
+        setIdentity({ name: id.name ?? defaults.identity.name, nickname: id.nickname ?? id.shortName ?? defaults.identity.nickname, code: id.code ?? defaults.identity.code, type: defaults.identity.type, estd: defaults.identity.estd, affiliation: defaults.identity.affiliation, motto: defaults.identity.motto });
+        setContact({ email: id.email ?? defaults.contact.email, phone: id.phone ?? defaults.contact.phone, address: id.address ?? defaults.contact.address, website: id.website ?? defaults.contact.website });
+        setHead({ name: id.headOfInstitute ?? defaults.head.name, role: defaults.head.role, email: defaults.head.email, phone: defaults.head.phone });
+        setNodal({ name: id.nodalOfficer ?? defaults.nodal.name, role: defaults.nodal.role, email: defaults.nodal.email, phone: defaults.nodal.phone });
+      }
+      setApiAvailable(true);
+    }).catch(() => setApiAvailable(false));
+  }, [user?.id]);
 
   useEffect(() => subscribeAppSync([CONFIG_KEY, instituteRegistryStorageKey, registryStorageKey, importStorageKeys.customFields], () => {
     const config = readConfig();
@@ -87,20 +138,22 @@ export default function InstituteSettings() {
   }), []);
 
   const persist = () => {
-    const config: Record<string, string> = {};
-    for (const [group, map] of Object.entries(keyMap)) {
-      for (const [prop, key] of Object.entries(map)) {
-        const value = ({ identity, contact, head, nodal } as any)[group][prop];
-        if (value) config[normalizeHeaderKey(key)] = value;
-      }
-    }
-    config._updatedAt = new Date().toISOString();
+    const config = flattenToConfig(identity, contact, head, nodal);
     writeConfig(config);
     emitAppSync(CONFIG_KEY);
     invalidateRegistryCache();
   };
 
-  const save = () => { persist(); toast.success("Institute information saved"); };
+  const save = () => {
+    persist();
+    if (apiAvailable && user?.id) {
+      apiSaveProfile(user.id, flattenToConfig(identity, contact, head, nodal), user.id)
+        .then((ok) => toast.success(ok ? "Institute information saved to database" : "Saved locally (database unavailable)"))
+        .catch(() => toast.success("Saved locally"));
+    } else {
+      toast.success("Institute information saved locally");
+    }
+  };
   const reset = () => {
     const config = readConfig();
     const v = (key: string, fallback: string) => (config[normalizeHeaderKey(key)] ?? fallback);
@@ -168,18 +221,21 @@ export default function InstituteSettings() {
       />
 
       {/* Summary chips */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
         {[
           { l: "Configured Headers", v: String(registryHeaders) },
           { l: "Custom Headers", v: String(customCount) },
           { l: "Last Updated", v: updatedAt ? new Date(updatedAt).toLocaleString() : "Never" },
+          { l: "Database", v: apiAvailable === true ? "Connected" : apiAvailable === false ? "Offline" : "Checking..." },
         ].map((c) => (
           <Card key={c.l} className="glass flex items-center justify-between p-4">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.l}</p>
               <p className="font-display text-lg font-bold">{c.v}</p>
             </div>
-            <Badge variant="secondary" className="bg-primary/15 text-primary">live</Badge>
+            <Badge variant={c.l === "Database" && apiAvailable !== true ? "outline" : "secondary"} className={c.l === "Database" ? (apiAvailable ? "bg-green-500/15 text-green-600" : "bg-amber-500/15 text-amber-600") : "bg-primary/15 text-primary"}>
+              {c.l === "Database" ? (apiAvailable ? <Database className="h-3 w-3" /> : <CloudOff className="h-3 w-3" />) : "live"}
+            </Badge>
           </Card>
         ))}
       </div>
