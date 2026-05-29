@@ -21,6 +21,7 @@ import {
 import { importStorageKeys, loadCustomImportFields } from "@/lib/student-import";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { useAuth } from "@/hooks/useAuth";
+import { bridgeInstituteProfileData } from "../../legacy/compat/instituteInfo";
 
 const CONFIG_KEY = `${instituteRegistryStorageKey}.config`;
 
@@ -105,6 +106,19 @@ export default function InstituteSettings() {
 
   useEffect(() => {
     const config = readConfig();
+    const hasData = config.institute_name;
+    if (!hasData) {
+      bridgeInstituteProfileData().then((bridged) => {
+        if (bridged) {
+          const v = (key: string, fallback: string) => (bridged[normalizeHeaderKey(key)] ?? fallback);
+          setIdentity({ name: v("institute_name", defaults.identity.name), nickname: v("institute_nickname", defaults.identity.nickname), code: v("institute_code", defaults.identity.code), type: v("institute_type", defaults.identity.type), estd: v("established_year", defaults.identity.estd), affiliation: v("affiliation", defaults.identity.affiliation), motto: v("motto", defaults.identity.motto) });
+          setContact({ email: v("institute_email", defaults.contact.email), phone: v("institute_phone", defaults.contact.phone), address: v("institute_address", defaults.contact.address), website: v("website", defaults.contact.website) });
+          setHead({ name: v("principal_name", defaults.head.name), role: v("principal_role", defaults.head.role), email: v("principal_email", defaults.head.email), phone: v("principal_phone", defaults.head.phone) });
+          setNodal({ name: v("nodal_officer_name", defaults.nodal.name), role: v("nodal_officer_role", defaults.nodal.role), email: v("nodal_officer_email", defaults.nodal.email), phone: v("nodal_officer_phone", defaults.nodal.phone) });
+          return;
+        }
+      });
+    }
     const v = (key: string, fallback: string) => (config[normalizeHeaderKey(key)] ?? fallback);
     setIdentity({ name: v("institute_name", defaults.identity.name), nickname: v("institute_nickname", defaults.identity.nickname), code: v("institute_code", defaults.identity.code), type: v("institute_type", defaults.identity.type), estd: v("established_year", defaults.identity.estd), affiliation: v("affiliation", defaults.identity.affiliation), motto: v("motto", defaults.identity.motto) });
     setContact({ email: v("institute_email", defaults.contact.email), phone: v("institute_phone", defaults.contact.phone), address: v("institute_address", defaults.contact.address), website: v("website", defaults.contact.website) });

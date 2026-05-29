@@ -81,6 +81,7 @@ export interface ImportPreviewRow {
   defaultAction: ImportResolvedAction;
   action: ImportResolvedAction;
   diffSummary: string[];
+  fieldDiffs?: Array<{ fieldKey: string; label: string; existingValue: string | null; incomingValue: string }>;
 }
 
 export interface ImportBatch {

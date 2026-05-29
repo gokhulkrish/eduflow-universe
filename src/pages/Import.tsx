@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   Cog,
   Database,
@@ -297,6 +298,7 @@ export default function Import() {
     currentValue: string;
     validValues: string[];
   } | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [reviewQueueOpen, setReviewQueueOpen] = useState(false);
   const [mapNowTarget, setMapNowTarget] = useState<string | null>(null);
   const [registryAiState, setRegistryAiState] = useState<RegistryAiState>(() => loadRegistryAiState());
@@ -742,7 +744,8 @@ export default function Import() {
         newMapped[fieldKey] = value;
       }
       const newIssues = validateRow(newMapped);
-      return { ...row, mapped: newMapped, validationIssues: newIssues };
+      const newDiffs = computeFieldDiffs(row.existing, newMapped);
+      return { ...row, mapped: newMapped, validationIssues: newIssues, fieldDiffs: newDiffs };
     });
     const summary = overriddenRows.reduce<ImportPreviewSummary>(
       (acc, row) => {
@@ -2175,7 +2178,11 @@ export default function Import() {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {(effectivePreview ?? preview).rows.slice(0, 8).map((row) => (
+                  {(effectivePreview ?? preview).rows.slice(0, 8).map((row) => {
+                    const expanded = expandedRows[row.rowKey] ?? false;
+                    const diffs = "fieldDiffs" in row ? (row as Record<string, unknown>).fieldDiffs as Array<{fieldKey: string; label: string; existingValue: string | null; incomingValue: string}> : [];
+                    const diffCount = diffs.length;
+                    return (
                     <Card key={row.rowKey} className="border-border/60 bg-card/60">
                       <div className="flex items-stretch divide-x divide-border/40">
                         <div className="flex w-24 shrink-0 flex-col items-center justify-center gap-1 p-3">
@@ -2217,15 +2224,32 @@ export default function Import() {
                               </span>
                             </div>
                           </div>
-                          {row.diffSummary.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {row.diffSummary.slice(0, 4).map((diff) => (
-                                <span key={diff} className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                  {diff}
-                                </span>
-                              ))}
-                              {row.diffSummary.length > 4 && (
-                                <span className="text-[10px] text-muted-foreground">+{row.diffSummary.length - 4}</span>
+                          {diffCount > 0 && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRows((prev) => ({ ...prev, [row.rowKey]: !prev[row.rowKey] }))}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+                                  expanded
+                                    ? "bg-muted/60 text-muted-foreground"
+                                    : "bg-primary/10 text-primary hover:bg-primary/15",
+                                )}
+                              >
+                                <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+                                {expanded ? "Hide changes" : `Show changes (${diffCount})`}
+                              </button>
+                              {!expanded && row.diffSummary.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {row.diffSummary.slice(0, 3).map((diff) => (
+                                    <span key={diff} className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                      {diff}
+                                    </span>
+                                  ))}
+                                  {row.diffSummary.length > 3 && (
+                                    <span className="text-[10px] text-muted-foreground">+{row.diffSummary.length - 3}</span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
@@ -2253,8 +2277,33 @@ export default function Import() {
                           </Select>
                         </div>
                       </div>
+                      {expanded && diffCount > 0 && (
+                        <div className="border-t border-border/40">
+                          <div className="grid grid-cols-[1fr_1fr_1fr] gap-px bg-border/40 text-[11px]">
+                            <div className="bg-card px-3 py-2 font-medium text-foreground">Field</div>
+                            <div className="bg-card px-3 py-2 font-medium text-muted-foreground">Existing</div>
+                            <div className="bg-card px-3 py-2 font-medium text-muted-foreground">New</div>
+                            {diffs.map((diff) => (
+                              <div key={diff.fieldKey} className="contents">
+                                <div className="bg-card px-3 py-1.5 text-foreground">{diff.label}</div>
+                                <div className="bg-card px-3 py-1.5">
+                                  {diff.existingValue ? (
+                                    <span className="text-destructive/70 line-through">{diff.existingValue}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground/50">—</span>
+                                  )}
+                                </div>
+                                <div className="bg-card px-3 py-1.5">
+                                  <span className="text-success">{diff.incomingValue}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </Card>
-                  ))}
+                    );
+                  })}
                   {(effectivePreview ?? preview).rows.length > 8 && (
                     <p className="text-xs text-muted-foreground">
                       Showing 8 of {(effectivePreview ?? preview).rows.length} preview rows. The commit will process the full batch.

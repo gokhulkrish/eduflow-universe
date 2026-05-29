@@ -293,6 +293,7 @@ export type ImportPreviewRow = {
   defaultAction: ImportResolvedAction;
   action: ImportResolvedAction;
   diffSummary: string[];
+  fieldDiffs: FieldDiff[];
 };
 
 export type ImportPreviewSummary = {
@@ -1242,6 +1243,7 @@ export function buildImportPreview(
       defaultAction: resolveDefaultAction(mapped, existing?.row ?? null, duplicateStatus, options.rule, validationIssues),
       action: "review" as ImportResolvedAction,
       diffSummary: getDiffSummary(mapped, existing?.row ?? null),
+      fieldDiffs: computeFieldDiffs(existing?.row ?? null, mapped),
     };
   });
 

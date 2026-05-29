@@ -23,7 +23,7 @@ import { queryLegacyStudentRegister, getLegacyStudentById } from "../../legacy/c
 import { validateImportRow } from "../../legacy/compat/importValidation";
 import { legacyCalculateScore, legacyCalculateOverallGrade } from "../../legacy/compat/scoringEngine";
 import { bridgeLegacyCertificates } from "../../legacy/compat/certificates";
-import { bridgeLegacyInstituteInfo } from "../../legacy/compat/instituteInfo";
+import { bridgeLegacyInstituteInfo, patchLegacyInstituteFunctions } from "../../legacy/compat/instituteInfo";
 
 type LegacyRouteAliasEntry = readonly [legacy: string, modern: string];
 type LegacyStorageAliasEntry = readonly [legacy: string, modern: string];
@@ -325,6 +325,7 @@ export function bootstrapLegacyAdapterLayer() {
 
   runSingletonEffect("bootstrap:legacy-adapter", "Legacy adapter listener", "registry", () => {
     seedLegacyStorageTranslations();
+    patchLegacyInstituteFunctions();
     window.addEventListener("storage", handleStorageEvent);
     window.addEventListener(LEGACY_ADAPTER_EVENT_TYPE, () => {
       mirroredLegacyEvents += 1;
