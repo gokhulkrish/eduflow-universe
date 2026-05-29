@@ -1541,11 +1541,12 @@ export async function commitImportRows(
   const auditLogReady = await tableExists("audit_log");
   const auditEntries: TablesInsert<"audit_log">[] = [];
 
-  for (const row of rows) {
-    if (signal?.aborted) return result;
+  const CONCURRENCY = 5;
+
+  async function processRow(row: ImportPreviewRow): Promise<void> {
     if (row.action === "skip" || row.action === "review" || row.validationIssues.length) {
       result.skipped += 1;
-      continue;
+      return;
     }
 
     let newStudentId: string | null = null;
@@ -1597,7 +1598,6 @@ export async function commitImportRows(
 
       if (isNew) result.inserted += 1;
       else result.updated += 1;
-      continue;
     } catch (error) {
       if (newStudentId) {
         await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
@@ -1614,6 +1614,12 @@ export async function commitImportRows(
         message: errMsg,
       });
     }
+  }
+
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    if (signal?.aborted) return result;
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(processRow));
   }
 
   if (auditLogReady) {

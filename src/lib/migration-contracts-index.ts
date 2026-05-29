@@ -60,7 +60,11 @@ export const BRIDGE_REQUIRED_MODULES = {
     label: "Certificates",
     bridgeModule: "@/legacy/compat/certificates",
     patchKey: "patch-023-certificates-bridge-wiring",
-    bridgeFunctions: ["bridgeLegacyCertificates", "getCertificateBridgeStats"],
+    bridgeFunctions: ["bridgeLegacyCertificates", "getCertificateBridgeStats", "validateCertificateTemplate", "bridgeLegacyCertificatesWorkflow", "bridgeCertificatesFromLegacyDb", "readLegacyCertificatesFromIndexedDB", "patchLegacyCertificatesFunctions"],
+    storageAliases: ["sms.certificate.log", "eduflow.certificates.v1", "sms.certificate.bridge.v1"],
+    routeAliases: ["/studentCertificates", "/viewCertificates", "/certificates"],
+    dbTable: "certificate_requests",
+    apiRoutes: ["/api/certificates/requests", "/api/certificates/templates", "/api/certificates/verify"],
   },
   collegeInfo: {
     key: "collegeInfo",

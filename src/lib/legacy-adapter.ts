@@ -22,7 +22,7 @@ import { legacyFeatureMap } from "../../legacyFeatureMap";
 import { queryLegacyStudentRegister, getLegacyStudentById } from "../../legacy/compat/studentReadAdapter";
 import { validateImportRow } from "../../legacy/compat/importValidation";
 import { legacyCalculateScore, legacyCalculateOverallGrade } from "../../legacy/compat/scoringEngine";
-import { bridgeLegacyCertificates } from "../../legacy/compat/certificates";
+import { bridgeLegacyCertificates, patchLegacyCertificatesFunctions } from "../../legacy/compat/certificates";
 import { bridgeLegacyInstituteInfo, patchLegacyInstituteFunctions } from "../../legacy/compat/instituteInfo";
 
 type LegacyRouteAliasEntry = readonly [legacy: string, modern: string];
@@ -107,6 +107,10 @@ const LEGACY_STORAGE_ALIAS_ENTRIES: LegacyStorageAliasEntry[] = [
   ["sms.institute.record", `${instituteRegistryStorageKey}.config`],
   ["eduflow.institute.profile", `${instituteRegistryStorageKey}.config`],
   ["sms.collegeInfo.v1", `${instituteRegistryStorageKey}.config`],
+  // Certificate storage bridges
+  ["sms.certificate.log", "sms.certificate.bridge.v1"],
+  ["eduflow.certificates.v1", "sms.certificate.bridge.v1"],
+  ["sms.certificate.bridge.v1", "sms.certificate.bridge.v1"],
 ];
 
 const LEGACY_EVENT_ALIAS_ENTRIES: LegacyEventAliasEntry[] = [
@@ -326,6 +330,7 @@ export function bootstrapLegacyAdapterLayer() {
   runSingletonEffect("bootstrap:legacy-adapter", "Legacy adapter listener", "registry", () => {
     seedLegacyStorageTranslations();
     patchLegacyInstituteFunctions();
+    patchLegacyCertificatesFunctions();
     window.addEventListener("storage", handleStorageEvent);
     window.addEventListener(LEGACY_ADAPTER_EVENT_TYPE, () => {
       mirroredLegacyEvents += 1;

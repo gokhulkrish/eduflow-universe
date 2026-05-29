@@ -245,7 +245,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "certificates",
     "label": "Certificates",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -253,14 +253,14 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "certificates",
     "workspaceKey": "overview",
-    "route": "",
-    "renderer": "renderCertificatesWorkspace",
+    "route": "/certificates",
+    "renderer": "renderCertificates",
     "submodules": [
-      "letters",
       "templates",
+      "requests",
+      "qr-verify",
       "issued",
-      "verification",
-      "records"
+      "bulk"
     ],
     "sourceLine": 79692,
     "domainKey": "studentRegistry",

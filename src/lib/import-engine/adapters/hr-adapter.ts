@@ -47,17 +47,15 @@ async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
 }
 
 async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?: AbortSignal): Promise<ImportCommitResult> {
-  let inserted = 0, updated = 0, skipped = 0, failed = 0;
-  const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];
-  const errors: { rowNumber: number; message: string }[] = [];
+  const result: ImportCommitResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [], rowResults: [] };
+  const CONCURRENCY = 5;
 
-  for (const row of rows) {
-    if (row.action === "skip") { skipped++; continue; }
-    if (signal?.aborted) break;
+  async function processRow(row: ImportPreviewRow): Promise<void> {
+    if (row.action === "skip") { result.skipped++; return; }
     try {
       const employeeNo = row.mapped.employeeNo || row.sourceRow.employeeNo || "";
       const fullName = row.mapped.fullName || row.sourceRow.fullName || "";
-      if (!employeeNo || !fullName) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: "Employee No and Full Name are required" }); continue; }
+      if (!employeeNo || !fullName) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: "Employee No and Full Name are required" }); return; }
 
       const email = row.mapped.email || null;
       const phone = row.mapped.phone || null;
@@ -66,26 +64,32 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?
       const { data: existingStaff } = await supabase.from("staff").select("id").eq("employee_no", employeeNo).maybeSingle();
 
       if (row.action === "insert" && !existingStaff) {
-        const { data: result, error } = await (supabase.from("staff") as any).insert({
+        const { data: res, error } = await (supabase.from("staff") as any).insert({
           employee_no: employeeNo, full_name: fullName, email, phone, designation, meta: {}, status: "active",
         }).select().single();
-        if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-        else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+        if (error) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+        else { result.inserted++; result.rowResults!.push({ rowKey: row.rowKey, id: res.id, action: "inserted" }); }
       } else if (row.action === "update" || existingStaff) {
         const targetId = existingStaff?.id;
-        if (!targetId) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Staff not found: ${employeeNo}` }); continue; }
+        if (!targetId) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: `Staff not found: ${employeeNo}` }); return; }
         const { error } = await (supabase.from("staff") as any).update({
           full_name: fullName, email, phone, designation,
         }).eq("id", targetId);
-        if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-        else { updated++; rowResults.push({ rowKey: row.rowKey, id: targetId, action: "updated" }); }
+        if (error) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+        else { result.updated++; result.rowResults!.push({ rowKey: row.rowKey, id: targetId, action: "updated" }); }
       }
     } catch (err) {
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
+      result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
     }
   }
+
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    if (signal?.aborted) break;
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(processRow));
+  }
   emitAppSync("sms.staff.v1");
-  return { inserted, updated, skipped, failed, errors, rowResults };
+  return result;
 }
 
 async function rollbackRows(rollbackData: ImportRollbackEntry[]): Promise<{ success: boolean; restored: number }> {

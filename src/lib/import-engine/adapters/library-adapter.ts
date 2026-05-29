@@ -48,17 +48,15 @@ async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
 }
 
 async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?: AbortSignal): Promise<ImportCommitResult> {
-  let inserted = 0, updated = 0, skipped = 0, failed = 0;
-  const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];
-  const errors: { rowNumber: number; message: string }[] = [];
+  const result: ImportCommitResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [], rowResults: [] };
+  const CONCURRENCY = 5;
 
-  for (const row of rows) {
-    if (row.action === "skip") { skipped++; continue; }
-    if (signal?.aborted) break;
+  async function processRow(row: ImportPreviewRow): Promise<void> {
+    if (row.action === "skip") { result.skipped++; return; }
     let newStudentId: string | null = null;
     try {
       const title = row.mapped.title || row.sourceRow.title || "";
-      if (!title) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: "Title is required" }); continue; }
+      if (!title) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: "Title is required" }); return; }
 
       const isbn = row.mapped.isbn || null;
       const authors = row.mapped.authors || null;
@@ -72,14 +70,14 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?
           const { error } = await supabase.from("library_books").update({
             quantity: quantity, available_quantity: quantity,
           } as any).eq("id", existingBook.id);
-          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-          else { updated++; rowResults.push({ rowKey: row.rowKey, id: existingBook.id, action: "updated" }); }
+          if (error) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+          else { result.updated++; result.rowResults!.push({ rowKey: row.rowKey, id: existingBook.id, action: "updated" }); }
         } else {
-          const { data: result, error } = await (supabase.from("library_books") as any).insert({
+          const { data: res, error } = await (supabase.from("library_books") as any).insert({
             title, isbn, authors, publisher, quantity, available_quantity: quantity, location_shelf: locationShelf, meta: {}, status: "active",
           }).select().single();
-          if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-          else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+          if (error) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+          else { result.inserted++; result.rowResults!.push({ rowKey: row.rowKey, id: res.id, action: "inserted" }); }
         }
       } else if (row.action === "update") {
         const admissionNo = row.mapped.admissionNo || null;
@@ -97,7 +95,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?
           const { data: books } = await supabase.from("library_books").select("id").eq("title", title).limit(1);
           if (books && books.length > 0) bookId = books[0].id;
         }
-        if (!bookId) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Book not found: ${title}` }); continue; }
+        if (!bookId) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: `Book not found: ${title}` }); return; }
 
         const { data: studentPreExisting } = admissionNo
           ? await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle()
@@ -107,22 +105,28 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?
           : null;
         if (admissionNo && !studentPreExisting) newStudentId = studentId;
 
-        const { data: result, error } = await (supabase.from("library_issues") as any).insert({
+        const { data: res, error } = await (supabase.from("library_issues") as any).insert({
           library_book_id: bookId, student_id: studentId, staff_id: staffId || null,
           issued_on: issuedOn, due_on: dueOn, fine_amount: fineAmount, status: "active",
         }).select().single();
-        if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-        else { newStudentId = null; inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+        if (error) { result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
+        else { newStudentId = null; result.inserted++; result.rowResults!.push({ rowKey: row.rowKey, id: res.id, action: "inserted" }); }
       }
     } catch (err) {
       if (newStudentId) {
         await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
       }
-      failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
+      result.failed++; result.errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
     }
   }
+
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    if (signal?.aborted) break;
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(processRow));
+  }
   emitAppSync("sms.library.v1");
-  return { inserted, updated, skipped, failed, errors, rowResults };
+  return result;
 }
 
 async function rollbackRows(rollbackData: ImportRollbackEntry[]): Promise<{ success: boolean; restored: number }> {

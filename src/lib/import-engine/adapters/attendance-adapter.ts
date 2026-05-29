@@ -58,19 +58,14 @@ async function commitRows(
   batch: ImportBatch,
   signal?: AbortSignal,
 ): Promise<ImportCommitResult> {
-  let inserted = 0;
-  let updated = 0;
-  let skipped = 0;
-  let failed = 0;
-  const errors: { rowNumber: number; message: string }[] = [];
+  const result: ImportCommitResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [] };
+  const CONCURRENCY = 5;
 
-  for (const row of rows) {
+  async function processRow(row: ImportPreviewRow): Promise<void> {
     if (row.action === "skip") {
-      skipped++;
-      continue;
+      result.skipped++;
+      return;
     }
-
-    if (signal?.aborted) break;
 
     let newStudentId: string | null = null;
 
@@ -82,16 +77,16 @@ async function commitRows(
 
       const date = row.mapped.date || "";
       if (!date) {
-        failed++;
-        errors.push({ rowNumber: row.sourceRowIndex, message: "Date is required" });
-        continue;
+        result.failed++;
+        result.errors.push({ rowNumber: row.sourceRowIndex, message: "Date is required" });
+        return;
       }
 
       const status = normalizeStatus(row.mapped.status || "");
       if (!["present", "absent", "late"].includes(status)) {
-        failed++;
-        errors.push({ rowNumber: row.sourceRowIndex, message: `Invalid status: ${row.mapped.status}` });
-        continue;
+        result.failed++;
+        result.errors.push({ rowNumber: row.sourceRowIndex, message: `Invalid status: ${row.mapped.status}` });
+        return;
       }
 
       const period = row.mapped.period || null;
@@ -113,19 +108,19 @@ async function commitRows(
               { onConflict: "student_id,date,period" },
             );
             if (upsertError) {
-              failed++;
-              errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
+              result.failed++;
+              result.errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
             } else {
               newStudentId = null;
-              updated++;
+              result.updated++;
             }
           } else {
-            failed++;
-            errors.push({ rowNumber: row.sourceRowIndex, message: insertError.message });
+            result.failed++;
+            result.errors.push({ rowNumber: row.sourceRowIndex, message: insertError.message });
           }
         } else {
           newStudentId = null;
-          inserted++;
+          result.inserted++;
         }
       } else if (row.action === "update") {
         const { error: upsertError } = await (supabase.from("attendance") as any).upsert(
@@ -133,28 +128,34 @@ async function commitRows(
           { onConflict: "student_id,date,period" },
         );
         if (upsertError) {
-          failed++;
-          errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
+          result.failed++;
+          result.errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
         } else {
           newStudentId = null;
-          updated++;
+          result.updated++;
         }
       }
     } catch (err) {
       if (newStudentId) {
         await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
       }
-      failed++;
-      errors.push({
+      result.failed++;
+      result.errors.push({
         rowNumber: row.sourceRowIndex,
         message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error"),
       });
     }
   }
 
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    if (signal?.aborted) break;
+    const chunk = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(chunk.map(processRow));
+  }
+
   emitAppSync("sms.attendance.v1");
 
-  return { inserted, updated, skipped, failed, errors };
+  return result;
 }
 
 async function rollbackRows(
