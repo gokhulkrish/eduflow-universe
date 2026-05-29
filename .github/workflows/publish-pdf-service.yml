@@ -2,11 +2,18 @@ name: Build and Publish Playwright PDF Service
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional image tag (defaults to latest and commit SHA)'
+        required: false
 
 jobs:
   build-and-push:
     name: Build and Push Docker Image to GHCR
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +37,10 @@ jobs:
           context: server/generate-certificate-pdf
           file: server/generate-certificate-pdf/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ghcr.io/${{ github.repository_owner }}/eduflow-cert-pdf:latest
             ghcr.io/${{ github.repository_owner }}/eduflow-cert-pdf:${{ github.sha }}
+            ${{ inputs.tag && format('ghcr.io/{0}/eduflow-cert-pdf:{1}', github.repository_owner, inputs.tag) }}

@@ -1,0 +1,52 @@
+name: Autofix PR CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  autofix-checks:
+    name: Autofix PR checks (CodeQL, tests, dependency review)
+    runs-on: ubuntu-latest
+    # only run when PR appears to be an Autofix suggestion
+    if: >
+      github.event_name == 'pull_request' && (
+        contains(github.event.pull_request.title, 'Autofix') ||
+        contains(github.event.pull_request.body, 'Copilot Autofix') ||
+        contains(github.event.pull_request.labels.*.name, 'autofix')
+      )
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test --if-present
+
+      - name: Dependency Review
+        uses: github/dependency-review-action@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        run: npm run build --if-present
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
