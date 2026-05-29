@@ -1528,7 +1528,8 @@ export async function commitImportRows(
     rule: ImportTransferRule;
     design: ImportMatchDesign;
     threshold: number;
-  }
+  },
+  signal?: AbortSignal,
 ): Promise<ImportCommitResult> {
   if (!(await tablesExist(["students", "enrollments"]))) {
     throw new Error("Student import is unavailable until the core student tables are installed.");
@@ -1541,6 +1542,7 @@ export async function commitImportRows(
   const auditEntries: TablesInsert<"audit_log">[] = [];
 
   for (const row of rows) {
+    if (signal?.aborted) return result;
     if (row.action === "skip" || row.action === "review" || row.validationIssues.length) {
       result.skipped += 1;
       continue;

@@ -299,6 +299,7 @@ export interface ImportModuleAdapter {
   commitRows: (
     rows: ImportPreviewRow[],
     batch: ImportBatch,
+    signal?: AbortSignal,
   ) => Promise<ImportCommitResult>;
   rollbackRows: (
     rollbackData: ImportRollbackEntry[],

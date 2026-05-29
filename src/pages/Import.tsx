@@ -25,6 +25,7 @@ import {
   Undo2,
   Upload,
   Users,
+  XCircle,
   Zap,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -311,6 +312,7 @@ export default function Import() {
   const pipelineRef = useRef<ImportPipelineState>(createImportPipelineState());
   const importInitRef = useRef(false);
   const savedBatchesRef = useRef(savedBatches);
+  const abortRef = useRef<AbortController | null>(null);
   const processedFileSignatureRef = useRef<string | null>(null);
   const profilesRef = useRef(profiles);
   profilesRef.current = profiles;
@@ -1027,6 +1029,7 @@ export default function Import() {
     ) as Record<string, ImportTargetBinding>;
 
     setCommitting(true);
+    abortRef.current = new AbortController();
     try {
       let current = getCurrentBatch();
       if (!current) {
@@ -1069,7 +1072,15 @@ export default function Import() {
         }
       }
 
-      const result = await mod.adapter.commitRows(commitPreview.rows, current);
+      const signal = abortRef.current.signal;
+      const result = await mod.adapter.commitRows(commitPreview.rows, current, signal);
+
+      if (signal.aborted) {
+        toast.info(`Cancelled. ${result.inserted} inserted, ${result.updated} updated before cancellation.`);
+        setCommitResult(result);
+        return;
+      }
+
       setCommitResult(result);
 
       if (result.rowResults?.length) {
@@ -1113,6 +1124,7 @@ export default function Import() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Commit failed");
     } finally {
+      abortRef.current = null;
       setCommitting(false);
     }
   };
@@ -2472,13 +2484,32 @@ export default function Import() {
                   Next: Finalize
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
+              ) : committing ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    disabled
+                    className="rounded-xl bg-gradient-primary shadow-glow opacity-70"
+                  >
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Committing...
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => abortRef.current?.abort()}
+                    className="rounded-xl"
+                    title="Cancel import"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : (
                 <Button
                   onClick={() => void handleCommit()}
-                  disabled={committing || !preview || preview.summary.total === 0}
+                  disabled={!preview || preview.summary.total === 0}
                   className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
                 >
-                  {committing ? "Committing..." : "Commit Import"}
+                  Commit Import
                   <Send className="ml-2 h-4 w-4" />
                 </Button>
               )

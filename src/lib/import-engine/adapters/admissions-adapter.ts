@@ -48,13 +48,14 @@ async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
   }));
 }
 
-async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promise<ImportCommitResult> {
+async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch, signal?: AbortSignal): Promise<ImportCommitResult> {
   let inserted = 0, updated = 0, skipped = 0, failed = 0;
   const rowResults: { rowKey: string; id: string; action: "inserted" | "updated" | "skipped" | "failed" }[] = [];
   const errors: { rowNumber: number; message: string }[] = [];
 
   for (const row of rows) {
     if (row.action === "skip") { skipped++; continue; }
+    if (signal?.aborted) break;
     try {
       const applicationNo = row.mapped.applicationNo || row.sourceRow.applicationNo || "";
       const fullName = row.mapped.fullName || row.sourceRow.fullName || "";

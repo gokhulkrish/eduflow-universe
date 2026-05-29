@@ -440,7 +440,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "collegeInfo",
     "label": "Institute Information",
-    "status": "needs-wiring",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -448,8 +448,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "collegeInfo",
     "workspaceKey": "overview",
-    "route": "",
-    "renderer": "renderCollegeInfoWorkspace",
+    "route": "/settings/institute",
+    "renderer": "renderInstituteSettings",
     "submodules": [
       "overview",
       "contact",

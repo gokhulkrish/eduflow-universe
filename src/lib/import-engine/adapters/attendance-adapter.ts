@@ -56,6 +56,7 @@ function normalizeStatus(raw: string): string {
 async function commitRows(
   rows: ImportPreviewRow[],
   batch: ImportBatch,
+  signal?: AbortSignal,
 ): Promise<ImportCommitResult> {
   let inserted = 0;
   let updated = 0;
@@ -68,6 +69,8 @@ async function commitRows(
       skipped++;
       continue;
     }
+
+    if (signal?.aborted) break;
 
     let newStudentId: string | null = null;
 

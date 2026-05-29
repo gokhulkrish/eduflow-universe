@@ -35,6 +35,7 @@ async function loadExistingRecords(): Promise<Record<string, unknown>[]> {
 async function commitRows(
   rows: ImportPreviewRow[],
   batch: ImportBatch,
+  signal?: AbortSignal,
 ): Promise<ImportCommitResult> {
   const result = await commitImportRows(rows as unknown as SupabaseImportPreviewRow[], {
     fileName: batch.batchName,
@@ -48,7 +49,7 @@ async function commitRows(
           : "Insert New, Ignore Existing")) as ImportTransferRule,
     design: batch.matchStrategy as ImportMatchDesign,
     threshold: 80,
-  });
+  }, signal);
 
   return toEngineCommitResult(result);
 }
