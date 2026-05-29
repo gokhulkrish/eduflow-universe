@@ -208,7 +208,11 @@ export async function streamPdfForDownload(
   onDownload?: (filename: string) => void
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(PDF_GENERATION_ENDPOINT, {
+    // Prefer an external PDF server if configured at build-time
+    const external = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_CERT_SERVER_URL;
+    const endpoint = external ? String((import.meta as any).env.VITE_CERT_SERVER_URL).replace(/\/$/, '') + '/generate' : PDF_GENERATION_ENDPOINT;
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
