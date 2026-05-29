@@ -327,13 +327,16 @@ export default function Certificates() {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
       const node = previewRef.current as HTMLElement;
-      const canvas = await html2canvas(node, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
+      // Use moderated scale and JPEG export for smaller PDF size
+      const canvas = await html2canvas(node, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
+      // Export as JPEG with quality 0.85 to reduce size significantly compared to PNG
+      const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const imgProps = (pdf as any).getImageProperties(imgData);
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Add JPEG image (smaller) to PDF
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`certificate-${request.requestId}.pdf`);
     } catch (e: any) {
       toast.error(e?.message ?? 'PDF generation failed');

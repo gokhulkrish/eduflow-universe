@@ -169,7 +169,13 @@ export const CERTIFICATE_HTML_TEMPLATE = `
       {{#if qr_token}}
       <div class="certificate-qr">
         <div class="certificate-data-label">Verification Code</div>
-        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='white'/%3E%3Ctext x='75' y='75' text-anchor='middle' dominant-baseline='middle' font-family='monospace' font-size='8' fill='black'%3E{{qr_token_short}}%3C/text%3E%3C/svg%3E" alt="QR Code" />
+          <div class="certificate-qr">
+            <!-- Inline SVG QR placeholder (vector) reduces PDF size vs embedded PNG -->
+            <svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR">
+              <rect width="150" height="150" fill="white" />
+              <text x="75" y="75" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8" fill="black">{{qr_token_short}}</text>
+            </svg>
+          </div>
         <div class="certificate-token">{{qr_token}}</div>
       </div>
       {{/if}}
