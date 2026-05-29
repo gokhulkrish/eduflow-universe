@@ -36,10 +36,10 @@ export async function getCertificateBridgeStats(): Promise<CertificateBridgeStat
   const stats: CertificateBridgeStats = {
     totalTemplates: templates?.length ?? 0,
     totalRequests: requests?.length ?? 0,
-    pendingApprovals: requests?.filter(r => r.status === "pending")?.length ?? 0,
+    pendingApprovals: requests?.filter(r => r.status === "requested")?.length ?? 0,
     issuedCertificates: requests?.filter(r => r.status === "issued")?.length ?? 0,
     revokedCertificates: requests?.filter(r => r.status === "revoked")?.length ?? 0,
-    qrVerified: requests?.filter(r => r.qr_code)?.length ?? 0,
+    qrVerified: requests?.filter(r => r.qr_base64)?.length ?? 0,
   };
   
   return stats;
