@@ -54,9 +54,13 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 
   for (const row of rows) {
     if (row.action === "skip") { skipped++; continue; }
+    let newStudentId: string | null = null;
+
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
+      const { data: preExisting } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
       const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
+      if (!preExisting) newStudentId = studentId;
 
       const examTitle = row.mapped.examTitle || row.sourceRow.examTitle || "";
       const subject = row.mapped.subject || row.sourceRow.subject || "";
@@ -84,7 +88,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         if (examId) payload.exam_id = examId;
         const { data: result, error } = await (supabase.from("exam_marks") as any).insert(payload).select().single();
         if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-        else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+        else { newStudentId = null; inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       } else if (row.action === "update") {
         const { data: existing } = await (supabase.from("exam_marks") as any)
           .select("id").eq("student_id", studentId).maybeSingle();
@@ -93,7 +97,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
             .update({ marks_obtained: marksObtained, grade, remarks: remarks || "" })
             .eq("id", existing.id);
           if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-          else { updated++; rowResults.push({ rowKey: row.rowKey, id: existing.id, action: "updated" }); }
+          else { newStudentId = null; updated++; rowResults.push({ rowKey: row.rowKey, id: existing.id, action: "updated" }); }
         } else {
           const payload: Record<string, unknown> = {
             student_id: studentId,
@@ -105,10 +109,13 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
           if (examId) payload.exam_id = examId;
           const { data: result, error } = await (supabase.from("exam_marks") as any).insert(payload).select().single();
           if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-          else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+          else { newStudentId = null; inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
         }
       }
     } catch (err) {
+      if (newStudentId) {
+        await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
+      }
       failed++;
       errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
     }

@@ -54,6 +54,7 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
 
   for (const row of rows) {
     if (row.action === "skip") { skipped++; continue; }
+    let newStudentId: string | null = null;
     try {
       const title = row.mapped.title || row.sourceRow.title || "";
       if (!title) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: "Title is required" }); continue; }
@@ -97,18 +98,25 @@ async function commitRows(rows: ImportPreviewRow[], _batch: ImportBatch): Promis
         }
         if (!bookId) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: `Book not found: ${title}` }); continue; }
 
+        const { data: studentPreExisting } = admissionNo
+          ? await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle()
+          : { data: null as any };
         const studentId = admissionNo
           ? await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "")
           : null;
+        if (admissionNo && !studentPreExisting) newStudentId = studentId;
 
         const { data: result, error } = await (supabase.from("library_issues") as any).insert({
           library_book_id: bookId, student_id: studentId, staff_id: staffId || null,
           issued_on: issuedOn, due_on: dueOn, fine_amount: fineAmount, status: "active",
         }).select().single();
         if (error) { failed++; errors.push({ rowNumber: row.sourceRowIndex, message: error.message }); }
-        else { inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
+        else { newStudentId = null; inserted++; rowResults.push({ rowKey: row.rowKey, id: result.id, action: "inserted" }); }
       }
     } catch (err) {
+      if (newStudentId) {
+        await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
+      }
       failed++; errors.push({ rowNumber: row.sourceRowIndex, message: err instanceof Error ? err.message : (err && typeof err === "object" ? ((err as Record<string, unknown>).message as string) ?? "Unknown error" : "Unknown error") });
     }
   }

@@ -69,9 +69,13 @@ async function commitRows(
       continue;
     }
 
+    let newStudentId: string | null = null;
+
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
+      const { data: preExisting } = await supabase.from("students").select("id").eq("admission_no", admissionNo).maybeSingle();
       const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
+      if (!preExisting) newStudentId = studentId;
 
       const date = row.mapped.date || "";
       if (!date) {
@@ -109,6 +113,7 @@ async function commitRows(
               failed++;
               errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
             } else {
+              newStudentId = null;
               updated++;
             }
           } else {
@@ -116,6 +121,7 @@ async function commitRows(
             errors.push({ rowNumber: row.sourceRowIndex, message: insertError.message });
           }
         } else {
+          newStudentId = null;
           inserted++;
         }
       } else if (row.action === "update") {
@@ -127,10 +133,14 @@ async function commitRows(
           failed++;
           errors.push({ rowNumber: row.sourceRowIndex, message: upsertError.message });
         } else {
+          newStudentId = null;
           updated++;
         }
       }
     } catch (err) {
+      if (newStudentId) {
+        await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
+      }
       failed++;
       errors.push({
         rowNumber: row.sourceRowIndex,

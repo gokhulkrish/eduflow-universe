@@ -1544,9 +1544,14 @@ export async function commitImportRows(
       continue;
     }
 
+    let newStudentId: string | null = null;
+
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow?.admissionNo || "";
+      const wasExisting = !!row.existing;
       const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.mapped.firstName || "");
+
+      if (!wasExisting) newStudentId = studentId;
 
       const studentPayload = buildStudentPayload(row, userId, options.rule) as TablesUpdate<"students">;
       const { error: studentError } = await supabase.from("students").update(studentPayload).eq("id", studentId);
@@ -1568,6 +1573,8 @@ export async function commitImportRows(
         if (enrollmentError) throw enrollmentError;
       }
 
+      newStudentId = null;
+
       const isNew = !row.existing || row.existing.student_id !== studentId;
       if (auditLogReady) {
         auditEntries.push({
@@ -1588,6 +1595,9 @@ export async function commitImportRows(
       else result.updated += 1;
       continue;
     } catch (error) {
+      if (newStudentId) {
+        await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
+      }
       result.failed += 1;
       const errMsg =
         error instanceof Error

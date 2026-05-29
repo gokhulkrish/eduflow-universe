@@ -68,9 +68,12 @@ async function commitRows(
       continue;
     }
 
+    let newStudentId: string | null = null;
+
     try {
       const admissionNo = row.mapped.admissionNo || row.sourceRow.admissionNo || "";
       const studentId = await ensureStudentExists(admissionNo, row.mapped.fullName || row.sourceRow.fullName || "");
+      newStudentId = studentId;
 
       const amountPaid = parseFloat(row.mapped.amountPaid || "0");
       if (isNaN(amountPaid) || amountPaid <= 0) {
@@ -100,6 +103,7 @@ async function commitRows(
           failed++;
           errors.push({ rowNumber: row.sourceRowIndex, message: insertError.message });
         } else {
+          newStudentId = null;
           inserted++;
         }
       } else if (row.action === "update") {
@@ -124,6 +128,7 @@ async function commitRows(
             failed++;
             errors.push({ rowNumber: row.sourceRowIndex, message: updateError.message });
           } else {
+            newStudentId = null;
             updated++;
           }
         } else {
@@ -142,11 +147,15 @@ async function commitRows(
             failed++;
             errors.push({ rowNumber: row.sourceRowIndex, message: insertError.message });
           } else {
+            newStudentId = null;
             inserted++;
           }
         }
       }
     } catch (err) {
+      if (newStudentId) {
+        await supabase.from("students").delete().eq("id", newStudentId).maybeSingle();
+      }
       failed++;
       errors.push({
         rowNumber: row.sourceRowIndex,
