@@ -16,3 +16,4 @@ export * from "./runtime";
 export * from "./qa";
 export * from "./mapping-registry";
 export * from "./validation-runtime";
+export * from "./backend-validation";

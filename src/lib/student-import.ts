@@ -7,6 +7,7 @@ import { ensureStudentExists, studentRegisterSyncKey } from "@/lib/student-recor
 import { tableExists, tablesExist } from "@/lib/supabase-health";
 import { trackFetchedHeader } from "@/lib/header-registry";
 import { generateId } from "@/lib/import-engine/core";
+import { runPreCommitValidation } from "@/lib/import-engine/backend-validation";
 import { getCanonicalRegistryCatalog } from "@/lib/canonical-student-fields";
 import {
   loadRegistryAiState,
@@ -1528,6 +1529,7 @@ export async function commitImportRows(
     rule: ImportTransferRule;
     design: ImportMatchDesign;
     threshold: number;
+    batchId?: string;
   },
   signal?: AbortSignal,
 ): Promise<ImportCommitResult> {
@@ -1540,6 +1542,27 @@ export async function commitImportRows(
   const result: ImportCommitResult = { inserted: 0, updated: 0, skipped: 0, failed: 0, errors: [] };
   const auditLogReady = await tableExists("audit_log");
   const auditEntries: TablesInsert<"audit_log">[] = [];
+
+  // Pre-commit validation: backend enum validation + dependency check
+  if (!signal?.aborted) {
+    const preCheck = await runPreCommitValidation(
+      rows.map((r) => r.mapped),
+      options.batchId ?? null,
+      signal,
+    );
+
+    if (preCheck.dependencyErrors.length > 0) {
+      const msgs = preCheck.dependencyErrors.map((d) => d.message).join("; ");
+      throw new Error(`Pre-commit dependency check failed: ${msgs}`);
+    }
+
+    if (preCheck.enumErrors.length > 0) {
+      const msgs = preCheck.enumErrors.map(
+        (e) => `"${e.value}" is not a valid ${e.field}. Valid values: ${e.valid.join(", ")}`,
+      );
+      throw new Error(`Backend enum validation failed:\n${msgs.join("\n")}`);
+    }
+  }
 
   const CONCURRENCY = 5;
 

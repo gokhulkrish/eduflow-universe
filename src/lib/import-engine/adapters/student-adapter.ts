@@ -49,6 +49,7 @@ async function commitRows(
           : "Insert New, Ignore Existing")) as ImportTransferRule,
     design: batch.matchStrategy as ImportMatchDesign,
     threshold: 80,
+    batchId: batch.batchId,
   }, signal);
 
   return toEngineCommitResult(result);

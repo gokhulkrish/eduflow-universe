@@ -2257,3 +2257,132 @@ create policy "erp_workspace_events_select" on public.erp_workspace_events for s
 create policy "erp_workspace_events_insert" on public.erp_workspace_events for insert with check (true);
 create policy "erp_workspace_events_update" on public.erp_workspace_events for update using (true) with check (true);
 create policy "erp_workspace_events_delete" on public.erp_workspace_events for delete using (true);
+
+-- Import backend enum validation function.
+-- Called by the import engine before committing rows to validate enum values
+-- against the actual PostgreSQL enum types and hardcoded canonical lists.
+create or replace function public.validate_import_enums(payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  result jsonb := '[]'::jsonb;
+  err_row jsonb;
+  row_rec record;
+  field_key text;
+  field_value text;
+  valid_values text[];
+  expected text[];
+  valid_lower text[];
+  val_lower text;
+  v text;
+begin
+  for row_rec in select * from jsonb_array_elements(payload) as r
+  loop
+    -- gender
+    field_value := row_rec.r ->> 'gender';
+    if field_value is not null and field_value <> '' then
+      expected := array['Male','Female','Other','Prefer not to say'];
+      valid_lower := array[]::text[];
+      foreach v in array expected
+      loop
+        valid_lower := valid_lower || lower(v);
+      end loop;
+      if not (lower(field_value) = any(valid_lower)) then
+        err_row := jsonb_build_object(
+          'field', 'gender',
+          'value', field_value,
+          'valid', to_jsonb(expected)
+        );
+        result := result || jsonb_build_array(err_row);
+      end if;
+    end if;
+
+    -- bloodGroup
+    field_value := row_rec.r ->> 'bloodGroup';
+    if field_value is not null and field_value <> '' then
+      expected := array['A+','A-','B+','B-','O+','O-','AB+','AB-'];
+      valid_lower := array[]::text[];
+      foreach v in array expected
+      loop
+        valid_lower := valid_lower || lower(v);
+      end loop;
+      if not (lower(field_value) = any(valid_lower)) then
+        err_row := jsonb_build_object(
+          'field', 'bloodGroup',
+          'value', field_value,
+          'valid', to_jsonb(expected)
+        );
+        result := result || jsonb_build_array(err_row);
+      end if;
+    end if;
+
+    -- firstGraduate
+    field_value := row_rec.r ->> 'firstGraduate';
+    if field_value is not null and field_value <> '' then
+      val_lower := lower(field_value);
+      if val_lower not in ('yes', 'no', 'true', 'false', '1', '0') then
+        err_row := jsonb_build_object(
+          'field', 'firstGraduate',
+          'value', field_value,
+          'valid', '["Yes","No"]'::jsonb
+        );
+        result := result || jsonb_build_array(err_row);
+      end if;
+    end if;
+
+    -- incomeVerified (maps to verification_status DB enum)
+    field_value := row_rec.r ->> 'incomeVerified';
+    if field_value is not null and field_value <> '' then
+      select array_agg(e.enumlabel order by e.enumsortorder::int)
+      into valid_values
+      from pg_enum e
+      join pg_type t on t.oid = e.enumtypid
+      where t.typname = 'verification_status';
+      if valid_values is not null then
+        valid_lower := array[]::text[];
+        foreach v in array valid_values
+        loop
+          valid_lower := valid_lower || lower(v);
+        end loop;
+        if not (lower(field_value) = any(valid_lower)) then
+          err_row := jsonb_build_object(
+            'field', 'incomeVerified',
+            'value', field_value,
+            'valid', to_jsonb(valid_values)
+          );
+          result := result || jsonb_build_array(err_row);
+        end if;
+      end if;
+    end if;
+
+    -- status (maps to student_status DB enum)
+    field_value := row_rec.r ->> 'status';
+    if field_value is not null and field_value <> '' then
+      select array_agg(e.enumlabel order by e.enumsortorder::int)
+      into valid_values
+      from pg_enum e
+      join pg_type t on t.oid = e.enumtypid
+      where t.typname = 'student_status';
+      if valid_values is not null then
+        valid_lower := array[]::text[];
+        foreach v in array valid_values
+        loop
+          valid_lower := valid_lower || lower(v);
+        end loop;
+        if not (lower(field_value) = any(valid_lower)) then
+          err_row := jsonb_build_object(
+            'field', 'status',
+            'value', field_value,
+            'valid', to_jsonb(valid_values)
+          );
+          result := result || jsonb_build_array(err_row);
+        end if;
+      end if;
+    end if;
+  end loop;
+
+  return result;
+end;
+$$;

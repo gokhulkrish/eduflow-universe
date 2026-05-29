@@ -86,6 +86,7 @@ export function createSupabaseCommitFn(
       rule: options.rule as ImportTransferRule,
       design: options.design as ImportMatchDesign,
       threshold: options.threshold,
+      batchId: _batch.batchId,
     });
 
     return toEngineCommitResult(result);
