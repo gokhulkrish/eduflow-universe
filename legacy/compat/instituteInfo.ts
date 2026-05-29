@@ -181,7 +181,7 @@ let institutePatcherActive = false;
 
 export function patchLegacyInstituteFunctions() {
   if (institutePatcherActive || typeof window === "undefined") return;
-  const w = window as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>;
 
   const origRender = w.renderInstituteInformationPage;
   if (typeof origRender === "function") {
