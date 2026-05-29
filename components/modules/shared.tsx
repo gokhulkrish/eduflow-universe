@@ -98,7 +98,7 @@ export function ModuleCardShell({ definition, count = 0, trend = [], onAdd, onOp
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
           <span>Submodules</span>
-          <span>{definition.sourceLine ? `SMS-2.html:${definition.sourceLine}` : 'Source registry'}</span>
+          <span>Source registry</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {definition.submodules.length ? definition.submodules.map(submodule => (

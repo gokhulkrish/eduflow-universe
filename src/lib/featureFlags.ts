@@ -171,6 +171,18 @@ export const MIGRATION_PATCH_FLAGS: MigrationFlagDefinition[] = [
     description: "Incremental compatibility for institute profile, accreditation info, contact details, and governance records.",
     defaultEnabled: true,
   },
+  {
+    key: "patch-025-user-management-gate",
+    label: "Patch 025: User Management migration gate",
+    description: "Keep User Management behind the migration gate until its workflow, persistence, and state contracts are confirmed safe.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-026-ifhrms-gate",
+    label: "Patch 026: IFHRMS migration gate",
+    description: "Integrated Financial & Human Resource Management — next-gen HR module with contracts, audit, bulk ops, and user management integration.",
+    defaultEnabled: true,
+  },
 ];
 
 const isBrowser = () => typeof window !== "undefined";

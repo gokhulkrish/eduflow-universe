@@ -37,6 +37,10 @@ export type StudentRegisterRow = {
   guardian_phone: string | null;
   community: string | null;
   district: string | null;
+  /** Academic year label from enrollment (e.g. "2025-2026") */
+  academic_year?: string | null;
+  /** Academic stream/branch from enrollment (e.g. "CSE", "ECE") */
+  stream?: string | null;
 };
 
 type SupabaseLikeError = {
@@ -381,6 +385,8 @@ const normalizeStudentRegisterRowFromView = (row: Record<string, unknown>): Stud
   guardian_phone: typeof row.guardian_phone === "string" ? row.guardian_phone : null,
   community: typeof row.community === "string" ? row.community : null,
   district: typeof row.district === "string" ? row.district : null,
+  academic_year: typeof row.academic_year === "string" ? row.academic_year : null,
+  stream: typeof row.stream === "string" ? row.stream : null,
 });
 
 const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): StudentRegisterRow => ({
@@ -411,6 +417,8 @@ const normalizeStudentRegisterRowFromStudent = (row: Record<string, unknown>): S
   guardian_phone: readMetaString(row.meta as Json | null, "family", "guardianPhone"),
   community: null,
   district: null,
+  academic_year: typeof row.academic_year === "string" ? row.academic_year : readMetaString(row.meta as Json | null, "academic", "academicYear") || null,
+  stream: typeof row.stream === "string" ? row.stream : readMetaString(row.meta as Json | null, "academic", "stream") || null,
 });
 
 export async function fetchStudentFormValues(studentId: string): Promise<StudentFormValues> {

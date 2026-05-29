@@ -8,6 +8,8 @@ import { tableExists, tablesExist } from "@/lib/supabase-health";
 import { trackFetchedHeader } from "@/lib/header-registry";
 import { generateId } from "@/lib/import-engine/core";
 import { runPreCommitValidation } from "@/lib/import-engine/backend-validation";
+import type { ImportResolvedAction, ImportMatchStatus, ImportDuplicateGroupDecision, ImportPreviewSummary } from "@/lib/import-engine/types";
+export type { ImportResolvedAction, ImportMatchStatus, ImportDuplicateGroupDecision, ImportPreviewSummary };
 import { getCanonicalRegistryCatalog } from "@/lib/canonical-student-fields";
 import {
   loadRegistryAiState,
@@ -230,10 +232,6 @@ export type ParsedImportFile = {
   rows: ImportSourceRow[];
 };
 
-export type ImportResolvedAction = "insert" | "update" | "skip" | "review";
-export type ImportMatchStatus = "exact" | "fuzzy" | "none" | "internal-duplicate";
-export type ImportDuplicateGroupDecision = "keep-first" | "keep-last" | "skip-group" | "manual-review" | "match-existing";
-
 export type ExistingStudentRecord = {
   student_id: string;
   enrollment_id: string | null;
@@ -295,19 +293,6 @@ export type ImportPreviewRow = {
   action: ImportResolvedAction;
   diffSummary: string[];
   fieldDiffs: FieldDiff[];
-};
-
-export type ImportPreviewSummary = {
-  total: number;
-  valid: number;
-  invalid: number;
-  inserts: number;
-  updates: number;
-  skips: number;
-  reviews: number;
-  exactMatches: number;
-  fuzzyMatches: number;
-  internalDuplicates: number;
 };
 
 export type ImportCommitResult = {

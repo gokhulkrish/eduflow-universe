@@ -2,15 +2,7 @@ import type { RegistryFieldConfig } from "@/lib/registry-groups";
 import { getHeaderFieldEntries } from "@/lib/registry-groups";
 import { getCanonicalRegistryCatalog } from "@/lib/canonical-student-fields";
 import { loadRegistryAiState } from "@/lib/registry-ai-queue";
-
-export type CanonicalFieldSource =
-  | 'base'
-  | 'custom'
-  | 'fetched'
-  | 'import'
-  | 'legacy-internal';
-
-export type CanonicalFieldStatus = 'active' | 'archived' | 'deleted';
+import type { CanonicalFieldSource, CanonicalFieldStatus } from "@/lib/canonical-student-field.types";
 
 export interface RegistryFieldRow {
   id: string;

@@ -63,11 +63,4 @@ export type DuplicateDecision =
   | 'merge_manual'
   | 'skip';
 
-export interface ImportPreviewSummary {
-  totalRows: number;
-  validRows: number;
-  duplicateRows: number;
-  invalidRows: number;
-  readyRows: number;
-  warnings: string[];
-}
+

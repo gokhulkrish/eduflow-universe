@@ -1,6 +1,7 @@
 import "@/lib/runtime-storage";
 import { emitAppSync } from "@/lib/app-sync";
 import { generateId } from "@/lib/utils";
+import { PROGRAMS, SECTIONS } from "@/lib/class-mgmt";
 
 export type PromotionRule = { id: string; name: string; from_grade: string; to_grade: string; from_section: string; to_section: string; min_attendance: number; min_gpa: number; auto_promote: boolean; reset_roll: boolean; status: string; created_at: string; };
 export type PromotionRun = { id: string; rule_id: string; name: string; promoted: number; failed: number; total: number; run_at: string; status: string; };
@@ -52,9 +53,8 @@ export function reallocateSections(students: string[], sections: string[]): Reco
   return result;
 }
 
-export const PROGRAMS = ["B.A. Sem 1", "B.A. Sem 2", "B.Com Sem 1", "B.Com Sem 2", "B.Sc Sem 1", "B.Sc Sem 2", "BBA Sem 1", "BBA Sem 2"];
+export { PROGRAMS, SECTIONS };
 export const GRADES = PROGRAMS;
-export const SECTIONS = ["A", "B", "C", "D"];
 export function nextProgram(g: string): string {
   const idx = PROGRAMS.indexOf(g); return idx >= 0 && idx < PROGRAMS.length - 1 ? PROGRAMS[idx + 1] : g;
 }

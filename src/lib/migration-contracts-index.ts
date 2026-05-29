@@ -7,11 +7,10 @@
 
 // Certificates Bridge
 export * from "./certificates";
-export { bridgeLegacyCertificates, getCertificateBridgeStats, validateCertificateTemplate } from "@/legacy/compat/certificates";
+export { bridgeLegacyCertificates, getCertificateBridgeStats, validateCertificateTemplate } from "../../legacy/compat/certificates";
 
 // Institute Info Bridge
-export * from "./instituteInfo";
-export { bridgeLegacyInstituteInfo, parseInstituteProfile, validateInstituteProfile } from "@/legacy/compat/instituteInfo";
+export { bridgeLegacyInstituteInfo, parseInstituteProfile, validateInstituteProfile } from "../../legacy/compat/instituteInfo";
 
 // User Management State Contract
 export * from "./user-management-state";
@@ -58,7 +57,7 @@ export const BRIDGE_REQUIRED_MODULES = {
   certificates: {
     key: "certificates",
     label: "Certificates",
-    bridgeModule: "@/legacy/compat/certificates",
+    bridgeModule: "../../legacy/compat/certificates",
     patchKey: "patch-023-certificates-bridge-wiring",
     bridgeFunctions: ["bridgeLegacyCertificates", "getCertificateBridgeStats", "validateCertificateTemplate", "bridgeLegacyCertificatesWorkflow", "bridgeCertificatesFromLegacyDb", "readLegacyCertificatesFromIndexedDB", "patchLegacyCertificatesFunctions", "processLegacyGenerateCall", "consumePendingBridgeEntries", "migratePendingBridgeEntries"],
     storageAliases: ["sms.certificate.log", "eduflow.certificates.v1", "sms.certificate.bridge.v1"],
@@ -69,7 +68,7 @@ export const BRIDGE_REQUIRED_MODULES = {
   collegeInfo: {
     key: "collegeInfo",
     label: "Institute Information",
-    bridgeModule: "@/legacy/compat/instituteInfo",
+    bridgeModule: "../../legacy/compat/instituteInfo",
     patchKey: "patch-024-collegeinfo-bridge-wiring",
     bridgeFunctions: ["bridgeLegacyInstituteInfo", "parseInstituteProfile", "validateInstituteProfile"],
     storageAliases: ["sms.institute.record", "eduflow.institute.profile", "sms.collegeInfo.v1"],

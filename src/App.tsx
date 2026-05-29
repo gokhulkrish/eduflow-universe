@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import RouteAccessGuard from "@/components/RouteAccessGuard";
 import { LEGACY_ROUTE_ALIASES } from "@/lib/legacy-adapter";
+import { isMigrationFlagEnabled } from "@/lib/featureFlags";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeAppSync } from "@/lib/app-sync";
 import { importStorageKeys } from "@/lib/student-import";
@@ -22,6 +23,7 @@ import { studentRegisterSyncKey } from "@/lib/student-records";
 import { requestMonitoringRefresh } from "@/lib/monitoring-refresh";
 import { ensureCanonicalStudentFields } from "@/lib/canonical-student-fields";
 import { useActivityTrace } from "@/stores/activityTrace";
+import { Shield, Briefcase } from "lucide-react";
 import { initializeTraceProfiles } from "@/stores/traceProfiles";
 
 function retryableLazy<T extends ComponentType<any>>(importFn: () => Promise<{ default: T }>) {
@@ -97,6 +99,7 @@ const Certificates = retryableLazy(() => import("./pages/Certificates"));
 const Reports = retryableLazy(() => import("./pages/Reports"));
 const Timetable = retryableLazy(() => import("./pages/Timetable"));
 const HR = retryableLazy(() => import("./pages/HR"));
+const IFHRMS = retryableLazy(() => import("./pages/IFHRMS"));
 const Assignments = retryableLazy(() => import("./pages/Assignments"));
 const Notifications = retryableLazy(() => import("./pages/Notifications"));
 const ParentPortal = retryableLazy(() => import("./pages/ParentPortal"));
@@ -170,6 +173,11 @@ const DataQualityDashboard = retryableLazy(() => import("./pages/DataQualityDash
 const MissingCriticalFields = retryableLazy(() => import("./pages/MissingCriticalFields"));
 const LandingProfileSettings = retryableLazy(() => import("./pages/LandingProfileSettings"));
 const CapabilityProfilesPage = retryableLazy(() => import("./pages/CapabilityProfilesPage"));
+const ItAssets = retryableLazy(() => import("./pages/ItAssets"));
+const ItHelpdesk = retryableLazy(() => import("./pages/ItHelpdesk"));
+const ItLabs = retryableLazy(() => import("./pages/ItLabs"));
+const ItNetwork = retryableLazy(() => import("./pages/ItNetwork"));
+const IotDevices = retryableLazy(() => import("./pages/IotDevices"));
 
 import { initRegistryStorage } from "@/lib/header-registry";
 
@@ -183,7 +191,7 @@ const queryClient = new QueryClient({
     },
   },
 });
-const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance","homework","video-rooms","administration","system","departments","curriculum","lms","research","accreditation","health","documents","procurement","monitor","scoring","trace"]);
+const dedicated = new Set(["attendance","staff","fees","library","hostel","transport","certificates","exams","reports","timetable","hr","ifhrms","assignments","notifications","parents","chat","live","ai","online-exams","comms","placement","leave","events","id-cards","promotion","backups","security","settings","admissions","holidays","leave-master","class-mgmt","subjects","lessons","notice-board","media","discipline","telephone","class-wall","activity-log","reception","tasks","alumni","quiz","inventory","accounts","course-information","student-information","user-management","student-search","scholarship","grievance","homework","video-rooms","administration","system","departments","curriculum","lms","research","accreditation","health","documents","procurement","monitor","scoring","trace","it-assets","it-helpdesk","it-labs","it-network","iot-devices"]);
 function PageLoader() {
   return (
     <div className="flex h-[60vh] items-center justify-center">
@@ -312,6 +320,7 @@ const PATH_LABELS: Record<string, string> = {
   "/reports": "Reports",
   "/timetable": "Timetable",
   "/hr": "HR",
+  "/ifhrms": "IFHRMS",
   "/assignments": "Assignments",
   "/notifications": "Notifications",
   "/parents": "Parent Portal",
@@ -344,6 +353,11 @@ const PATH_LABELS: Record<string, string> = {
   "/alumni": "Alumni",
   "/quiz": "Quiz",
   "/inventory": "Inventory",
+  "/it-assets": "IT Assets",
+  "/it-helpdesk": "IT Helpdesk",
+  "/it-labs": "IT Labs",
+  "/it-network": "IT Network",
+  "/iot-devices": "IoT Devices",
   "/accounts": "Accounts",
   "/course-information": "Course Information",
   "/student-information": "Student Information",
@@ -441,6 +455,11 @@ const App = () => {
                 <Route path="/reports" element={<LazyRoute element={<Reports />} />} />
                 <Route path="/timetable" element={<LazyRoute element={<Timetable />} />} />
                 <Route path="/hr" element={<LazyRoute element={<HR />} />} />
+                <Route path="/ifhrms" element={
+                  isMigrationFlagEnabled("patch-026-ifhrms-gate")
+                    ? <LazyRoute element={<IFHRMS />} />
+                    : <LazyRoute element={<div className="flex h-[60vh] items-center justify-center"><div className="flex flex-col items-center gap-3"><Briefcase className="h-12 w-12 text-muted-foreground" /><p className="text-lg font-medium text-muted-foreground">IFHRMS</p><p className="text-sm text-muted-foreground">Coming soon — gated behind migration patch 026</p></div></div>} />
+                } />
                 <Route path="/assignments" element={<LazyRoute element={<Assignments />} />} />
                 <Route path="/notifications" element={<LazyRoute element={<Notifications />} />} />
                 <Route path="/parents" element={<LazyRoute element={<ParentPortal />} />} />
@@ -482,10 +501,19 @@ const App = () => {
                 <Route path="/alumni" element={<LazyRoute element={<AlumniModule />} />} />
                 <Route path="/quiz" element={<LazyRoute element={<QuizModule />} />} />
                 <Route path="/inventory" element={<LazyRoute element={<InventoryModule />} />} />
+                <Route path="/it-assets" element={<LazyRoute element={<ItAssets />} />} />
+                <Route path="/it-helpdesk" element={<LazyRoute element={<ItHelpdesk />} />} />
+                <Route path="/it-labs" element={<LazyRoute element={<ItLabs />} />} />
+                <Route path="/it-network" element={<LazyRoute element={<ItNetwork />} />} />
+                <Route path="/iot-devices" element={<LazyRoute element={<IotDevices />} />} />
                 <Route path="/accounts" element={<LazyRoute element={<AccountManagement />} />} />
                 <Route path="/course-information" element={<LazyRoute element={<CourseInformation />} />} />
                 <Route path="/student-information" element={<LazyRoute element={<StudentInformation />} />} />
-                <Route path="/user-management" element={<LazyRoute element={<UserManagement />} />} />
+                <Route path="/user-management" element={
+                  isMigrationFlagEnabled("patch-025-user-management-gate")
+                    ? <LazyRoute element={<UserManagement />} />
+                    : <LazyRoute element={<div className="flex h-[60vh] items-center justify-center"><div className="flex flex-col items-center gap-3"><Shield className="h-12 w-12 text-muted-foreground" /><p className="text-lg font-medium text-muted-foreground">User Management</p><p className="text-sm text-muted-foreground">Coming soon — gated behind migration patch 025</p></div></div>} />
+                } />
                 <Route path="/student-search" element={<LazyRoute element={<StudentSearch />} />} />
                 <Route path="/scholarship" element={<LazyRoute element={<Scholarship />} />} />
                 <Route path="/grievance" element={<LazyRoute element={<GrievanceRedressal />} />} />

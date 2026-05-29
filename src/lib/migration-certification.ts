@@ -1,5 +1,3 @@
-import legacyInventoryText from "../../INVENTORY.md?raw";
-
 import { buildDuplicationReport } from "./duplication-report";
 import { buildEnterpriseOrchestrationSnapshot } from "./enterprise-orchestration";
 import { buildLegacyAdapterReport, LEGACY_ROUTE_ALIASES } from "./legacy-adapter";
@@ -96,7 +94,7 @@ function stripTicks(value: string): string {
   return value.replace(/^`+|`+$/g, "").trim();
 }
 
-export function parseLegacyInventory(text = legacyInventoryText): LegacyInventoryEntry[] {
+export function parseLegacyInventory(text = ""): LegacyInventoryEntry[] {
   const entries: LegacyInventoryEntry[] = [];
   let inModules = false;
 

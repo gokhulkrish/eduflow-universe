@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Award, Plus, Search, CheckCircle, XCircle, Ban, FileDown, QrCode, Loader2, Eye, Trash2, Copy, Download } from "lucide-react";
+import { Award, Plus, Search, CheckCircle, XCircle, Ban, FileDown, QrCode, Loader2, Eye, Trash2, Copy, Download, ChevronDown, ChevronUp, ScrollText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { generatePdfOnServer, generateSignedPdfOnServer } from "@/lib/certificates-client";
@@ -24,12 +24,17 @@ import {
   getRequests, createRequest, approveRequest, issueRequest, revokeRequest, deleteRequest,
   verifyByQr, lookupByCertificateNo,
   getStatusColor, getNextStatus,
+  bulkGenerateRequests, bulkIssue,
+  stageApprove, stageReject, getWorkflowHistory,
+  WORKFLOW_STAGES, getStageLabel, getStageColor,
+  type WorkflowStageId, type WorkflowAction,
   type CertTemplate, type CertRequest, type CertRequestJoined,
 } from "@/lib/certificates";
 import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-records";
 import { generateCertificateHtml, prepareCertificateData, printCertificate, CERTIFICATE_HTML_TEMPLATE } from "@/lib/certificate-styles";
 import { generatePdfServerSide, streamPdfForDownload } from "@/lib/certificate-pdf-service";
 import { migratePendingBridgeEntries } from "../../legacy/compat/certificates";
+import { useAuth } from "@/hooks/useAuth";
 
 const toastErr = (e: unknown) => toast.error((e as any)?.message ?? String(e));
 
@@ -177,6 +182,7 @@ const DEFAULT_BONAFIDE_TEMPLATE = `<!DOCTYPE html>
 
 export default function Certificates() {
   const qc = useQueryClient();
+  const { roles } = useAuth();
   const [tab, setTab] = useState("templates");
 
   const { data: templates, isLoading: tl } = useQuery({ queryKey: ["cert-templates"], queryFn: getTemplates });
@@ -252,6 +258,7 @@ export default function Certificates() {
 
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [revokeReason, setRevokeReason] = useState("");
+  const [revokeMode, setRevokeMode] = useState<"reject" | "revoke">("revoke");
   const revokeMut = useMutation({
     mutationFn: () => revokeRequest(revokeId!, revokeReason),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); setRevokeId(null); setRevokeReason(""); toast.success("Certificate revoked"); },
@@ -279,19 +286,24 @@ export default function Certificates() {
       purpose: req.purpose ?? undefined,
       issued_at: req.issued_at ?? undefined,
       qr_token: req.qr_token ?? undefined,
-      // include legacy fields for backward compatibility
+      year: req.year ?? undefined,
+      branch: req.branch ?? undefined,
+      academic_year: req.academic_year ?? undefined,
+      section: req.section ?? undefined,
+      grade: req.grade ?? undefined,
+      // include legacy uppercase fields for backward compatibility
       NAME: req.student_name ?? undefined,
       ROLL: req.admission_no ?? undefined,
-      YEAR: (req as any).year ?? undefined,
-      BRANCH: (req as any).branch ?? undefined,
-      ACADEMIC_YEAR: (req as any).academic_year ?? undefined,
+      YEAR: req.year ?? undefined,
+      BRANCH: req.branch ?? undefined,
+      ACADEMIC_YEAR: req.academic_year ?? undefined,
       APPLICATION_DATE: req.issued_at ?? undefined,
       APPLICATION_PURPOSE: req.purpose ?? undefined,
-      AUTHORITY: (req as any).authority ?? undefined,
-      NO: (req as any).no ?? undefined,
-      DATED: (req as any).dated ?? req.issued_at ?? undefined,
-      qr_token_short: ((req as any).qr_token ?? "").slice(0, 16),
-      qr_src: (req as any).qr_base64 ? `data:image/png;base64,${(req as any).qr_base64}` : undefined,
+      AUTHORITY: req.authority ?? undefined,
+      NO: req.no ?? undefined,
+      DATED: req.dated ?? req.issued_at ?? undefined,
+      qr_token_short: (req.qr_token ?? "").slice(0, 16),
+      qr_src: req.qr_base64 ? `data:image/png;base64,${req.qr_base64}` : undefined,
     } as Record<string, any>);
 
     // generateCertificateHtml will substitute variables and conditionals
@@ -466,15 +478,85 @@ export default function Certificates() {
     onError: (e) => toastErr(e),
   });
 
+  // Search / filter state
+  const [reqSearch, setReqSearch] = useState("");
+  const [issuedSearch, setIssuedSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState<"all" | WorkflowStageId>("all");
+
+  // Timeline dialog
+  const [tlReqId, setTlReqId] = useState<string | null>(null);
+  const [tlActions, setTlActions] = useState<WorkflowAction[]>([]);
+  const [tlLoading, setTlLoading] = useState(false);
+
+  const openTimeline = async (id: string) => {
+    setTlReqId(id);
+    setTlLoading(true);
+    try { setTlActions(await getWorkflowHistory(id)); }
+    catch { setTlActions([]); }
+    setTlLoading(false);
+  };
+
+  // Stage-appropriate mutations
+  const stageApproveMut = useMutation({
+    mutationFn: (id: string) => stageApprove(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); toast.success("Stage approved — moved forward"); },
+    onError: (e) => toastErr(e),
+  });
+
+  const stageRejectMut = useMutation({
+    mutationFn: () => stageReject(revokeId!, revokeReason),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["cert-requests"] }); setRevokeId(null); setRevokeReason(""); toast.success("Request rejected at current stage"); },
+    onError: (e) => toastErr(e),
+  });
+
+  // Derive user's role-matched stages
+  const myStages = WORKFLOW_STAGES.filter((s) => s.roles.some((r) => roles.includes(r as any))).map((s) => s.id);
+
   const issued = (requests ?? []).filter((r) => r.status === "issued");
+  const inReview = (requests ?? []).filter((r) => r.currentStage && r.status !== "issued" && r.status !== "revoked");
   const pending = (requests ?? []).filter((r) => r.status === "requested" || r.status === "approved");
 
-  const pag1 = usePagination({ data: requests ?? [], pageSize: 10 });
-  const pag2 = usePagination({ data: issued, pageSize: 10 });
+  const filteredRequests = (requests ?? []).filter((r) =>
+    (!reqSearch ||
+      (r.student_name ?? "").toLowerCase().includes(reqSearch.toLowerCase()) ||
+      (r.admission_no ?? "").toLowerCase().includes(reqSearch.toLowerCase()) ||
+      (r.template_name ?? "").toLowerCase().includes(reqSearch.toLowerCase()) ||
+      (r.purpose ?? "").toLowerCase().includes(reqSearch.toLowerCase())) &&
+    (stageFilter === "all" || r.currentStage === stageFilter)
+  );
+  const filteredIssued = issued.filter((r) =>
+    !issuedSearch ||
+    (r.student_name ?? "").toLowerCase().includes(issuedSearch.toLowerCase()) ||
+    (r.admission_no ?? "").toLowerCase().includes(issuedSearch.toLowerCase()) ||
+    (r.template_name ?? "").toLowerCase().includes(issuedSearch.toLowerCase())
+  );
+
+  const pag1 = usePagination({ data: filteredRequests, pageSize: 10 });
+  const pag2 = usePagination({ data: filteredIssued, pageSize: 10 });
 
   return (
     <div>
       <PageHeader title="Certificates Engine" subtitle="Templates, requests, QR verification & bulk generation" icon={<Award className="h-6 w-6" />} />
+
+      {/* Stats cards */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-4">
+        <Card className="border-success/20 bg-success/5">
+          <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground font-normal">Templates</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{templates?.length ?? 0}</p></CardContent>
+        </Card>
+        <Card className="border-warning/20 bg-warning/5">
+          <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground font-normal">In Review</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{inReview.length}</p></CardContent>
+        </Card>
+        <Card className="border-info/20 bg-info/5">
+          <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground font-normal">Issued</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{issued.length}</p></CardContent>
+        </Card>
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground font-normal">Revoked</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{(requests ?? []).filter((r) => r.status === "revoked").length}</p></CardContent>
+        </Card>
+      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
@@ -518,11 +600,34 @@ export default function Certificates() {
         {/* ══════ REQUESTS ══════ */}
         <TabsContent value="requests">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">{requests?.length ?? 0} requests</p>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-muted-foreground">{filteredRequests.length}/{requests?.length ?? 0} requests</p>
+              <Input placeholder="Search student, template, purpose…" value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} className="h-8 w-48 text-xs" />
+            </div>
             <Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setReqTplId(""); setReqStudentId(""); setReqPurpose(""); setReqOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New Request
             </Button>
           </div>
+
+          {/* Stage filter pills */}
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            <button onClick={() => setStageFilter("all")}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${stageFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+              All
+            </button>
+            {WORKFLOW_STAGES.map((s) => {
+              const count = (requests ?? []).filter((r) => r.currentStage === s.id).length;
+              const isMyStage = myStages.includes(s.id);
+              return (
+                <button key={s.id} onClick={() => setStageFilter(s.id)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${stageFilter === s.id ? "bg-primary text-primary-foreground" : isMyStage ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+                  {s.label} {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+                  {isMyStage && stageFilter !== s.id && <span className="ml-1 text-[10px] opacity-60">●</span>}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="overflow-x-auto rounded-lg border">
             <TablePagination {...pag1} />
             <Table className="min-w-max">
@@ -531,36 +636,70 @@ export default function Certificates() {
                   <TableHead className="text-xs">Student</TableHead>
                   <TableHead className="text-xs">Template</TableHead>
                   <TableHead className="text-xs">Purpose</TableHead>
+                  <TableHead className="text-xs">Stage</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs">QR Token</TableHead>
                   <TableHead className="text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(requests ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">No requests yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No requests yet</TableCell></TableRow>
                 )}
                 {pag1.pageData.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell><span className="text-sm font-medium">{r.student_name ?? "—"}</span><br /><span className="text-[10px] text-muted-foreground">{r.admission_no ?? ""}</span></TableCell>
                     <TableCell><span className="text-xs">{r.template_name ?? "—"}</span><br /><span className="text-[10px] text-muted-foreground">{r.template_code ?? ""}</span></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.purpose ?? "—"}</TableCell>
-                    <TableCell><Badge className={`border text-[10px] ${getStatusColor(r.status)}`}>{r.status}</Badge></TableCell>
-                    <TableCell><code className="text-[10px] font-mono text-muted-foreground">{(r.qr_token ?? "").slice(0, 16)}…</code></TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        {r.status === "requested" && (
+                      {r.currentStage ? (
+                        <Badge className={`border text-[10px] ${getStageColor(r.currentStage)}`}>{getStageLabel(r.currentStage)}</Badge>
+                      ) : (
+                        <Badge className={`border text-[10px] ${getStatusColor(r.status)}`}>{r.status}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell><Badge className={`border text-[10px] ${getStatusColor(r.status)}`}>{r.status}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {/* Stage-appropriate actions */}
+                        {r.currentStage === "hod_review" && r.status !== "revoked" && (
+                          <>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => stageApproveMut.mutate(r.id)} disabled={stageApproveMut.isPending}><CheckCircle className="h-3 w-3 mr-1" /> HOD Approve</Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { setRevokeId(r.id); setRevokeReason(""); setRevokeMode("reject"); }}><Ban className="h-3 w-3 mr-1" /> Reject</Button>
+                          </>
+                        )}
+                        {r.currentStage === "office_review" && r.status !== "revoked" && (
+                          <>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => stageApproveMut.mutate(r.id)} disabled={stageApproveMut.isPending}><CheckCircle className="h-3 w-3 mr-1" /> Verify (Office)</Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { setRevokeId(r.id); setRevokeReason(""); setRevokeMode("reject"); }}><Ban className="h-3 w-3 mr-1" /> Reject</Button>
+                          </>
+                        )}
+                        {r.currentStage === "principal_review" && r.status !== "revoked" && (
+                          <>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => stageApproveMut.mutate(r.id)} disabled={stageApproveMut.isPending}><CheckCircle className="h-3 w-3 mr-1" /> Principal Approve</Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { setRevokeId(r.id); setRevokeReason(""); setRevokeMode("reject"); }}><Ban className="h-3 w-3 mr-1" /> Reject</Button>
+                          </>
+                        )}
+                        {r.currentStage === "issuance" && r.status !== "revoked" && (
+                          <>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-success" onClick={() => stageApproveMut.mutate(r.id)} disabled={stageApproveMut.isPending}><FileDown className="h-3 w-3 mr-1" /> Issue</Button>
+                            <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { setRevokeId(r.id); setRevokeReason(""); setRevokeMode("revoke"); }}><Ban className="h-3 w-3 mr-1" /> Revoke</Button>
+                          </>
+                        )}
+                        {r.currentStage === "delivery" && r.status === "issued" && (
+                          <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => stageApproveMut.mutate(r.id)} disabled={stageApproveMut.isPending}><CheckCircle className="h-3 w-3 mr-1" /> Mark Delivered</Button>
+                        )}
+                        {/* Fallback for items without stage info (backward compat) */}
+                        {!r.currentStage && r.status === "requested" && (
                           <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => approveMut.mutate(r.id)} disabled={approveMut.isPending}><CheckCircle className="h-3 w-3 mr-1" /> Approve</Button>
                         )}
-                        {r.status === "approved" && (
+                        {!r.currentStage && r.status === "approved" && (
                           <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-success" onClick={() => issueMut.mutate(r.id)} disabled={issueMut.isPending}><FileDown className="h-3 w-3 mr-1" /> Issue</Button>
                         )}
-                        {(r.status === "requested" || r.status === "approved" || r.status === "issued") && (
-                          <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { setRevokeId(r.id); setRevokeReason(""); }}><Ban className="h-3 w-3 mr-1" /> Revoke</Button>
+                        {(r.status === "revoked") && (
+                          <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { if (confirm("Delete this request?")) delReqMut.mutate(r.id); }} disabled={delReqMut.isPending}><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
                         )}
-                        {(r.status === "requested" || r.status === "revoked") && (
-                          <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { if (confirm("Delete this request?")) delReqMut.mutate(r.id); }} disabled={delReqMut.isPending}><Trash2 className="h-3 w-3 mr-1" /></Button>
-                        )}
+                        {/* Timeline button */}
+                        <Button variant="ghost" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => openTimeline(r.id)}><ScrollText className="h-3 w-3" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -632,6 +771,9 @@ export default function Certificates() {
 
         {/* ══════ ISSUANCE LOG ══════ */}
         <TabsContent value="issued">
+          <div className="mb-3">
+            <Input placeholder="Search by student, admission no, template…" value={issuedSearch} onChange={(e) => setIssuedSearch(e.target.value)} className="h-8 w-64 text-xs" />
+          </div>
           <div className="overflow-x-auto rounded-lg border">
             <TablePagination {...pag2} />
             <Table className="min-w-max">
@@ -737,6 +879,29 @@ export default function Certificates() {
               <Label className="text-xs" htmlFor="tplBody">Body (HTML template)</Label>
               <Textarea id="tplBody" name="tplBody" value={tplBody} onChange={(e) => setTplBody(e.target.value)} rows={8} placeholder="<p>This is to certify that {{student_name}}...</p>" className="font-mono text-xs" />
             </div>
+            <details className="group border rounded-lg p-2">
+              <summary className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
+                Available Variables
+              </summary>
+              <div className="mt-2 text-[11px] space-y-1">
+                {[
+                  ['{{student_name}}', 'Student name'],
+                  ['{{admission_no}}', 'Admission/roll number'],
+                  ['{{purpose}}', 'Certificate purpose'],
+                  ['{{issued_at}}', 'Issue date'],
+                  ['{{qr_token}}', 'QR verification token'],
+                  ['{{template_name}}', 'Template name'],
+                  ['{{template_code}}', 'Template code'],
+                  ['{{certificate_no}}', 'Certificate number (auto)'],
+                ].map(([varName, desc]) => (
+                  <div key={varName} className="flex items-center gap-2">
+                    <code className="bg-muted/40 rounded px-1 py-0.5 font-mono">{varName}</code>
+                    <span className="text-muted-foreground">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="tplActive" checked={tplActive} onChange={(e) => setTplActive(e.target.checked)} className="rounded" />
               <Label htmlFor="tplActive" className="text-xs">Active</Label>
@@ -754,20 +919,94 @@ export default function Certificates() {
 
       {/* ══════ PREVIEW DIALOG ══════ */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-2xl p-0">
-          <DialogHeader><DialogTitle>Certificate Preview</DialogTitle></DialogHeader>
-          <div className="p-6" ref={previewRef} style={{ background: '#fff' }}>
-            <div className="certificate" dangerouslySetInnerHTML={{ __html: previewReq ? renderCertificateHtml(previewReq) : '' }} />
-          </div>
-          <DialogFooter>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handlePrintPreview}>Print</Button>
-              <Button variant="outline" onClick={handleDownloadHtml}>HTML</Button>
-              <Button onClick={handleDownloadPdf}>Download PDF</Button>
-              {import.meta.env.VITE_CERT_SERVER_URL && (
-                <Button variant="secondary" onClick={handleSignedExport}>Signed Export</Button>
+        <DialogContent className="sm:max-w-3xl p-0 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="px-6 pt-4 pb-0"><DialogTitle>Certificate Preview</DialogTitle></DialogHeader>
+          <Tabs defaultValue="preview" className="px-6">
+            <TabsList className="mb-3">
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+              <TabsTrigger value="data">Certificate Data</TabsTrigger>
+              <TabsTrigger value="template">Template</TabsTrigger>
+            </TabsList>
+            <TabsContent value="preview">
+              <div className="p-4 border rounded-lg" ref={previewRef} style={{ background: '#fff' }}>
+                <div className="certificate" dangerouslySetInnerHTML={{ __html: previewReq ? renderCertificateHtml(previewReq) : '' }} />
+              </div>
+            </TabsContent>
+            <TabsContent value="data">
+              {previewReq && (
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="font-medium text-muted-foreground">Student Name</div><div>{previewReq.student_name ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Admission / Roll No</div><div>{previewReq.admission_no ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Year of Study</div><div>{previewReq.year ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Branch / Course</div><div>{previewReq.branch ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Academic Year</div><div>{previewReq.academic_year ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Template</div><div>{previewReq.template_name ?? "—"} ({previewReq.template_code ?? "—"})</div>
+                    <div className="font-medium text-muted-foreground">Purpose</div><div>{previewReq.purpose ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Status</div><div><Badge className={`border text-[10px] ${getStatusColor(previewReq.status)}`}>{previewReq.status}</Badge></div>
+                    <div className="font-medium text-muted-foreground">Certificate No</div><div>{previewReq.no ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Dated</div><div>{previewReq.dated ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">Applied On</div><div>{previewReq.created_at ? new Date(previewReq.created_at).toLocaleDateString() : "—"}</div>
+                    <div className="font-medium text-muted-foreground">Approved On</div><div>{previewReq.approved_at ? new Date(previewReq.approved_at).toLocaleDateString() : "—"}</div>
+                    <div className="font-medium text-muted-foreground">Issued On</div><div>{previewReq.issued_at ? new Date(previewReq.issued_at).toLocaleDateString() : "—"}</div>
+                    <div className="font-medium text-muted-foreground">Authority</div><div>{previewReq.authority ?? "—"}</div>
+                    <div className="font-medium text-muted-foreground">QR Token</div><div><code className="text-[10px] break-all">{previewReq.qr_token}</code></div>
+                  </div>
+                  <details className="border rounded-lg p-3 mt-4">
+                    <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">Show all template variables</summary>
+                    <pre className="mt-2 text-[10px] font-mono bg-muted/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{[
+                      ["student_name", previewReq.student_name],
+                      ["admission_no", previewReq.admission_no],
+                      ["year", previewReq.year],
+                      ["branch", previewReq.branch],
+                      ["academic_year", previewReq.academic_year],
+                      ["purpose", previewReq.purpose],
+                      ["template_name", previewReq.template_name],
+                      ["template_code", previewReq.template_code],
+                      ["issued_at", previewReq.issued_at],
+                      ["qr_token", previewReq.qr_token],
+                      ["authority", previewReq.authority],
+                      ["no", previewReq.no],
+                      ["dated", previewReq.dated],
+                      ["NAME", previewReq.student_name],
+                      ["ROLL", previewReq.admission_no],
+                      ["YEAR", previewReq.year],
+                      ["BRANCH", previewReq.branch],
+                      ["ACADEMIC_YEAR", previewReq.academic_year],
+                      ["APPLICATION_DATE", previewReq.issued_at],
+                      ["APPLICATION_PURPOSE", previewReq.purpose],
+                      ["AUTHORITY", previewReq.authority],
+                      ["NO", previewReq.no],
+                      ["DATED", previewReq.dated],
+                    ].filter(([_, v]) => v != null).map(([k, v]) => `  {{${k}}}: ${v}`).join("\n")}</pre>
+                  </details>
+                </div>
               )}
-              <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Close</Button>
+            </TabsContent>
+            <TabsContent value="template">
+              {previewReq && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">Raw template HTML with variable placeholders:</p>
+                  <pre className="text-[10px] font-mono bg-muted/30 rounded p-3 max-h-80 overflow-auto whitespace-pre-wrap border">{previewReq.template_body ?? previewReq.template_html ?? previewReq.template ?? "No template body"}</pre>
+                  <details className="border rounded-lg p-3">
+                    <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">Available variables</summary>
+                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] font-mono">
+                      {["student_name", "admission_no", "year", "branch", "academic_year", "purpose", "template_name", "template_code", "issued_at", "qr_token", "certificate_no", "authority", "no", "dated", "application_date", "application_purpose", "NAME", "ROLL", "YEAR", "BRANCH", "ACADEMIC_YEAR", "APPLICATION_DATE", "APPLICATION_PURPOSE", "AUTHORITY", "NO", "DATED", "QR_SRC"].map((v) => <div key={v}><code className="bg-muted/40 rounded px-1">{`{{${v}}}`}</code></div>)}
+                    </div>
+                  </details>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+          <DialogFooter className="px-6 pb-4 pt-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handlePrintPreview}>Print</Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadHtml}>HTML</Button>
+              <Button size="sm" onClick={handleDownloadPdf}>Download PDF</Button>
+              {import.meta.env.VITE_CERT_SERVER_URL && (
+                <Button variant="secondary" size="sm" onClick={handleSignedExport}>Signed Export</Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>Close</Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -815,23 +1054,57 @@ export default function Certificates() {
         </DialogContent>
       </Dialog>
 
-      {/* ══════ REVOKE DIALOG ══════ */}
+      {/* ══════ REVOKE / REJECT DIALOG ══════ */}
       <Dialog open={!!revokeId} onOpenChange={(o) => { if (!o) setRevokeId(null); }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Revoke Certificate</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{revokeMode === "reject" ? "Reject at Current Stage" : "Revoke Certificate"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+            <p className="text-sm text-muted-foreground">{revokeMode === "reject" ? "This will reject the request at its current workflow stage." : "This action cannot be undone."}</p>
             <div>
               <Label className="text-xs" htmlFor="revokeReason">Reason</Label>
-              <Textarea id="revokeReason" name="revokeReason" value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} rows={3} placeholder="e.g. Issued in error" />
+              <Textarea id="revokeReason" name="revokeReason" value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} rows={3} placeholder={revokeMode === "reject" ? "e.g. Incomplete documents" : "e.g. Issued in error"} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevokeId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => revokeMut.mutate()} disabled={!revokeReason || revokeMut.isPending}>
-              {revokeMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Revoke
+            <Button variant="destructive" onClick={() => revokeMode === "reject" ? stageRejectMut.mutate() : revokeMut.mutate()} disabled={!revokeReason || revokeMut.isPending || stageRejectMut.isPending}>
+              {(revokeMut.isPending || stageRejectMut.isPending) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {revokeMode === "reject" ? "Reject" : "Revoke"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══════ WORKFLOW TIMELINE DIALOG ══════ */}
+      <Dialog open={!!tlReqId} onOpenChange={(o) => { if (!o) setTlReqId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Workflow Timeline</DialogTitle></DialogHeader>
+          {tlLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : tlActions.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No workflow history yet</p>
+          ) : (
+            <div className="space-y-0">
+              {tlActions.map((a, i) => (
+                <div key={i} className="flex gap-3 pb-4 relative">
+                  {i < tlActions.length - 1 && <div className="absolute left-[11px] top-5 bottom-0 w-px bg-border" />}
+                  <div className={`mt-1 h-5 w-5 rounded-full shrink-0 flex items-center justify-center ring-2 ring-background ${a.action === "reject" ? "bg-destructive/20" : "bg-success/20"}`}>
+                    <div className={`h-2 w-2 rounded-full ${a.action === "reject" ? "bg-destructive" : "bg-success"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium capitalize">{a.action}</span>
+                      <Badge className={`border text-[9px] ${getStageColor(a.stage)}`}>{getStageLabel(a.stage)}</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(a.at).toLocaleString()}</p>
+                    {a.reason && <p className="text-[10px] text-destructive mt-0.5">Reason: {a.reason}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTlReqId(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

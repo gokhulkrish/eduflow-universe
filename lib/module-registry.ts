@@ -2080,6 +2080,86 @@ export const legacyPackModules: ModuleDefinition[] = [
     ],
     "kind": "legacy-pack",
     "sourceLine": 30007
+  },
+  {
+    "key": "itAssets",
+    "label": "IT Asset Management",
+    "category": "IT & Infrastructure",
+    "description": "Hardware inventory, assignments, maintenance tracking, asset lifecycle management for IT equipment.",
+    "fields": [
+      { "key": "assetName", "label": "Asset Name", "type": "text", "required": true },
+      { "key": "category", "label": "Category", "type": "select", "options": ["desktop","laptop","printer","scanner","projector","tablet","monitor","network_device","peripheral","other"] },
+      { "key": "serialNo", "label": "Serial Number", "type": "text" },
+      { "key": "assetTag", "label": "Asset Tag", "type": "text" },
+      { "key": "status", "label": "Asset Status", "type": "select", "options": ["available","assigned","maintenance","disposed"] },
+      { "key": "assignedTo", "label": "Assigned To", "type": "text" }
+    ],
+    "kind": "legacy-pack",
+    "sourceLine": 30008
+  },
+  {
+    "key": "itLabs",
+    "label": "Computer Lab Management",
+    "category": "IT & Infrastructure",
+    "description": "Lab inventory, system tracking, booking schedule, lab utilization reports.",
+    "fields": [
+      { "key": "labName", "label": "Lab Name", "type": "text", "required": true },
+      { "key": "location", "label": "Location", "type": "text" },
+      { "key": "capacity", "label": "Capacity (seats)", "type": "number" },
+      { "key": "systemsCount", "label": "No. of Systems", "type": "number" },
+      { "key": "incharge", "label": "Lab Incharge", "type": "text" },
+      { "key": "status", "label": "Lab Status", "type": "select", "options": ["active","inactive","maintenance"] }
+    ],
+    "kind": "legacy-pack",
+    "sourceLine": 30009
+  },
+  {
+    "key": "itHelpdesk",
+    "label": "IT Helpdesk",
+    "category": "IT & Infrastructure",
+    "description": "IT ticketing system with SLA tracking, priority management, assignment, and resolution notes.",
+    "fields": [
+      { "key": "ticketTitle", "label": "Ticket Title", "type": "text", "required": true },
+      { "key": "category", "label": "Category", "type": "select", "options": ["hardware","software","network","account","printer","other"] },
+      { "key": "priority", "label": "Priority", "type": "select", "options": ["low","medium","high","critical"] },
+      { "key": "status", "label": "Status", "type": "select", "options": ["open","in_progress","resolved","closed"] },
+      { "key": "assignedTo", "label": "Assigned To", "type": "text" },
+      { "key": "slaHours", "label": "SLA (hours)", "type": "number" }
+    ],
+    "kind": "legacy-pack",
+    "sourceLine": 30010
+  },
+  {
+    "key": "itNetwork",
+    "label": "Network & Infrastructure",
+    "category": "IT & Infrastructure",
+    "description": "Network device inventory, IPAM, firmware tracking, topology mapping.",
+    "fields": [
+      { "key": "deviceName", "label": "Device Name", "type": "text", "required": true },
+      { "key": "type", "label": "Type", "type": "select", "options": ["router","switch","access_point","firewall","server","modem","other"] },
+      { "key": "ipAddress", "label": "IP Address", "type": "text" },
+      { "key": "macAddress", "label": "MAC Address", "type": "text" },
+      { "key": "location", "label": "Location", "type": "text" },
+      { "key": "status", "label": "Status", "type": "select", "options": ["online","offline","maintenance"] }
+    ],
+    "kind": "legacy-pack",
+    "sourceLine": 30011
+  },
+  {
+    "key": "iotDevices",
+    "label": "IoT & Smart Campus",
+    "category": "IT & Infrastructure",
+    "description": "IoT device registry, sensor telemetry, RFID attendance bridge, smart campus device management.",
+    "fields": [
+      { "key": "deviceName", "label": "Device Name", "type": "text", "required": true },
+      { "key": "type", "label": "Type", "type": "select", "options": ["sensor","rfid_reader","smart_board","camera","beacon","gateway","other"] },
+      { "key": "serialNo", "label": "Serial Number", "type": "text" },
+      { "key": "location", "label": "Location", "type": "text" },
+      { "key": "status", "label": "Status", "type": "select", "options": ["active","inactive","error"] },
+      { "key": "batteryLevel", "label": "Battery Level", "type": "number" }
+    ],
+    "kind": "legacy-pack",
+    "sourceLine": 30012
   }
 ] as ModuleDefinition[];
 

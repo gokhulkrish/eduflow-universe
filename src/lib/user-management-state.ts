@@ -11,7 +11,7 @@ export interface UserManagementState {
   email: string;
   role: string;
   department: string;
-  status: "active" | "inactive" | "suspended";
+  status: "active" | "inactive" | "suspended" | "pending";
   permissions: string[];
   lastLogin: string | null;
   createdAt: string;
@@ -124,6 +124,71 @@ export const STANDARD_ROLES: RoleContract[] = [
 const USERS_STORAGE_KEY = "eduflow.user-management.users.v1";
 const ROLES_STORAGE_KEY = "eduflow.user-management.roles.v1";
 
+const LEGACY_USERS_KEY = "eduflow_users";
+const LEGACY_ROLES_KEY = "eduflow_roles";
+
+const PERMISSION_LABEL_TO_KEY: Record<string, string> = {
+  "View Students": "view_students",
+  "Edit Students": "edit_students",
+  "View Fees": "view_fees",
+  "Edit Fees": "edit_fees",
+  "View Attendance": "view_attendance",
+  "Edit Attendance": "edit_attendance",
+  "Manage Users": "manage_users",
+  "Manage Roles": "manage_roles",
+  "Manage Exams": "manage_exams",
+  "View Reports": "view_reports",
+  "Manage Settings": "manage_settings",
+};
+
+export function migrateFromLegacyKeys(): { migrated: boolean; userCount: number; roleCount: number } {
+  try {
+    const oldUsersRaw = localStorage.getItem(LEGACY_USERS_KEY);
+    const oldRolesRaw = localStorage.getItem(LEGACY_ROLES_KEY);
+    if (!oldUsersRaw && !oldRolesRaw) return { migrated: false, userCount: 0, roleCount: 0 };
+    const newUsersRaw = localStorage.getItem(USERS_STORAGE_KEY);
+    const newRolesRaw = localStorage.getItem(ROLES_STORAGE_KEY);
+    if (newUsersRaw || newRolesRaw) return { migrated: false, userCount: 0, roleCount: 0 };
+    let userCount = 0;
+    let roleCount = 0;
+    if (oldUsersRaw) {
+      const oldUsers = JSON.parse(oldUsersRaw) as Array<Record<string, unknown>>;
+      const migrated: UserManagementState[] = oldUsers.map((u) => ({
+        id: String(u.id ?? ""),
+        name: String(u.name ?? ""),
+        email: String(u.email ?? ""),
+        role: String(u.role ?? ""),
+        department: String(u.department ?? ""),
+        status: (u.status === "active" || u.status === "inactive" || u.status === "suspended" ? u.status : "active") as UserManagementState["status"],
+        permissions: [],
+        lastLogin: null,
+        createdAt: String(u.created ?? u.createdAt ?? new Date().toISOString()),
+        updatedAt: String(u.updatedAt ?? new Date().toISOString()),
+      }));
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(migrated));
+      userCount = migrated.length;
+    }
+    if (oldRolesRaw) {
+      const oldRoles = JSON.parse(oldRolesRaw) as Array<Record<string, unknown>>;
+      const migrated: RoleContract[] = oldRoles.map((r) => ({
+        id: String(r.id ?? ""),
+        name: String(r.name ?? ""),
+        description: String(r.description ?? r.name ?? ""),
+        permissions: (r.permissions as string[] ?? []).map((p: string) => PERMISSION_LABEL_TO_KEY[p] ?? p),
+        isSystemRole: false,
+        createdAt: String(r.createdAt ?? new Date().toISOString()),
+      }));
+      localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(migrated));
+      roleCount = migrated.length;
+    }
+    localStorage.removeItem(LEGACY_USERS_KEY);
+    localStorage.removeItem(LEGACY_ROLES_KEY);
+    return { migrated: true, userCount, roleCount };
+  } catch {
+    return { migrated: false, userCount: 0, roleCount: 0 };
+  }
+}
+
 export function loadUserManagementState(): {
   users: UserManagementState[];
   roles: RoleContract[];
@@ -190,4 +255,69 @@ export function validateUserManagementState(
     valid: errors.length === 0,
     errors,
   };
+}
+
+export interface UserGroup {
+  id: string;
+  name: string;
+  description: string;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserInvitation {
+  id: string;
+  token: string;
+  email: string;
+  role: string;
+  department: string;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+  status: "pending" | "accepted" | "expired";
+}
+
+const GROUPS_STORAGE_KEY = "eduflow.user-management.groups.v1";
+const INVITES_STORAGE_KEY = "eduflow.user-management.invites.v1";
+
+export function loadUserGroups(): UserGroup[] {
+  try {
+    return JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function saveUserGroups(groups: UserGroup[]): { success: boolean; error?: string } {
+  try {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+export function loadUserInvitations(): UserInvitation[] {
+  try {
+    return JSON.parse(localStorage.getItem(INVITES_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function saveUserInvitations(invites: UserInvitation[]): { success: boolean; error?: string } {
+  try {
+    localStorage.setItem(INVITES_STORAGE_KEY, JSON.stringify(invites));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+export function validateUserGroup(group: Partial<UserGroup>): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!group.name?.trim()) errors.push("Group name is required");
+  return { valid: errors.length === 0, errors };
 }

@@ -23,6 +23,10 @@ const DEFAULT_PROFILES: LandingProfileEntry[] = [
   { role: "transport", label: "Transport", targetPath: "/transport" },
   { role: "student", label: "Student", targetPath: "/" },
   { role: "parent", label: "Parent", targetPath: "/parents" },
+  { role: "it_admin", label: "IT Admin", targetPath: "/it-assets" },
+  { role: "it_technician", label: "IT Technician", targetPath: "/it-helpdesk" },
+  { role: "it_lab_incharge", label: "Lab Incharge", targetPath: "/it-labs" },
+  { role: "iot_operator", label: "IoT Operator", targetPath: "/iot-devices" },
 ];
 
 export function loadLandingProfiles(): LandingProfileEntry[] {

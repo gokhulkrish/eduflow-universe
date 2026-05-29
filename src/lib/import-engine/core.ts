@@ -1,11 +1,7 @@
 import type { ImportMatchConfig, ImportMatchStrategy, ImportTransferMode } from "./types";
+import { generateId } from "@/lib/utils";
 
-export function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-}
+export { generateId };
 
 export function makeBatchId(): string {
   const timestamp = Date.now();

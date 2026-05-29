@@ -18,6 +18,7 @@ import {
 import { loadAccessibleModuleKeys } from "@/lib/module-access";
 import { resolveAccessKeyForPathname } from "@/lib/global-access-registry";
 import { subscribeAppSync } from "@/lib/app-sync";
+import { isMigrationFlagEnabled } from "@/lib/featureFlags";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { canOpenCommandCenter } from "@/lib/command-center-access";
@@ -164,7 +165,7 @@ const platform: SidebarItem[] = [
   { title: "Activity Log", url: "/activity-log", icon: Activity },
 ];
 
-const admin: SidebarItem[] = [
+const adminBase: SidebarItem[] = [
   { title: "Administration", url: "/administration", icon: House },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Institute Identity", url: "/settings/institute", icon: Building2 },
@@ -173,7 +174,6 @@ const admin: SidebarItem[] = [
   { title: "Permission Matrix", url: "/permissions", icon: Shield },
   { title: "Capability Profiles", url: "/permissions/profiles", icon: UserCog },
   { title: "Security & Audit", url: "/security", icon: Shield },
-  { title: "User Management", url: "/user-management", icon: Shield },
   { title: "Migration Center", url: "/migration", icon: ArrowUpCircle },
   { title: "Backups", url: "/backups", icon: DatabaseBackup },
   { title: "System", url: "/system", icon: MonitorCog },
@@ -246,11 +246,21 @@ export function AppSidebar() {
   const groups = useMemo(() => [
     { label: "Academics", items: academics },
     { label: "Finance", items: finance },
-    { label: "People", items: people },
+    {
+      label: "People",
+      items: isMigrationFlagEnabled("patch-026-ifhrms-gate")
+        ? [{ title: "IFHRMS", url: "/ifhrms", icon: Briefcase }, ...people]
+        : people,
+    },
     { label: "Campus", items: campus },
     { label: "Community", items: community },
     { label: "Platform", items: platform },
-    { label: "Admin", items: admin },
+    {
+      label: "Admin",
+      items: isMigrationFlagEnabled("patch-025-user-management-gate")
+        ? [...adminBase, { title: "User Management", url: "/user-management", icon: Shield }]
+        : adminBase,
+    },
   ] as const, []);
   const showDashboard = !authLoading && canOpenCommandCenter(roles);
 

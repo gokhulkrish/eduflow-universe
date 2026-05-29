@@ -800,15 +800,6 @@ export function getHeaderFieldMeta(fieldOrKey: HeaderRegistryField | string, mod
 
 // ── Utility Functions ───────────────────────────────────────────────
 
-/** Convert a label to normalized grouping format (underscore-separated). */
-export function normalizeHeaderGroupingText(value: string): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, "")
-    .replace(/\s+/g, "_");
-}
-
 /** Clean and validate a field display label. */
 export function sanitizeHeaderLabel(value: string, maxLength = 80): string {
   let label = String(value || "")
@@ -851,25 +842,6 @@ export async function initHeaderRegistry(): Promise<HeaderRegistryField[]> {
 }
 
 // ── Grouping & Organization Functions ───────────────────────────────
-
-/** Auto-assign a field to the best-matching group based on key keywords. */
-export function inferAutomaticHeaderGroup(header: string): string {
-  const normalized = normalizeHeaderKey(header).toLowerCase();
-  const patterns: Record<string, string[]> = {
-    "Basic Information": ["key", "id", "name", "first", "last", "enrollment", "roll", "reg", "admission"],
-    "Contact Information": ["email", "phone", "mobile", "fax", "address", "city", "state", "zip", "alternate"],
-    "Personal Information": ["dob", "birth", "gender", "sex", "religion", "caste", "blood", "nationality"],
-    "Family Information": ["father", "mother", "parent", "guardian", "sibling", "family"],
-    "Academic Information": ["grade", "gpa", "score", "mark", "result", "percentage", "stream", "section", "house"],
-    "Documents & Identity": ["aadhar", "aadhaar", "pan", "cert", "document", "license", "umis", "emis"],
-  };
-  for (const [group, keywords] of Object.entries(patterns)) {
-    if (keywords.some((kw) => normalized.includes(kw))) {
-      return group;
-    }
-  }
-  return "Other Information";
-}
 
 /** Get fields organized by their group property. */
 export function getGroupedHeaderFields(

@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type AppRole =
   | "super_admin" | "admin" | "principal" | "hod" | "faculty" | "staff"
   | "finance" | "scholarship" | "certificate" | "librarian"
-  | "hostel_warden" | "transport" | "student" | "parent";
+  | "hostel_warden" | "transport" | "student" | "parent"
+  | "it_admin" | "it_technician" | "it_lab_incharge" | "iot_operator";
 
 interface AuthCtx {
   user: User | null;

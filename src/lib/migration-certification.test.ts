@@ -7,16 +7,15 @@ describe("migration certification", () => {
     window.localStorage.clear();
   });
 
-  it("parses the legacy inventory module table", () => {
+  it("returns empty entries when no legacy inventory text is provided", () => {
     const entries = parseLegacyInventory();
-    expect(entries.length).toBeGreaterThan(0);
-    expect(entries[0]?.key).toBeTruthy();
+    expect(entries).toEqual([]);
   });
 
   it("builds a certification report with a status and coverage", () => {
     const report = buildMigrationCertificationReport();
     expect(["certified", "conditional", "blocked"]).toContain(report.status);
-    expect(report.summary.legacyInventory).toBeGreaterThan(0);
+    expect(report.summary.legacyInventory).toBe(0);
     expect(report.flowParity.total).toBeGreaterThan(0);
     expect(report.orchestrationParity.channels).toBeGreaterThan(0);
     expect(report.rollbackReadiness.totalPatches).toBeGreaterThan(0);

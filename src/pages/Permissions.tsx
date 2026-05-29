@@ -135,6 +135,10 @@ const ROLE_LABEL: Record<AppRole, string> = {
   transport: "Trans.",
   student: "Stud.",
   parent: "Parent",
+  it_admin: "IT Admin",
+  it_technician: "IT Tech.",
+  it_lab_incharge: "Lab IC",
+  iot_operator: "IoT Op.",
 };
 type Level = CapabilityLevel;
 
@@ -386,7 +390,7 @@ export default function Permissions() {
         if (roleSeeds.length) {
           const { error: roleError } = await supabase
             .from("role_permissions")
-            .upsert(roleSeeds, { onConflict: "role,permission_id" });
+            .upsert(roleSeeds as any, { onConflict: "role,permission_id" });
 
           if (roleError) {
             toast.error(roleError.message);
@@ -422,7 +426,7 @@ export default function Permissions() {
       try {
         const { error } = await supabase
           .from("role_permissions")
-          .upsert(defaultMatrixRepairPlan.rowsToUpsert, { onConflict: "role,permission_id" });
+          .upsert(defaultMatrixRepairPlan.rowsToUpsert as any, { onConflict: "role,permission_id" });
 
         if (error) {
           toast.error(error.message);
@@ -497,7 +501,7 @@ export default function Permissions() {
       const [role, permission_id] = k.split(":") as [AppRole, string];
       return { role, permission_id, level: matrix.get(k) ?? "none" };
     });
-    const { error } = await supabase.from("role_permissions").upsert(rows, { onConflict: "role,permission_id" });
+    const { error } = await supabase.from("role_permissions").upsert(rows as any, { onConflict: "role,permission_id" });
     if (error) toast.error(error.message);
     else {
       setDirty(new Set());

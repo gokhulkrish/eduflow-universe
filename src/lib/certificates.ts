@@ -57,6 +57,10 @@ export type CertRequest = {
   qr_token: string;
   created_at: string;
   updated_at: string;
+  /** Current workflow stage (multi-stage pipeline) — derived from comments JSON */
+  currentStage?: WorkflowStageId | null;
+  /** Full workflow state including history */
+  workflowState?: WorkflowState | null;
 };
 
 export type CertRequestJoined = CertRequest & {
@@ -73,6 +77,7 @@ export type CertRequestJoined = CertRequest & {
   year?: string | null;
   branch?: string | null;
   academic_year?: string | null;
+  section?: string | null;
   authority?: string | null;
   no?: string | null;
   dated?: string | null;
@@ -105,6 +110,7 @@ const normalizeTemplate = (row: TemplateRow): CertTemplate => ({
 
 const normalizeRequest = (row: RequestRow, issued?: CertificateRow | null): CertRequest => {
   const status = toUiStatus(row.status);
+  const ws = parseWorkflowState(row.comments);
   return {
     id: row.id,
     template_id: row.template_id,
@@ -119,6 +125,8 @@ const normalizeRequest = (row: RequestRow, issued?: CertificateRow | null): Cert
     qr_token: row.qr_token,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    currentStage: ws?.currentStage ?? getCurrentStageId(row.status, row.comments),
+    workflowState: ws,
   };
 };
 
@@ -248,9 +256,16 @@ export async function getRequests(options?: {
       ...normalized,
       template_name: tpl?.name,
       template_code: tpl?.code,
+      template_body: tpl?.body ?? null,
+      template_html: tpl?.body ?? null,
+      template: tpl?.name ?? null,
       student_name: stu?.display_name,
       admission_no: stu?.admission_no,
       grade: stu?.grade ?? undefined,
+      year: stu?.grade ?? null,
+      branch: stu?.stream ?? null,
+      academic_year: stu?.academic_year ?? null,
+      section: stu?.section ?? null,
     };
   });
 }
@@ -375,9 +390,16 @@ export async function verifyByQr(qrToken: string): Promise<CertRequestJoined | n
     ...normalizeRequest(data, issuedMap.get(data.id)),
     template_name: tpl?.name,
     template_code: tpl?.code,
+    template_body: tpl?.body ?? null,
+    template_html: tpl?.body ?? null,
+    template: tpl?.name ?? null,
     student_name: stu?.display_name,
     admission_no: stu?.admission_no,
     grade: stu?.grade ?? undefined,
+    year: stu?.grade ?? null,
+    branch: stu?.stream ?? null,
+    academic_year: stu?.academic_year ?? null,
+    section: stu?.section ?? null,
   };
 }
 
@@ -411,9 +433,16 @@ export async function lookupByCertificateNo(
     ...normalizeRequest(req, issuedMap.get(req.id)),
     template_name: tpl?.name,
     template_code: tpl?.code,
+    template_body: tpl?.body ?? null,
+    template_html: tpl?.body ?? null,
+    template: tpl?.name ?? null,
     student_name: stu?.display_name,
     admission_no: stu?.admission_no,
     grade: stu?.grade ?? undefined,
+    year: stu?.grade ?? null,
+    branch: stu?.stream ?? null,
+    academic_year: stu?.academic_year ?? null,
+    section: stu?.section ?? null,
     no: cert.certificate_no,
   };
 }
@@ -465,4 +494,183 @@ export function getStatusColor(status: string): string {
     revoked: "bg-destructive/15 text-destructive border-destructive/30",
   };
   return map[status] ?? "bg-muted text-muted-foreground";
+}
+
+// ════════════════════════════════════════════════════════════
+// Multi-Stage Workflow (TN e-Sevai style)
+// Stages: hod_review → office_review → principal_review → issuance → delivery
+// State is stored as JSON in the `comments` field — no migration needed.
+// ════════════════════════════════════════════════════════════
+
+export type WorkflowStageId =
+  | "hod_review"
+  | "office_review"
+  | "principal_review"
+  | "issuance"
+  | "delivery";
+
+export type WorkflowStageDef = {
+  id: WorkflowStageId;
+  label: string;
+  roles: string[];
+  description: string;
+};
+
+export const WORKFLOW_STAGES: WorkflowStageDef[] = [
+  { id: "hod_review", label: "HOD Review", roles: ["hod"], description: "Department head verifies purpose & eligibility" },
+  { id: "office_review", label: "Office Verification", roles: ["staff", "admin"], description: "Office checks fee clearance & records" },
+  { id: "principal_review", label: "Principal Approval", roles: ["principal"], description: "Final authority approves issuance" },
+  { id: "issuance", label: "Issuance", roles: ["certificate", "admin"], description: "Certificate is generated & signed" },
+  { id: "delivery", label: "Delivery", roles: ["student", "staff"], description: "Certificate delivered & acknowledged" },
+];
+
+export type WorkflowAction = {
+  stage: WorkflowStageId;
+  action: "submit" | "approve" | "reject" | "issue" | "deliver";
+  by?: string;
+  at: string;
+  reason?: string;
+};
+
+export type WorkflowState = {
+  currentStage: WorkflowStageId;
+  history: WorkflowAction[];
+};
+
+function parseWorkflowState(comments: string | null): WorkflowState | null {
+  if (!comments) return null;
+  try {
+    const parsed = JSON.parse(comments);
+    if (parsed && typeof parsed === "object" && "currentStage" in parsed) {
+      return parsed as WorkflowState;
+    }
+  } catch {}
+  return null;
+}
+
+export function getCurrentStageId(status: string, comments: string | null): WorkflowStageId | null {
+  const ws = parseWorkflowState(comments);
+  if (ws?.currentStage) return ws.currentStage;
+  if (status === "verified") return "issuance";
+  if (status === "pending" || status === "agreed" || status === "appealed") return "hod_review";
+  return null;
+}
+
+export function getNextStageId(current: WorkflowStageId | null): WorkflowStageId | null {
+  if (!current) return "hod_review";
+  const idx = WORKFLOW_STAGES.findIndex((s) => s.id === current);
+  if (idx < 0 || idx >= WORKFLOW_STAGES.length - 1) return null;
+  return WORKFLOW_STAGES[idx + 1].id;
+}
+
+export function getStageColor(stageId: WorkflowStageId): string {
+  const map: Record<WorkflowStageId, string> = {
+    hod_review: "bg-amber-100 text-amber-800 border-amber-300",
+    office_review: "bg-blue-100 text-blue-800 border-blue-300",
+    principal_review: "bg-purple-100 text-purple-800 border-purple-300",
+    issuance: "bg-green-100 text-green-800 border-green-300",
+    delivery: "bg-teal-100 text-teal-800 border-teal-300",
+  };
+  return map[stageId] ?? "bg-muted text-muted-foreground";
+}
+
+export function getStageLabel(stageId: WorkflowStageId): string {
+  return WORKFLOW_STAGES.find((s) => s.id === stageId)?.label ?? stageId;
+}
+
+export async function stageApprove(
+  id: string,
+  config?: { comments?: string; by?: string }
+): Promise<CertRequest> {
+  const { data: row, error: fetchErr } = await supabase
+    .from("certificate_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (fetchErr) throw fetchErr;
+
+  const ws = parseWorkflowState(row.comments) ?? {
+    currentStage: "hod_review" as WorkflowStageId,
+    history: [],
+  };
+
+  const isIssuanceStage = ws.currentStage === "issuance";
+  const nextStage = getNextStageId(ws.currentStage);
+
+  // When approving at issuance stage → issue certificate + advance to delivery
+  if (isIssuanceStage) {
+    ws.history.push({ stage: ws.currentStage, action: "issue", by: config?.by, at: new Date().toISOString(), reason: config?.comments });
+    ws.currentStage = "delivery";
+    const { data, error } = await supabase.from("certificate_requests").update({ status: "verified", comments: JSON.stringify(ws) }).eq("id", id).select("*").single();
+    if (error) throw error;
+    const issued = await createIssuedCertificate(data);
+    return normalizeRequest(data, issued);
+  }
+
+  // Last stage (delivery) → mark completed
+  if (nextStage === null) {
+    ws.history.push({ stage: ws.currentStage, action: "deliver", by: config?.by, at: new Date().toISOString(), reason: config?.comments });
+    ws.currentStage = "delivery";
+    const { data, error } = await supabase.from("certificate_requests").update({ comments: JSON.stringify(ws) }).eq("id", id).select("*").single();
+    if (error) throw error;
+    return normalizeRequest(data);
+  }
+
+  // Normal stage advance
+  ws.history.push({ stage: ws.currentStage, action: "approve", by: config?.by, at: new Date().toISOString(), reason: config?.comments });
+  ws.currentStage = nextStage;
+  const { data, error } = await supabase
+    .from("certificate_requests")
+    .update({ comments: JSON.stringify(ws) })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return normalizeRequest(data);
+}
+
+export async function stageReject(
+  id: string,
+  reason: string,
+  config?: { by?: string }
+): Promise<CertRequest> {
+  const { data: row, error: fetchErr } = await supabase
+    .from("certificate_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (fetchErr) throw fetchErr;
+
+  const ws = parseWorkflowState(row.comments) ?? {
+    currentStage: "hod_review" as WorkflowStageId,
+    history: [],
+  };
+
+  ws.history.push({
+    stage: ws.currentStage,
+    action: "reject",
+    by: config?.by,
+    at: new Date().toISOString(),
+    reason,
+  });
+
+  const { data, error } = await supabase
+    .from("certificate_requests")
+    .update({ status: "rejected", comments: JSON.stringify(ws), revoke_reason: reason })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return normalizeRequest(data);
+}
+
+export async function getWorkflowHistory(id: string): Promise<WorkflowAction[]> {
+  const { data, error } = await supabase
+    .from("certificate_requests")
+    .select("comments")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  const ws = parseWorkflowState(data?.comments ?? null);
+  return ws?.history ?? [];
 }

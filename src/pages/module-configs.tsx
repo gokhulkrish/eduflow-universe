@@ -4,6 +4,7 @@ import {
   Settings, Award, MessagesSquare, Video, Sparkles, FileSignature, Megaphone,
   Target, CalendarClock, PartyPopper, IdCard, ArrowUpCircle, DatabaseBackup, Shield,
   BookOpen, FlaskConical, ShieldCheck, FileText, Package,
+  Monitor, Headset, Wifi,
 } from "lucide-react";
 import { BookOpen as BookOpenIcon } from "lucide-react";
 
@@ -189,5 +190,30 @@ export const moduleConfigs: Record<string, Cfg> = {
     title: "Procurement & Assets", subtitle: "Requests · vendors · asset tracking",
     icon: <Package className="h-6 w-6" />,
     features: ["Purchase Requests", "Vendor Management", "Asset Tagging", "Stock Inward", "AMC Planning", "Maintenance Scheduling"],
+  },
+  "it-assets": {
+    title: "IT Assets", subtitle: "Asset inventory · allocation · maintenance",
+    icon: <Monitor className="h-6 w-6" />,
+    features: ["Asset Registry", "Allocation Tracking", "Maintenance Scheduling", "AMC Management", "Disposal Workflow", "Audit Trail"],
+  },
+  "it-helpdesk": {
+    title: "IT Helpdesk", subtitle: "Tickets · SLAs · resolution tracking",
+    icon: <Headset className="h-6 w-6" />,
+    features: ["Ticket Management", "SLA Tracking", "Priority Triage", "Assignment Workflow", "Resolution Log", "Escalation Engine"],
+  },
+  "it-labs": {
+    title: "IT Labs", subtitle: "Lab scheduling · inventory · compliance",
+    icon: <Monitor className="h-6 w-6" />,
+    features: ["Lab Registry", "Schedule Management", "Software Inventory", "Hardware Audit", "Usage Reports", "Compliance Checks"],
+  },
+  "it-network": {
+    title: "Network Infrastructure", subtitle: "Topology · switches · monitoring",
+    icon: <Wifi className="h-6 w-6" />,
+    features: ["Network Topology", "Switch Registry", "Bandwidth Monitoring", "Incident Logs", "Vendor Docs", "Compliance Status"],
+  },
+  "iot-devices": {
+    title: "IoT Device Management", subtitle: "Sensors · gateways · telemetry",
+    icon: <Wifi className="h-6 w-6" />,
+    features: ["Device Registry", "Telemetry Dashboard", "Firmware Versions", "Battery & Health", "Alert Rules", "Gateway Config"],
   },
 };
