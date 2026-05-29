@@ -103,6 +103,10 @@ const LEGACY_STORAGE_ALIAS_ENTRIES: LegacyStorageAliasEntry[] = [
   ["sms.import.profiles", importStorageKeys.profiles],
   ["sms.feature-toggles", "sms.feature-toggles.v1"],
   ["sms.legacy-feature-map", "sms.legacy-feature-map.v1"],
+  // Institute information storage bridges
+  ["sms.institute.record", `${instituteRegistryStorageKey}.config`],
+  ["eduflow.institute.profile", `${instituteRegistryStorageKey}.config`],
+  ["sms.collegeInfo.v1", `${instituteRegistryStorageKey}.config`],
 ];
 
 const LEGACY_EVENT_ALIAS_ENTRIES: LegacyEventAliasEntry[] = [
