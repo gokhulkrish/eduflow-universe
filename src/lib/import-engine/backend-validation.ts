@@ -41,16 +41,17 @@ export async function validateEnumsOnServer(
 
     const { data, error } = await (supabase.rpc as any)(
       "validate_import_enums",
-      { payload: JSON.stringify(payload) },
+      { payload },
     );
 
     if (error) throw error;
     if (!data) return [];
 
-    const parsed: BackendEnumValidationError[] = Array.isArray(data)
-      ? data.map((e: Record<string, unknown>) => ({
-          field: String(e.field),
-          value: String(e.value),
+    const raw = Array.isArray(data) ? data : (data as any)?.data ?? [];
+    const parsed: BackendEnumValidationError[] = Array.isArray(raw)
+      ? raw.map((e: Record<string, unknown>) => ({
+          field: String(e.field ?? ""),
+          value: String(e.value ?? ""),
           valid: Array.isArray(e.valid) ? e.valid.map(String) : [],
         }))
       : [];

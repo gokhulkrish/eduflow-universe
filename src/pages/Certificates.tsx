@@ -22,7 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   getTemplates, saveTemplate, deleteTemplate,
   getRequests, createRequest, approveRequest, issueRequest, revokeRequest, deleteRequest,
-  verifyByQr, bulkGenerateRequests, bulkIssue,
+  verifyByQr, lookupByCertificateNo,
   getStatusColor, getNextStatus,
   type CertTemplate, type CertRequest, type CertRequestJoined,
 } from "@/lib/certificates";
@@ -358,6 +358,24 @@ export default function Certificates() {
     }
   };
 
+  const handleDownloadHtml = () => {
+    if (!previewReq) return;
+    try {
+      const html = renderCertificateHtml(previewReq);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate-${previewReq.id ?? 'export'}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'HTML export failed');
+    }
+  };
+
   const handleSignedExport = async () => {
     if (!previewReq) return;
     try {
@@ -397,10 +415,13 @@ export default function Certificates() {
     }
   };
 
-  // ── QR Verify ──
+  // ── QR / CertNo Verify ──
   const [qrToken, setQrToken] = useState("");
   const [qrResult, setQrResult] = useState<CertRequestJoined | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [certNo, setCertNo] = useState("");
+  const [certNoResult, setCertNoResult] = useState<CertRequestJoined | null>(null);
+  const [certNoLoading, setCertNoLoading] = useState(false);
 
   const handleVerify = async () => {
     if (!qrToken.trim()) return;
@@ -413,6 +434,19 @@ export default function Certificates() {
       toast.error(e.message);
     }
     setQrLoading(false);
+  };
+
+  const handleLookupCertNo = async () => {
+    if (!certNo.trim()) return;
+    setCertNoLoading(true);
+    try {
+      const r = await lookupByCertificateNo(certNo.trim());
+      setCertNoResult(r);
+      if (!r) toast.error("No certificate found with this number");
+    } catch (e: any) {
+      toast.error((e as any)?.message ?? String(e));
+    }
+    setCertNoLoading(false);
   };
 
   // ── Bulk Generate ──
@@ -536,36 +570,64 @@ export default function Certificates() {
           </div>
         </TabsContent>
 
-        {/* ══════ QR VERIFY ══════ */}
+        {/* ══════ QR / CERTNO VERIFY ══════ */}
         <TabsContent value="qr-verify">
-          <Card className="mx-auto max-w-lg">
-            <CardHeader><CardTitle className="text-sm">Verify Certificate</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input id="qrToken" name="qrToken" placeholder="Enter QR token" value={qrToken} onChange={(e) => setQrToken(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleVerify()} />
-                <Button onClick={handleVerify} disabled={qrLoading} className="w-full rounded-xl sm:w-auto sm:shrink-0">
-                  {qrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Verify
-                </Button>
-              </div>
-              {qrResult && (
-                <div className="rounded-lg border border-success/30 bg-success/5 p-4 space-y-2">
-                  <div className="flex items-center gap-2"><QrCode className="h-4 w-4 text-success" /><Badge className={`border ${getStatusColor(qrResult.status)}`}>{qrResult.status}</Badge></div>
-                  <Separator />
-                  <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                    <span className="text-muted-foreground">Student</span><span className="font-medium">{qrResult.student_name}</span>
-                    <span className="text-muted-foreground">Admission No</span><span>{qrResult.admission_no}</span>
-                    <span className="text-muted-foreground">Template</span><span>{qrResult.template_name} ({qrResult.template_code})</span>
-                    <span className="text-muted-foreground">Purpose</span><span>{qrResult.purpose ?? "—"}</span>
-                    <span className="text-muted-foreground">Issued</span><span>{qrResult.issued_at ? new Date(qrResult.issued_at).toLocaleDateString() : "—"}</span>
-                  </div>
-                  <Separator />
-                  <p className="text-[10px] font-mono text-muted-foreground break-all">Token: {qrResult.qr_token}</p>
-                  <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" onClick={() => { navigator.clipboard.writeText(qrResult.qr_token); toast.success("Token copied"); }}><Copy className="h-3 w-3 mr-1" /> Copy Token</Button>
+          <div className="mx-auto max-w-lg space-y-6">
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Verify by QR Token</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input placeholder="Enter QR token" value={qrToken} onChange={(e) => setQrToken(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleVerify()} />
+                  <Button onClick={handleVerify} disabled={qrLoading} className="w-full rounded-xl sm:w-auto sm:shrink-0">
+                    {qrLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Verify
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {qrResult && (
+                  <div className="rounded-lg border border-success/30 bg-success/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2"><QrCode className="h-4 w-4 text-success" /><Badge className={`border ${getStatusColor(qrResult.status)}`}>{qrResult.status}</Badge></div>
+                    <Separator />
+                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                      <span className="text-muted-foreground">Student</span><span className="font-medium">{qrResult.student_name}</span>
+                      <span className="text-muted-foreground">Admission No</span><span>{qrResult.admission_no}</span>
+                      <span className="text-muted-foreground">Template</span><span>{qrResult.template_name} ({qrResult.template_code})</span>
+                      <span className="text-muted-foreground">Purpose</span><span>{qrResult.purpose ?? "—"}</span>
+                      <span className="text-muted-foreground">Issued</span><span>{qrResult.issued_at ? new Date(qrResult.issued_at).toLocaleDateString() : "—"}</span>
+                    </div>
+                    <Separator />
+                    <p className="text-[10px] font-mono text-muted-foreground break-all">Token: {qrResult.qr_token}</p>
+                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" onClick={() => { navigator.clipboard.writeText(qrResult.qr_token!); toast.success("Token copied"); }}><Copy className="h-3 w-3 mr-1" /> Copy Token</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Verify by Certificate Number</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input placeholder="Enter certificate number" value={certNo} onChange={(e) => setCertNo(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLookupCertNo()} />
+                  <Button onClick={handleLookupCertNo} disabled={certNoLoading} className="w-full rounded-xl sm:w-auto sm:shrink-0">
+                    {certNoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Lookup
+                  </Button>
+                </div>
+                {certNoResult && (
+                  <div className="rounded-lg border border-success/30 bg-success/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2"><FileDown className="h-4 w-4 text-success" /><Badge className={`border ${getStatusColor(certNoResult.status)}`}>{certNoResult.status}</Badge></div>
+                    <Separator />
+                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                      <span className="text-muted-foreground">Student</span><span className="font-medium">{certNoResult.student_name}</span>
+                      <span className="text-muted-foreground">Admission No</span><span>{certNoResult.admission_no}</span>
+                      <span className="text-muted-foreground">Certificate No</span><span>{certNoResult.no ?? "—"}</span>
+                      <span className="text-muted-foreground">Template</span><span>{certNoResult.template_name} ({certNoResult.template_code})</span>
+                      <span className="text-muted-foreground">Purpose</span><span>{certNoResult.purpose ?? "—"}</span>
+                      <span className="text-muted-foreground">Issued</span><span>{certNoResult.issued_at ? new Date(certNoResult.issued_at).toLocaleDateString() : "—"}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* ══════ ISSUANCE LOG ══════ */}
@@ -700,6 +762,7 @@ export default function Certificates() {
           <DialogFooter>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handlePrintPreview}>Print</Button>
+              <Button variant="outline" onClick={handleDownloadHtml}>HTML</Button>
               <Button onClick={handleDownloadPdf}>Download PDF</Button>
               {import.meta.env.VITE_CERT_SERVER_URL && (
                 <Button variant="secondary" onClick={handleSignedExport}>Signed Export</Button>

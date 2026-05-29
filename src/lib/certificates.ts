@@ -381,6 +381,43 @@ export async function verifyByQr(qrToken: string): Promise<CertRequestJoined | n
   };
 }
 
+export async function lookupByCertificateNo(
+  certificateNo: string
+): Promise<CertRequestJoined | null> {
+  if (!(await tablesExist(["certificates", "certificate_requests"]))) return null;
+  const { data: cert, error: certErr } = await supabase
+    .from("certificates")
+    .select("request_id, student_id, template_id, certificate_no, issued_on")
+    .eq("certificate_no", certificateNo)
+    .maybeSingle();
+  if (certErr) throw certErr;
+  if (!cert) return null;
+
+  const { data: req, error: reqErr } = await supabase
+    .from("certificate_requests")
+    .select("*")
+    .eq("id", cert.request_id)
+    .maybeSingle();
+  if (reqErr) throw reqErr;
+  if (!req) return null;
+
+  const [tpl, students, issuedMap] = await Promise.all([
+    getTemplate(cert.template_id),
+    fetchStudentRegister(),
+    getCertificatesByRequestIds([req.id]),
+  ]);
+  const stu = students.find((s) => s.id === cert.student_id);
+  return {
+    ...normalizeRequest(req, issuedMap.get(req.id)),
+    template_name: tpl?.name,
+    template_code: tpl?.code,
+    student_name: stu?.display_name,
+    admission_no: stu?.admission_no,
+    grade: stu?.grade ?? undefined,
+    no: cert.certificate_no,
+  };
+}
+
 export async function bulkGenerateRequests(
   templateId: string,
   studentIds: string[],
