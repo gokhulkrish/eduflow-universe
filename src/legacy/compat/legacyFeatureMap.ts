@@ -5,7 +5,8 @@ export type LegacyDomain =
   | "assessment"
   | "fees"
   | "communications"
-  | "operations";
+  | "operations"
+  | "institute";
 
 export interface LegacyFeatureLink {
   id: string;
@@ -378,6 +379,50 @@ export const legacyFeatureMap: LegacyFeatureLink[] = [
     newModuleHint: "core/comms/service.ts",
     newTableHint: "message_logs",
     status: "bridge-required",
+  },
+
+  // ── Institute Identity ──
+  {
+    id: "INS-PROFILE-01",
+    domain: "institute",
+    legacyLabel: "Institute Profile",
+    legacyEntryPoint: "Institute > Profile",
+    legacyFunctions: ["window.saveInstituteInformation()", "window.loadInstituteInformation()"],
+    newModuleHint: "src/pages/InstituteSettings.tsx + core/institute/service.ts",
+    newTableHint: "institute_profile",
+    status: "bridge-required",
+    notes: "Compatibility bridge connects legacy saveInstituteInformation to modern InstituteSettings page via storage alias and route redirect",
+  },
+  {
+    id: "INS-SETTINGS-01",
+    domain: "institute",
+    legacyLabel: "Institute Settings Page",
+    legacyEntryPoint: "Dashboard > Institute Identity",
+    legacyFunctions: ["window.renderInstituteInformationPage()", "buildInstituteInformationWorkspaceHtml()"],
+    newModuleHint: "src/pages/InstituteSettings.tsx",
+    newTableHint: "institute_profile",
+    status: "bridge-required",
+    notes: "Route alias /collegeInfo -> /settings/institute redirects to React InstituteSettings page",
+  },
+  {
+    id: "INS-HEADERS-01",
+    domain: "institute",
+    legacyLabel: "Institute Header Registry",
+    legacyEntryPoint: "Institute > Headers",
+    legacyFunctions: ["buildInstituteDefaultHeaders()", "makeInstituteField()"],
+    newModuleHint: "src/lib/header-registry.ts -> buildInstituteDefaultHeaders()",
+    status: "live",
+  },
+  {
+    id: "INS-API-01",
+    domain: "institute",
+    legacyLabel: "Institute API Routes",
+    legacyEntryPoint: "API",
+    legacyFunctions: ["bridgeLegacyInstituteInfo()", "bridgeLegacyInstituteSettings()"],
+    newModuleHint: "app/api/institute/profile/route.ts",
+    newTableHint: "institute_profile",
+    status: "bridge-required",
+    notes: "API routes exist; InstituteSettings.tsx now calls /api/institute/profile for DB persistence",
   },
 
   // ── Operations & Tools ──

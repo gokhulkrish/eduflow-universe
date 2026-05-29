@@ -56,4 +56,8 @@ export const legacyFeatureMap: Record<string, FeatureTarget[]> = {
     { feature: "Data cleanups", legacySource: "cleanup()", targetModule: "migration-certification", targetService: "verifyCompliance", targetTable: "N/A", status: "bridge-required" },
     { feature: "Audit trails", legacySource: "activityTrace", targetModule: "student-records", targetService: "insertAuditEntry", targetTable: "audit_log", status: "compatible" },
   ],
+  "institute-identity": [
+    { feature: "Institute Profile", legacySource: "window.saveInstituteInformation()", targetModule: "institute", targetService: "saveProfile()", targetTable: "institute_profile", status: "bridge-required" },
+    { feature: "Institute Settings", legacySource: "window.renderInstituteInformationPage()", targetModule: "institute", targetService: "loadProfile()", targetTable: "institute_profile", status: "bridge-required" },
+  ],
 };
