@@ -219,6 +219,68 @@ export function bridgeLegacyCertificatesWorkflow() {
 
 let certPatcherActive = false;
 
+const PENDING_BRIDGE_KEY = "sms.certificate.bridge.pending.v1";
+
+type PendingBridgeEntry = {
+  id: string;
+  studentId: string;
+  type: string;
+  purpose: string;
+  createdAt: string;
+};
+
+function addPendingBridgeEntry(entry: PendingBridgeEntry) {
+  try {
+    const raw = window.localStorage.getItem(PENDING_BRIDGE_KEY);
+    const pending: PendingBridgeEntry[] = raw ? JSON.parse(raw) : [];
+    if (!pending.some((p) => p.id === entry.id)) {
+      pending.push(entry);
+      window.localStorage.setItem(PENDING_BRIDGE_KEY, JSON.stringify(pending));
+    }
+  } catch { /* best-effort */ }
+}
+
+function readLegacyFormField(id: string): string {
+  try {
+    const el = (window as any).byId?.(id);
+    return el?.value ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function processLegacyGenerateCall(): void {
+  const studentId = readLegacyFormField("certificateStudent");
+  const type = readLegacyFormField("certificateType") || "Bonafide";
+  const purpose = readLegacyFormField("certificatePurpose") || "";
+  addPendingBridgeEntry({
+    id: `pending-${Date.now()}`,
+    studentId,
+    type,
+    purpose,
+    createdAt: new Date().toISOString(),
+  });
+  emitAppSync("sms.certificates.bridge.pending");
+  try {
+    const showToast = (window as any).showToast;
+    if (typeof showToast === "function") {
+      showToast("Use the new Certificates page for workflow-based certificate requests.", "info");
+    }
+  } catch { /* best-effort */ }
+}
+
+export function consumePendingBridgeEntries(): PendingBridgeEntry[] {
+  try {
+    const raw = window.localStorage.getItem(PENDING_BRIDGE_KEY);
+    if (!raw) return [];
+    const entries: PendingBridgeEntry[] = JSON.parse(raw);
+    window.localStorage.removeItem(PENDING_BRIDGE_KEY);
+    return entries;
+  } catch {
+    return [];
+  }
+}
+
 export function patchLegacyCertificatesFunctions() {
   if (certPatcherActive || typeof window === "undefined") return;
   const w = window as unknown as Record<string, unknown>;
@@ -239,9 +301,22 @@ export function patchLegacyCertificatesFunctions() {
   const origGenerate = w.generateCertificate;
   if (typeof origGenerate === "function") {
     w.generateCertificate = async function (...args: unknown[]) {
-      const result = await origGenerate.apply(w, args);
-      emitAppSync("sms.certificates.bridge");
-      return result;
+      processLegacyGenerateCall();
+      const router = (w as any).navigate || (w as any).openErpModuleWorkspace;
+      if (typeof router === "function") {
+        router("certificates", "overview");
+      } else {
+        try { (w as any).location.assign("/certificates"); } catch {}
+      }
+      return origGenerate.apply(w, args);
+    };
+  }
+
+  const origRevoke = w.revokeCertificate;
+  if (typeof origRevoke === "function") {
+    w.revokeCertificate = function (id: string) {
+      emitAppSync("sms.certificates.bridge.revoke");
+      return origRevoke.call(w, id);
     };
   }
 
@@ -250,4 +325,76 @@ export function patchLegacyCertificatesFunctions() {
 
 export function isCertPatcherActive() {
   return certPatcherActive;
+}
+
+/**
+ * Migration: converts pending bridge entries (written by legacy generateCertificate
+ * redirect) into proper modern Supabase requests. Safe to call repeatedly — skips
+ * already-migrated entries by checking localStorage dedup key.
+ */
+export async function migratePendingBridgeEntries(): Promise<{
+  migrated: number;
+  skipped: number;
+  errors: string[];
+}> {
+  const entries = consumePendingBridgeEntries();
+  if (entries.length === 0) return { migrated: 0, skipped: 0, errors: [] };
+
+  const { saveTemplate, createRequest, approveRequest, issueRequest } = await import("@/lib/certificates");
+  const { fetchStudentRegister } = await import("@/lib/student-records");
+  const dedupKey = "sms.certificate.migrated.legacy.v1";
+
+  let migrated = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  let deduped: string[] = [];
+  try { deduped = JSON.parse(window.localStorage.getItem(dedupKey) || "[]"); } catch {}
+
+  const students = await fetchStudentRegister();
+  const templates = await (await import("@/lib/certificates")).getTemplates();
+
+  for (const entry of entries) {
+    if (deduped.includes(entry.id)) { skipped++; continue; }
+
+    try {
+      const tplCode = legacyTypeToTemplateCode(entry.type);
+      let tpl = templates.find((t) => t.code === tplCode);
+      if (!tpl) {
+        tpl = await saveTemplate({
+          code: tplCode,
+          name: `${entry.type} Certificate`,
+          body: "",
+          active: true,
+        });
+        templates.push(tpl);
+      }
+
+      const student = students.find(
+        (s) => s.admission_no === entry.studentId || s.id === entry.studentId,
+      );
+      if (!student) {
+        errors.push(`No student match for ${entry.studentId} (${entry.id})`);
+        skipped++;
+        continue;
+      }
+
+      const req = await createRequest({
+        template_id: tpl.id,
+        student_id: student.id,
+        purpose: entry.purpose || null,
+      });
+
+      await approveRequest(req.id);
+      await issueRequest(req.id);
+
+      migrated++;
+      deduped.push(entry.id);
+    } catch (e: unknown) {
+      errors.push(`Failed ${entry.id}: ${(e as Error)?.message ?? String(e)}`);
+    }
+  }
+
+  try { window.localStorage.setItem(dedupKey, JSON.stringify(deduped)); } catch {}
+  return { migrated, skipped, errors };
 }

@@ -2870,9 +2870,14 @@ export default function Import() {
                 <p className="text-sm font-semibold">Batch History</p>
                 <p className="text-xs text-muted-foreground">Recent completed imports recorded in audit log.</p>
               </div>
-              <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => void handleRefreshHistory()}>
-                Refresh
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => navigate("/import/history")}>
+                  View All
+                </Button>
+                <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => void handleRefreshHistory()}>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
             <div className="mt-3 space-y-2">
               {loadingHistory ? (

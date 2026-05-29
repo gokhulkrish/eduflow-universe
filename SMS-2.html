@@ -75517,168 +75517,41 @@ function renderPeopleWorkspace(workspaceKey = 'students') {
 }
 
 function generateCertificate() {
-  const type = byId('certificateType')?.value || 'Bonafide';
-  const studentId = byId('certificateStudent')?.value || '';
-  const student = AppState.students.find(item => item.studentKey === studentId);
-  const issuedBy = String(AppState.currentUserRole || AppState.erp?.currentUserRole || normalizeErpSettings(AppState.erp.settings).currentRole || 'Admin');
-  const certificateNo = `CERT-${type.toUpperCase()}-${new Date().getFullYear()}-${String(getErpRecordsByType(STORENAMES.certificateLog).length + 1).padStart(4, '0')}`;
-  return saveRecord(STORENAMES.certificateLog, normalizeStoredRecord(STORENAMES.certificateLog, {
-    moduleKey: 'certificates',
-    studentId,
-    studentName: getStudentName(student),
-    type,
-    purpose: byId('certificatePurpose')?.value || '',
-    dateRequired: byId('certificateDateRequired')?.value || todayIsoDate(),
-    status: 'Issued',
-    certificateNo,
-    issuedBy,
-    issuedAt: nowIso(),
-    title: `${type} certificate`
-  })).then(saved => {
-    showToast('Certificate generated', 'success');
-    appendActivityTrace({ category: 'data', title: 'Certificate Generated', detail: `${saved.certificateNo || certificateNo} / ${saved.studentName || studentId}` });
-    renderErpOverview();
-    return saved;
-  });
+  showToast('Certificates have moved to the new workflow-based system. Please use the Certificates page.', 'info');
+  try { window.location.assign('/certificates'); } catch (e) { /* not in SPA */ }
 }
 
 function renderCertificatePrintHtml(item) {
-  const settings = normalizeErpSettings(AppState.erp.settings);
-  const instituteName = settings.instituteName || settings.name || 'Institute';
-  const instituteAddress = settings.address || settings.instituteAddress || '';
-  return `
-    <div style="font-family:serif;padding:24px;border:1px solid var(--line);background:#fff;color:#111;max-width:760px;margin:0 auto;">
-      <div style="text-align:center;border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:18px;">
-        <h2 style="margin:0;">${escapeHtml(instituteName)}</h2>
-        <div>${escapeHtml(instituteAddress)}</div>
-        <div style="letter-spacing:3px;text-transform:uppercase;font-size:12px;margin-top:8px;">Certificate</div>
-      </div>
-      <p>This is to certify that <strong>${escapeHtml(item.studentName || '')}</strong> has been issued a <strong>${escapeHtml(item.type || '')}</strong> certificate.</p>
-      <p><strong>Purpose:</strong> ${escapeHtml(item.purpose || '')}</p>
-      <p><strong>Certificate No:</strong> ${escapeHtml(item.certificateNo || '')}</p>
-      <p><strong>Issued by:</strong> ${escapeHtml(item.issuedBy || '')}</p>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:32px;gap:24px;">
-        <div>
-          <div style="margin-bottom:8px;">${escapeHtml(item.studentName || '')}</div>
-          <div>Admission / Student ID: ${escapeHtml(item.studentId || '')}</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="width:92px;height:92px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;">QR</div>
-          <div style="font-size:12px;margin-top:8px;">Verification QR</div>
-        </div>
-      </div>
-      <div style="margin-top:40px;display:flex;justify-content:space-between;">
-        <div>
-          <div style="border-top:1px solid var(--line);min-width:180px;padding-top:6px;">Applicant Signature</div>
-        </div>
-        <div>
-          <div style="border-top:1px solid var(--line);min-width:180px;padding-top:6px;">${escapeHtml(item.issuedBy || '')}</div>
-          <div style="font-size:12px;">Issuing Authority</div>
-        </div>
-      </div>
-    </div>
-  `;
+  return '<div style="padding:24px;text-align:center;color:#888;">Certificate rendering has moved to the new system.</div>';
 }
 
 function downloadCertificateHtml(item) {
-  const blob = new Blob([renderCertificatePrintHtml(item)], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `${item.certificateNo || 'certificate'}.html`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Certificate download has moved to the new system.', 'info');
 }
 
 function previewCertificate(id) {
-  const item = getErpRecordsByType(STORENAMES.certificateLog).find(row => row.id === id);
-  if (!item) return;
-  showModal({
-    title: 'Certificate Preview',
-    content: renderCertificatePrintHtml(item),
-    size: 'large',
-    actions: [
-      { label: 'Print', variant: 'btn-primary', handler: () => window.print() },
-      { label: 'Download HTML', variant: 'btn-soft', handler: () => downloadCertificateHtml(item) }
-    ]
-  });
+  showToast('Certificate preview has moved to the new system.', 'info');
+  try { window.location.assign('/certificates'); } catch (e) {}
 }
 
 function revokeCertificate(id) {
-  const item = getErpRecordsByType(STORENAMES.certificateLog).find(row => row.id === id);
-  if (!item) return;
-  if (!/admin/i.test(String(AppState.currentUserRole || AppState.erp?.currentUserRole || 'Admin'))) {
-    showToast('Only admin can revoke certificates', 'warning');
-    return;
-  }
-  saveRecord(STORENAMES.certificateLog, { ...item, status: 'Revoked', revokedReason: byId('certificateRevokeReason')?.value || '', updatedAt: nowIso() }).then(() => { showToast('Certificate revoked', 'warning'); renderErpOverview(); });
+  showToast('Certificate revocation has moved to the new system.', 'info');
+  try { window.location.assign('/certificates'); } catch (e) {}
 }
 
 function verifyCertificate() {
-  const value = byId('certificateLookup')?.value || '';
-  const found = getErpRecordsByType(STORENAMES.certificateLog).find(item => item.certificateNo === value);
-  showModal({
-    title: 'Verification Result',
-    content: found ? `
-      <div class="erp-activity-card">
-        <strong>Valid certificate</strong>
-        <div class="erp-activity-meta"><span>${escapeHtml(found.studentName || '')}</span><span>${escapeHtml(found.certificateNo || '')}</span><span>${escapeHtml(found.type || '')}</span></div>
-        <div class="erp-activity-meta"><span>Verified at ${escapeHtml(nowIso())}</span><span>${renderBadge(found.status || 'Issued', found.status === 'Revoked' ? 'danger' : 'success')}</span></div>
-      </div>
-    ` : '<div class="erp-activity-card"><strong>Invalid certificate number</strong></div>',
-    size: 'medium'
-  });
+  showToast('Certificate verification has moved to the new system with QR-based lookup.', 'info');
+  try { window.location.assign('/certificates'); } catch (e) {}
 }
 
 function renderCertificateTemplate() {
-  const settings = normalizeErpSettings(AppState.erp.settings);
-  const templates = settings.certificateTemplates || {};
-  const current = templates.bonafide || '[STUDENT_NAME]';
-  return `
-    <div class="erp-activity-card">
-      <strong>Template Editor</strong>
-      <div class="erp-activity-meta"><span>${renderBadge('Bonafide', 'soft')}</span><span>${renderBadge('Transfer', 'soft')}</span><span>${renderBadge('Conduct', 'soft')}</span></div>
-      <textarea id="certificateTemplateText" rows="8" style="width:100%;">${escapeHtml(current)}</textarea>
-      <div class="erp-inline-actions">
-        <button class="btn btn-primary small" type="button" onclick="showToast('Template preview updated', 'success')">Preview</button>
-      </div>
-    </div>
-  `;
+  return '<div class="erp-activity-card"><strong>Templates</strong><div class="erp-activity-meta"><span>Use the Certificates page to manage templates.</span></div></div>';
 }
 
 function renderCertificatesWorkspace(workspaceKey = 'letters') {
-  const students = getErpContextStudents();
-  const certs = filterErpContextRecords(getErpRecordsByType(STORENAMES.certificateLog));
-  const statsHtml = renderSummaryStrip([
-    { label: 'Certificates', valueLabel: String(certs.length), value: certs.length },
-    { label: 'Issued', valueLabel: String(certs.filter(item => item.status === 'Issued').length), value: certs.length },
-    { label: 'Revoked', valueLabel: String(certs.filter(item => item.status === 'Revoked').length), value: certs.length },
-    { label: 'Templates', valueLabel: String(Object.keys(normalizeErpSettings(AppState.erp.settings).certificateTemplates || {}).length), value: certs.length }
-  ]);
-  if (workspaceKey === 'templates') {
-    return renderWorkspaceFrame('Template Manager', 'Edit certificate templates and preview replacements.', statsHtml, renderCertificateTemplate(), '');
-  }
-  if (workspaceKey === 'issued') {
-    return renderWorkspaceFrame('Issued Log', 'All generated certificates.', statsHtml, renderModuleListCards(certs, 'No certificates issued yet.', item => `<div class="erp-activity-card"><strong>${escapeHtml(item.certificateNo || '')}</strong><div class="erp-activity-meta"><span>${escapeHtml(item.type || '')}</span><span>${renderBadge(item.status || '', item.status === 'Revoked' ? 'danger' : 'success')}</span><span>${escapeHtml(item.issuedBy || '')}</span></div><div class="erp-inline-actions"><button class="btn btn-soft small" type="button" onclick="previewCertificate('${escapeHtml(item.id)}')">Preview</button>${/admin/i.test(String(AppState.currentUserRole || AppState.erp?.currentUserRole || 'Admin')) ? `<button class="btn btn-soft small" type="button" onclick="revokeCertificate('${escapeHtml(item.id)}')">Revoke</button>` : ''}</div></div>`), '');
-  }
-  if (workspaceKey === 'verification') {
-    return renderWorkspaceFrame('Verification Portal', 'Lookup certificate validity by number.', statsHtml, `
-      <form id="certificateVerifyForm" class="erp-form-grid" onsubmit="verifyCertificate(); return false;">
-        <input id="certificateLookup" type="text" placeholder="Certificate number">
-        <button class="btn btn-primary" type="submit">Verify</button>
-      </form>
-    `, '');
-  }
-  return renderWorkspaceFrame('Certificate Requests', 'Generate Bonafide, Transfer, Conduct, and other certificates.', statsHtml, `
-    <form id="certificateForm" class="erp-form-grid" onsubmit="generateCertificate(); return false;">
-      <select id="certificateStudent"><option value="">Student</option>${getStudentSelectOptions(students)}</select>
-      <select id="certificateType"><option>Bonafide</option><option>Transfer</option><option>Conduct</option><option>Study</option><option>Character</option><option>Leaving</option></select>
-      <input id="certificatePurpose" type="text" placeholder="Purpose">
-      <input id="certificateDateRequired" type="date" value="${todayIsoDate()}">
-      <button class="btn btn-primary" type="submit">Generate Certificate</button>
-    </form>
-    ${renderModuleListCards(certs, 'No certificates issued yet.', item => `<div class="erp-activity-card"><strong>${escapeHtml(item.certificateNo || '')}</strong><div class="erp-activity-meta"><span>${escapeHtml(item.type || '')}</span><span>${renderBadge(item.status || '', item.status === 'Revoked' ? 'danger' : 'success')}</span><span>${escapeHtml(item.issuedBy || '')}</span></div><div class="erp-inline-actions"><button class="btn btn-soft small" type="button" onclick="previewCertificate('${escapeHtml(item.id)}')">Preview</button></div></div>`)}
-  `, '');
+  showToast('Please use the new Certificates page.', 'info');
+  try { window.location.assign('/certificates'); } catch (e) {}
+  return '<div>Redirecting to Certificates…</div>';
 }
 
 let lastResponsiveMode = '';

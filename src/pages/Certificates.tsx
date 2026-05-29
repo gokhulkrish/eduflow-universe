@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Award, Plus, Search, CheckCircle, XCircle, Ban, FileDown, QrCode, Loader2, Eye, Trash2, Copy, Download } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import {
 import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-records";
 import { generateCertificateHtml, prepareCertificateData, printCertificate, CERTIFICATE_HTML_TEMPLATE } from "@/lib/certificate-styles";
 import { generatePdfServerSide, streamPdfForDownload } from "@/lib/certificate-pdf-service";
+import { migratePendingBridgeEntries } from "../../legacy/compat/certificates";
 
 const toastErr = (e: unknown) => toast.error((e as any)?.message ?? String(e));
 
@@ -181,6 +182,20 @@ export default function Certificates() {
   const { data: templates, isLoading: tl } = useQuery({ queryKey: ["cert-templates"], queryFn: getTemplates });
   const { data: requests, isLoading: rl } = useQuery({ queryKey: ["cert-requests"], queryFn: () => getRequests() });
   const { data: students } = useQuery({ queryKey: ["student-register"], queryFn: fetchStudentRegister });
+
+  // On mount, consume any pending bridge entries from legacy generateCertificate redirect
+  useEffect(() => {
+    migratePendingBridgeEntries().then((result) => {
+      if (result.migrated > 0) {
+        qc.invalidateQueries({ queryKey: ["cert-requests"] });
+        qc.invalidateQueries({ queryKey: ["cert-templates"] });
+        toast.success(`Migrated ${result.migrated} certificate(s) from legacy system`);
+      }
+      if (result.errors.length > 0) {
+        console.warn("Certificate migration errors:", result.errors);
+      }
+    }).catch((e) => console.error("Certificate migration failed:", e));
+  }, []);
 
   // ── Template Dialog ──
   const [tplOpen, setTplOpen] = useState(false);

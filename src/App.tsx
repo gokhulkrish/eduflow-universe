@@ -78,6 +78,7 @@ const Dashboard = retryableLazy(() => import("./pages/Dashboard"));
 const Students = retryableLazy(() => import("./pages/Students"));
 const AddStudent = retryableLazy(() => import("./pages/AddStudent"));
 const Import = retryableLazy(() => import("./pages/Import"));
+const ImportHistory = retryableLazy(() => import("./pages/ImportHistory"));
 const Attendance = retryableLazy(() => import("./pages/Attendance"));
 const Admissions = retryableLazy(() => import("./pages/Admissions"));
 const Exams = retryableLazy(() => import("./pages/Exams"));
@@ -414,6 +415,7 @@ const App = () => {
                 <Route path="/admissions" element={<LazyRoute element={<Admissions />} />} />
                 <Route path="/exams" element={<LazyRoute element={<Exams />} />} />
                 <Route path="/import" element={<LazyRoute element={<Import />} />} />
+                <Route path="/import/history" element={<LazyRoute element={<ImportHistory />} />} />
                 <Route path="/attendance" element={<LazyRoute element={<ErrorBoundary><Attendance /></ErrorBoundary>} />} />
                 <Route path="/automation" element={<LazyRoute element={<Automation />} />} />
                 <Route path="/data-quality" element={<LazyRoute element={<DataQualityDashboard />} />} />
