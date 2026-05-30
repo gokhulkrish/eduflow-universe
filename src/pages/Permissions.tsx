@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Search, Save, Loader2, Copy } from "lucide-react";
+import { Shield, Search, Save, Loader2, Copy, GitBranch, Tag, Calendar, MapPin, Users, KeySquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, AppRole } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ const REALTIME_PUBLICATION_SQL = `select pubname, schemaname, tablename
 from pg_publication_tables
 where pubname = 'supabase_realtime'
   and schemaname = 'public'
-  and tablename in ('permissions', 'role_permissions', 'user_roles')
+  and tablename in ('permissions', 'role_permissions', 'user_roles', 'attribute_definitions', 'abac_policies', 'policy_evaluations')
 order by tablename;`;
 const REALTIME_PUBLICATION_FIX_SQL = `do $$
 begin
@@ -84,6 +84,36 @@ begin
         and tablename = 'user_roles'
     ) then
       execute 'alter publication supabase_realtime add table public.user_roles';
+    end if;
+
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'attribute_definitions'
+    ) then
+      execute 'alter publication supabase_realtime add table public.attribute_definitions';
+    end if;
+
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'abac_policies'
+    ) then
+      execute 'alter publication supabase_realtime add table public.abac_policies';
+    end if;
+
+    if not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'policy_evaluations'
+    ) then
+      execute 'alter publication supabase_realtime add table public.policy_evaluations';
     end if;
   end if;
 end $$;`;
@@ -143,12 +173,50 @@ const ROLE_LABEL: Record<AppRole, string> = {
 type Level = CapabilityLevel;
 
 interface Perm extends CapabilityPermissionRecord {}
+
+interface AttributeDefinition {
+  id: string;
+  name: string;
+  category: "user" | "resource" | "environment";
+  dataType: "string" | "number" | "boolean" | "date" | "enum";
+  enumValues?: string[];
+  description?: string;
+}
+
+interface AbacPolicy {
+  id: string;
+  name: string;
+  description?: string;
+  priority: number;
+  enabled: boolean;
+  targetRoles: string[];
+  resourceType: string;
+  conditions: Array<{
+    attribute: string;
+    operator: "equals" | "not_equals" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "contains";
+    value: any;
+  }>;
+  effect: "allow" | "deny";
+  createdAt: string;
+}
+
+interface PolicyEvaluation {
+  id: string;
+  policyId: string;
+  userId: string;
+  resourceId: string;
+  resourceType: string;
+  evaluatedAt: string;
+  result: "allowed" | "denied";
+  matchedConditions: any[];
+}
+
 export default function Permissions() {
   const queryClient = useQueryClient();
   const { roles } = useAuth();
   const isSuper = roles.includes("super_admin");
   const [perms, setPerms] = useState<Perm[]>([]);
-  const [matrix, setMatrix] = useState<Map<string, Level>>(new Map()); // key `${role}:${pid}`
+  const [matrix, setMatrix] = useState<Map<string, Level>>(new Map());
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [runtimeSnapshot, setRuntimeSnapshot] = useState(() => getCapabilityRuntimeSnapshot());
   const [q, setQ] = useState("");
@@ -159,6 +227,10 @@ export default function Permissions() {
   const [realtimeLastEvent, setRealtimeLastEvent] = useState<string | null>(null);
   const [repairingMissing, setRepairingMissing] = useState(false);
   const [repairingDefaultMatrix, setRepairingDefaultMatrix] = useState(false);
+  const [attributes, setAttributes] = useState<AttributeDefinition[]>([]);
+  const [policies, setPolicies] = useState<AbacPolicy[]>([]);
+  const [evaluations, setEvaluations] = useState<PolicyEvaluation[]>([]);
+  const [showAbacTab, setShowAbacTab] = useState(false);
   const deferredQuery = useDeferredValue(q);
 
   const loadPermissions = useCallback(async () => {
@@ -187,8 +259,24 @@ export default function Permissions() {
     setLoading(false);
   }, []);
 
+  const loadAbacData = useCallback(async () => {
+    if (!(await tableExists("attribute_definitions"))) {
+      setAttributes([]);
+      return;
+    }
+    const [attrRes, policyRes, evalRes] = await Promise.all([
+      supabase.from("attribute_definitions").select("*").order("category").order("name"),
+      supabase.from("abac_policies").select("*").order("priority"),
+      supabase.from("policy_evaluations").select("*").order("evaluatedAt", { ascending: false }).limit(100),
+    ]);
+    setAttributes((attrRes.data ?? []) as AttributeDefinition[]);
+    setPolicies((policyRes.data ?? []) as AbacPolicy[]);
+    setEvaluations((evalRes.data ?? []) as PolicyEvaluation[]);
+  }, []);
+
   useEffect(() => {
     void loadPermissions();
+    void loadAbacData();
 
     const channel = supabase
       .channel("permissions-matrix-live")
@@ -220,6 +308,27 @@ export default function Permissions() {
           queryClient.invalidateQueries({ queryKey: ["module-enabled"] });
           queryClient.invalidateQueries({ queryKey: ["accessible-module-keys"] });
           broadcastModuleAccessSync();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attribute_definitions" },
+        (payload) => {
+          void loadAbacData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "abac_policies" },
+        (payload) => {
+          void loadAbacData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "policy_evaluations" },
+        (payload) => {
+          void loadAbacData();
         },
       )
       .subscribe((status) => {
@@ -641,7 +750,7 @@ export default function Permissions() {
           )}
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <Badge variant="secondary" className="bg-muted text-muted-foreground">
             {filtered.length} visible rows
           </Badge>
@@ -773,26 +882,6 @@ export default function Permissions() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {capabilityModel.groups.slice(0, 8).map((group) => (
-              <Badge
-                key={group.moduleKey}
-                variant="secondary"
-                className={cn(
-                  "gap-1.5",
-                  group.highestLevel === "manage" && "bg-gradient-primary text-primary-foreground",
-                  group.highestLevel === "delete" && "bg-destructive/15 text-destructive",
-                  group.highestLevel === "edit" && "bg-warning/15 text-warning",
-                  group.highestLevel === "create" && "bg-success/15 text-success",
-                  group.highestLevel === "view" && "bg-primary/15 text-primary",
-                )}
-              >
-                {group.label}
-                <span className="font-mono text-[10px] opacity-80">{group.permissionCount}</span>
-              </Badge>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
             {capabilityModel.roleSummaries.map((roleSummary) => (
               <Badge
                 key={roleSummary.role}
@@ -868,6 +957,73 @@ export default function Permissions() {
           </div>
         )}
       </Card>
+
+      {/* ABAC Tab Section */}
+      {showAbacTab && (
+        <Card className="glass mt-6 p-6">
+          <PageHeader
+            title="ABAC Policies"
+            subtitle="Attribute-Based Access Control — fine-grained conditional permissions"
+            icon={<GitBranch className="h-6 w-6" />}
+          />
+          
+          <div className="mb-4 flex gap-2">
+            <Button 
+              variant="outline" 
+              className="rounded-xl"
+              onClick={() => {/* Open create policy modal */}}
+            >
+              <Tag className="mr-2 h-4 w-4" />
+              New Policy
+            </Button>
+            <Button 
+              variant="outline" 
+              className="rounded-xl"
+              onClick={() => {/* Refresh policies */}}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {policies.map((policy) => (
+              <Card key={policy.id} className="p-4 border">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold">{policy.name}</h3>
+                    <p className="text-sm text-muted-foreground">{policy.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {policy.targetRoles.map(role => (
+                        <Badge key={role} variant="secondary">{ROLE_LABEL[role] || role}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Badge variant={policy.enabled ? "default" : "secondary"}>
+                    {policy.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium">Conditions:</p>
+                  <div className="text-sm text-muted-foreground">
+                    {policy.conditions.map((cond, idx) => (
+                      <div key={idx}>
+                        {cond.attribute} {cond.operator} "{String(cond.value)}"
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button variant="ghost" size="sm">Edit</Button>
+                  <Button variant="ghost" size="sm">Toggle</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
