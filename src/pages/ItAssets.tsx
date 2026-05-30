@@ -1,5 +1,5 @@
 import "@/lib/runtime-storage";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Monitor, Plus, Search, Wrench, UserCheck, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -13,55 +13,15 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { generateId } from "@/lib/utils";
+import { useRealtime } from "@/lib/use-realtime";
+import { getAssets, createAsset, updateAsset, deleteAsset, getMaintenance, createMaintenance, deleteMaintenanceByAsset, ItAsset, MaintenanceRecord } from "@/lib/it-assets";
 
 type AssetCategory = "desktop" | "laptop" | "printer" | "scanner" | "projector" | "tablet" | "monitor" | "network_device" | "peripheral" | "other";
 type AssetStatus = "available" | "assigned" | "maintenance" | "disposed";
 type MaintType = "repair" | "service" | "upgrade";
-
-type MaintenanceRecord = {
-  id: string;
-  asset_id: string;
-  date: string;
-  type: MaintType;
-  description: string;
-  cost: number;
-  vendor: string;
-  next_due: string;
-  created_at: string;
-};
-
-type ItAsset = {
-  id: string;
-  name: string;
-  category: AssetCategory;
-  brand: string;
-  model: string;
-  serial_no: string;
-  asset_tag: string;
-  purchase_date: string;
-  warranty_months: number;
-  location: string;
-  status: AssetStatus;
-  assigned_to_type?: "student" | "faculty" | "staff";
-  assigned_to_name?: string;
-  assigned_to_id?: string;
-  assigned_at?: string;
-  notes: string;
-  created_at: string;
-};
-
-const ASSETS_KEY = "eduflow_it_assets";
-const MAINT_KEY = "eduflow_it_maintenance";
 const CATEGORIES: AssetCategory[] = ["desktop", "laptop", "printer", "scanner", "projector", "tablet", "monitor", "network_device", "peripheral", "other"];
-
-function al(): ItAsset[] { try { return JSON.parse(localStorage.getItem(ASSETS_KEY) ?? "[]"); } catch { return []; } }
-function as(v: ItAsset[]) { localStorage.setItem(ASSETS_KEY, JSON.stringify(v)); emitAppSync(ASSETS_KEY); }
-function ml(): MaintenanceRecord[] { try { return JSON.parse(localStorage.getItem(MAINT_KEY) ?? "[]"); } catch { return []; } }
-function ms(v: MaintenanceRecord[]) { localStorage.setItem(MAINT_KEY, JSON.stringify(v)); emitAppSync(MAINT_KEY); }
 
 const CATEGORY_ICONS: Record<AssetCategory, string> = {
   desktop: "💻", laptop: "🖥️", printer: "🖨️", scanner: "📄", projector: "📽️",
@@ -76,16 +36,17 @@ const STATUS_COLORS: Record<AssetStatus, string> = {
 };
 
 export default function ItAssets() {
-  const [assets, setAssets] = useState<ItAsset[]>(al);
-  const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>(ml);
-  const refresh = () => { setAssets(al()); setMaintenance(ml()); };
+  const [assets, setAssets] = useState<ItAsset[]>([]);
+  const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
+  const refresh = useCallback(async () => { setAssets(await getAssets()); setMaintenance(await getMaintenance()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("it_assets", refresh);
+  useRealtime("it_maintenance", refresh);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AssetStatus | "all">("all");
   const [catFilter, setCatFilter] = useState<AssetCategory | "all">("all");
   const [tab, setTab] = useState("assets");
   const [selAsset, setSelAsset] = useState<ItAsset | null>(null);
-
-  useEffect(() => subscribeAppSync([ASSETS_KEY, MAINT_KEY], refresh), []);
 
   const filtered = assets.filter((a) => {
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
@@ -111,52 +72,44 @@ export default function ItAssets() {
   function openEdit(a: ItAsset) {
     setEditId(a.id); setFormName(a.name); setFormCat(a.category); setFormBrand(a.brand); setFormModel(a.model); setFormSerial(a.serial_no); setFormTag(a.asset_tag); setFormPurchase(a.purchase_date); setFormWarranty(String(a.warranty_months)); setFormLoc(a.location); setFormNotes(a.notes); setOpen(true);
   }
-  function save() {
+  async function save() {
     if (!formName.trim()) { toast.error("Name is required"); return; }
-    const list = al();
-    const now = new Date().toISOString();
+    const data = { name: formName.trim(), category: formCat, brand: formBrand, model: formModel, serial_no: formSerial, asset_tag: formTag, purchase_date: formPurchase, warranty_months: parseInt(formWarranty) || 0, location: formLoc, notes: formNotes };
     if (editId) {
-      const idx = list.findIndex((a) => a.id === editId);
-      if (idx >= 0) list[idx] = { ...list[idx], name: formName.trim(), category: formCat, brand: formBrand, model: formModel, serial_no: formSerial, asset_tag: formTag, purchase_date: formPurchase, warranty_months: parseInt(formWarranty) || 0, location: formLoc, notes: formNotes };
+      await updateAsset(editId, data);
     } else {
-      list.push({ id: generateId(), name: formName.trim(), category: formCat, brand: formBrand, model: formModel, serial_no: formSerial, asset_tag: formTag, purchase_date: formPurchase, warranty_months: parseInt(formWarranty) || 0, location: formLoc, notes: formNotes, status: "available", created_at: now });
+      await createAsset({ ...data, status: "available" });
     }
-    as(list); refresh(); setOpen(false); toast.success(editId ? "Asset updated" : "Asset added");
+    refresh(); setOpen(false); toast.success(editId ? "Asset updated" : "Asset added");
   }
 
-  function doAssign() {
+  async function doAssign() {
     if (!assignAsset || !assignName.trim()) return;
-    const list = al();
-    const idx = list.findIndex((a) => a.id === assignAsset.id);
-    if (idx >= 0) {
-      list[idx] = { ...list[idx], status: "assigned", assigned_to_type: assignType, assigned_to_name: assignName.trim(), assigned_to_id: "", assigned_at: new Date().toISOString() };
-      as(list); refresh(); toast.success(`Assigned to ${assignName}`);
-    }
+    await updateAsset(assignAsset.id, { status: "assigned", assigned_to_type: assignType, assigned_to_name: assignName.trim(), assigned_to_id: "", assigned_at: new Date().toISOString() });
+    refresh(); toast.success(`Assigned to ${assignName}`);
     setAssignOpen(false);
   }
 
-  function doUnassign(a: ItAsset) {
-    const list = al();
-    const idx = list.findIndex((x) => x.id === a.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status: "available", assigned_to_type: undefined, assigned_to_name: undefined, assigned_to_id: undefined, assigned_at: undefined }; as(list); refresh(); toast.success("Unassigned"); }
+  async function doUnassign(a: ItAsset) {
+    await updateAsset(a.id, { status: "available", assigned_to_type: undefined, assigned_to_name: undefined, assigned_to_id: undefined, assigned_at: undefined });
+    refresh(); toast.success("Unassigned");
   }
 
-  function doStatusChange(a: ItAsset, status: AssetStatus) {
-    const list = al();
-    const idx = list.findIndex((x) => x.id === a.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status }; as(list); refresh(); toast.success(`Status: ${status}`); }
+  async function doStatusChange(a: ItAsset, status: AssetStatus) {
+    await updateAsset(a.id, { status });
+    refresh(); toast.success(`Status: ${status}`);
   }
 
-  function doDelete(a: ItAsset) {
+  async function doDelete(a: ItAsset) {
     if (!confirm(`Delete ${a.name}?`)) return;
-    as(al().filter((x) => x.id !== a.id));
-    ms(ml().filter((m) => m.asset_id !== a.id));
+    await deleteAsset(a.id);
+    await deleteMaintenanceByAsset(a.id);
     refresh(); toast.success("Deleted");
   }
 
-  function saveMaint() {
+  async function saveMaint() {
     if (!maintAsset || !maintDesc.trim()) return;
-    ms([...ml(), { id: generateId(), asset_id: maintAsset.id, date: maintDate || new Date().toISOString().slice(0,10), type: maintType, description: maintDesc, cost: parseFloat(maintCost) || 0, vendor: maintVendor, next_due: maintNext, created_at: new Date().toISOString() }]);
+    await createMaintenance({ asset_id: maintAsset.id, date: maintDate || new Date().toISOString().slice(0,10), type: maintType, description: maintDesc, cost: parseFloat(maintCost) || 0, vendor: maintVendor, next_due: maintNext });
     refresh(); setMaintOpen(false); toast.success("Maintenance record added");
   }
 

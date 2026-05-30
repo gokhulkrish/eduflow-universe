@@ -11,23 +11,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { generateId } from "@/lib/utils";
-
-type Item = { id: string; name: string; category: string; quantity: number; min_stock: number; unit: string; location: string; };
-const INVENTORY_KEY = "eduflow_inventory";
-function ls(): Item[] { try { return JSON.parse(localStorage.getItem(INVENTORY_KEY) ?? "[]"); } catch { return []; } }
-function ss(v: Item[]) { localStorage.setItem(INVENTORY_KEY, JSON.stringify(v)); emitAppSync(INVENTORY_KEY); }
+import { getInventory, createItem, updateItem, deleteItem, type Item } from "@/lib/inventory";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function InventoryModule() {
-  const [items, setItems] = useState(ls()); const [search, setSearch] = useState(""); const refresh = () => setItems(ls());
+  const [items, setItems] = useState<Item[]>([]); const [search, setSearch] = useState(""); const [loading, setLoading] = useState(false); const refresh = async () => { setLoading(true); setItems(await getInventory()); setLoading(false); };
   const [open, setOpen] = useState(false); const [name, setName] = useState(""); const [cat, setCat] = useState(""); const [qty, setQty] = useState(""); const [minStock, setMinStock] = useState(""); const [unit, setUnit] = useState(""); const [loc, setLoc] = useState("");
   const filtered = items.filter((i) => !search || i.name.toLowerCase().includes(search.toLowerCase()) || i.category.toLowerCase().includes(search.toLowerCase()));
   const pag = usePagination({ data: filtered, pageSize: 10 });
 
-  useEffect(() => subscribeAppSync([INVENTORY_KEY], refresh), []);
+  useEffect(() => { refresh(); }, []);
+  useEffect(() => subscribeAppSync(["eduflow_inventory"], refresh), []);
+  useRealtime("inventory_items", refresh);
 
   return (
     <div>
@@ -59,9 +57,9 @@ export default function InventoryModule() {
                 <TableCell>{low ? <Badge className="text-[9px] bg-destructive/15 text-destructive">Low Stock</Badge> : <Badge className="text-[9px] bg-success/15 text-success">In Stock</Badge>}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={() => { ss(ls().map((x) => x.id === i.id ? { ...x, quantity: x.quantity + 1 } : x)); refresh(); }}><PlusCircle className="h-3 w-3" /></Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={() => { if (i.quantity > 0) { ss(ls().map((x) => x.id === i.id ? { ...x, quantity: Math.max(0, x.quantity - 1) } : x)); refresh(); } }}><Minus className="h-3 w-3" /></Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0 text-destructive" onClick={() => { ss(ls().filter((x) => x.id !== i.id)); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={async () => { await updateItem(i.id, { quantity: i.quantity + 1 }); await refresh(); }}><PlusCircle className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0" onClick={async () => { if (i.quantity > 0) { await updateItem(i.id, { quantity: Math.max(0, i.quantity - 1) }); await refresh(); } }}><Minus className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-6 w-6 p-0 text-destructive" onClick={async () => { await deleteItem(i.id); await refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -79,7 +77,7 @@ export default function InventoryModule() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemQty">Quantity</Label><Input id="itemQty" name="itemQty" type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div><div><Label className="text-xs" htmlFor="itemMinStock">Min Stock</Label><Input id="itemMinStock" name="itemMinStock" type="number" value={minStock} onChange={(e) => setMinStock(e.target.value)} /></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="itemUnit">Unit</Label><Input id="itemUnit" name="itemUnit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. pcs, kg" /></div><div><Label className="text-xs" htmlFor="itemLocation">Location</Label><Input id="itemLocation" name="itemLocation" value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="e.g. Store Room A" /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !cat} onClick={() => { const items = ls(); items.push({ id: generateId(), name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !cat} onClick={async () => { await createItem({ name, category: cat, quantity: Number(qty) || 0, min_stock: Number(minStock) || 5, unit, location: loc }); await refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

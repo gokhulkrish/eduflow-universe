@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Workflow, Plus, Trash2, Power, PowerOff, History } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,34 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
+import { useRealtime } from "@/lib/use-realtime";
+import { getAutomations, createAutomation, updateAutomation, deleteAutomation, AutomationRule } from "@/lib/comms-automation";
 
 type TriggerType = "attendance_below" | "birthday" | "fee_overdue" | "new_enrollment" | "exam_published" | "inactivity";
 type ActionType = "send_sms" | "send_email" | "send_push" | "post_class_wall" | "send_notice";
-
-interface AutomationRule {
-  id: string;
-  name: string;
-  description: string;
-  trigger: TriggerType;
-  triggerParams: Record<string, string>;
-  action: ActionType;
-  actionParams: Record<string, string>;
-  active: boolean;
-  runCount: number;
-  lastRun?: string;
-  created_at: string;
-}
-
-const KEY = "eduflow_comms_automation";
-function ls(): AutomationRule[] {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? "[]"); } catch { return []; }
-}
-function ss(v: AutomationRule[]) {
-  localStorage.setItem(KEY, JSON.stringify(v));
-  emitAppSync(KEY);
-}
 
 const TRIGGER_OPTIONS: { value: TriggerType; label: string; params: { key: string; label: string; type: string }[] }[] = [
   { value: "attendance_below", label: "Attendance Below Threshold", params: [{ key: "threshold", label: "Threshold %", type: "number" }] },
@@ -61,8 +38,10 @@ const TRIGGER_LABELS: Record<string, string> = Object.fromEntries(TRIGGER_OPTION
 const ACTION_LABELS: Record<string, string> = Object.fromEntries(ACTION_OPTIONS.map((a) => [a.value, a.label]));
 
 export default function CommsAutomation() {
-  const [items, setItems] = useState<AutomationRule[]>(ls());
-  const refresh = () => setItems(ls());
+  const [items, setItems] = useState<AutomationRule[]>([]);
+  const refresh = useCallback(async () => { setItems(await getAutomations()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("comms_automation", refresh);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -73,8 +52,6 @@ export default function CommsAutomation() {
   const [action, setAction] = useState<ActionType>("send_email");
   const [actionParams, setActionParams] = useState<Record<string, string>>({});
   const [active, setActive] = useState(true);
-
-  useEffect(() => subscribeAppSync([KEY], refresh), []);
 
   const triggerOpt = TRIGGER_OPTIONS.find((t) => t.value === trigger);
   const actionOpt = ACTION_OPTIONS.find((a) => a.value === action);
@@ -96,35 +73,32 @@ export default function CommsAutomation() {
     setOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name) { toast.error("Rule name is required"); return; }
-    const now = new Date().toISOString();
     if (editingId) {
-      ss(ls().map((x) => x.id === editingId ? { ...x, name, description, trigger, triggerParams, action, actionParams, active } : x));
+      await updateAutomation(editingId, { name, description, trigger, triggerParams, action, actionParams, active });
       toast.success("Rule updated");
     } else {
-      const rules = ls();
-      rules.unshift({ id: generateId(), name, description, trigger, triggerParams, action, actionParams, active, runCount: 0, created_at: now });
-      ss(rules);
+      await createAutomation({ name, description, trigger, triggerParams, action, actionParams, active });
       toast.success("Rule created");
     }
     setOpen(false);
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    ss(ls().filter((x) => x.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteAutomation(id);
     refresh();
     toast.success("Rule deleted");
   };
 
-  const toggleActive = (id: string) => {
-    ss(ls().map((x) => x.id === id ? { ...x, active: !x.active } : x));
+  const toggleActive = async (id: string, current: boolean) => {
+    await updateAutomation(id, { active: !current });
     refresh();
   };
 
-  const handleRunNow = (id: string) => {
-    ss(ls().map((x) => x.id === id ? { ...x, runCount: x.runCount + 1, lastRun: new Date().toISOString() } : x));
+  const handleRunNow = async (id: string, runCount: number) => {
+    await updateAutomation(id, { runCount: runCount + 1, lastRun: new Date().toISOString() });
     refresh();
     toast.success("Rule executed");
   };
@@ -165,10 +139,10 @@ export default function CommsAutomation() {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="sm" className="rounded-lg h-7 text-[9px]" onClick={() => handleRunNow(r.id)} title="Run Now">
+                  <Button variant="outline" size="sm" className="rounded-lg h-7 text-[9px]" onClick={() => handleRunNow(r.id, r.runCount)} title="Run Now">
                     <History className="h-3 w-3 mr-1" /> Run
                   </Button>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => toggleActive(r.id)} title={r.active ? "Deactivate" : "Activate"}>
+                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => toggleActive(r.id, r.active)} title={r.active ? "Deactivate" : "Activate"}>
                     {r.active ? <PowerOff className="h-3 w-3" /> : <Power className="h-3 w-3" />}
                   </Button>
                   <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7 text-destructive" onClick={() => handleDelete(r.id)} title="Delete">

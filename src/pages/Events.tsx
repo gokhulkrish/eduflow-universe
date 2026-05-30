@@ -12,24 +12,32 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { subscribeAppSync } from "@/lib/app-sync";
+import { useRealtime } from "@/lib/use-realtime";
 import { eventsKey, photosKey, rsvpsKey, ticketsKey, getEvents, createEvent, updateEvent, deleteEvent, getRSVPs, addRSVP, getTickets, addTicketType, sellTicket, deleteTicketType, getPhotos, addPhoto, deletePhoto, EVENT_CATEGORIES, getEventAnalytics } from "@/lib/events";
 
 export default function Events() {
   const [tab, setTab] = useState("list");
-  const [items, setItems] = useState(() => getEvents());
-  const refresh = () => setItems(getEvents());
+  const [items, setItems] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => {
+    const data = await getEvents();
+    setItems(data);
+    if (selId) {
+      setRsvps(await getRSVPs(selId));
+      setTickets(await getTickets(selId));
+      setPhotos(await getPhotos(selId));
+    }
+  };
   const [selId, setSelId] = useState<string | null>(null);
   const [rsvps, setRsvps] = useState<any[]>([]); const [tickets, setTickets] = useState<any[]>([]); const [photos, setPhotos] = useState<any[]>([]);
-  const loadDetails = (id: string) => { setSelId(id); setRsvps(getRSVPs(id)); setTickets(getTickets(id)); setPhotos(getPhotos(id)); };
+  const loadDetails = async (id: string) => { setSelId(id); setRsvps(await getRSVPs(id)); setTickets(await getTickets(id)); setPhotos(await getPhotos(id)); };
 
-  useEffect(() => subscribeAppSync([eventsKey, rsvpsKey, ticketsKey, photosKey], () => {
-    refresh();
-    if (selId) {
-      setRsvps(getRSVPs(selId));
-      setTickets(getTickets(selId));
-      setPhotos(getPhotos(selId));
-    }
-  }), [selId]);
+  useEffect(() => { refresh().finally(() => setLoading(false)); }, []);
+  useEffect(() => subscribeAppSync([eventsKey, rsvpsKey, ticketsKey, photosKey], () => { refresh(); }), [selId]);
+  useRealtime("events", refresh);
+  useRealtime("event_rsvps", refresh);
+  useRealtime("event_ticket_types", refresh);
+  useRealtime("event_photos", refresh);
 
   const [open, setOpen] = useState(false); const [editId, setEditId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [desc, setDesc] = useState(""); const [date, setDate] = useState(""); const [time, setTime] = useState(""); const [loc, setLoc] = useState(""); const [cat, setCat] = useState(""); const [cap, setCap] = useState("");
@@ -38,13 +46,19 @@ export default function Events() {
 
   const [tixOpen, setTixOpen] = useState(false); const [tixName, setTixName] = useState(""); const [tixPrice, setTixPrice] = useState(""); const [tixQty, setTixQty] = useState("");
 
+  const [analytics, setAnalytics] = useState<any>(null);
+  useEffect(() => {
+    if (selId) getEventAnalytics(selId).then(setAnalytics);
+    else setAnalytics(null);
+  }, [selId, items]);
+
   const openEdit = (e?: any) => {
     setEditId(e?.id ?? null); setTitle(e?.title ?? ""); setDesc(e?.description ?? ""); setDate(e?.date?.split("T")[0] ?? ""); setTime(e?.time ?? ""); setLoc(e?.location ?? ""); setCat(e?.category ?? ""); setCap(String(e?.capacity ?? "")); setOpen(true);
   };
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = { title, description: desc, date: new Date(date).toISOString(), time, location: loc, category: cat, organizer: "Admin", capacity: Number(cap) || 0 };
-    if (editId) { updateEvent(editId, data); } else { createEvent(data as any); }
-    refresh(); setOpen(false); toast.success(editId ? "Updated" : "Created");
+    if (editId) { await updateEvent(editId, data); } else { await createEvent(data as any); }
+    await refresh(); setOpen(false); toast.success(editId ? "Updated" : "Created");
   };
 
   const categories = [...new Set(EVENT_CATEGORIES)];
@@ -61,7 +75,8 @@ export default function Events() {
         <TabsContent value="list">
           <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => openEdit()}><Plus className="h-4 w-4 mr-1" /> Add Event</Button></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No events scheduled</CardContent></Card>}
+            {loading ? <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">Loading...</CardContent></Card> :
+              items.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No events scheduled</CardContent></Card>}
             {items.map((e) => (
               <Card key={e.id} className={`border-border/40 ${selId === e.id ? "ring-1 ring-primary" : ""}`} onClick={() => loadDetails(e.id)}>
                 <CardHeader className="pb-2">
@@ -74,7 +89,7 @@ export default function Events() {
                   {e.capacity > 0 && <p className="text-muted-foreground">Capacity: {e.capacity}</p>}
                   <div className="flex gap-2 pt-2">
                     <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={(ev) => { ev.stopPropagation(); openEdit(e); }}>Edit</Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={(ev) => { ev.stopPropagation(); deleteEvent(e.id); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={async (ev) => { ev.stopPropagation(); await deleteEvent(e.id); await refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                   {selId === e.id && (
                     <div className="mt-2 pt-2 border-t space-y-2">
@@ -82,11 +97,11 @@ export default function Events() {
                         <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={(ev) => { ev.stopPropagation(); setRsvpName(""); setRsvpGuests("1"); setRsvpStatus("confirmed"); setRsvpOpen(true); }}><Users className="h-3 w-3 mr-1" />RSVP</Button>
                         <Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px]" onClick={(ev) => { ev.stopPropagation(); setTixName(""); setTixPrice(""); setTixQty(""); setTixOpen(true); }}><Ticket className="h-3 w-3 mr-1" />Ticket</Button>
                       </div>
-                      {getEventAnalytics(e.id) && (
+                      {analytics && (
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="text-center p-1 rounded bg-success/10"><p className="text-[9px] text-muted-foreground">Confirmed</p><p className="text-xs font-bold">{getEventAnalytics(e.id).confirmed}</p></div>
-                          <div className="text-center p-1 rounded bg-destructive/10"><p className="text-[9px] text-muted-foreground">Declined</p><p className="text-xs font-bold">{getEventAnalytics(e.id).declined}</p></div>
-                          <div className="text-center p-1 rounded bg-warning/10"><p className="text-[9px] text-muted-foreground">Maybe</p><p className="text-xs font-bold">{getEventAnalytics(e.id).maybe}</p></div>
+                          <div className="text-center p-1 rounded bg-success/10"><p className="text-[9px] text-muted-foreground">Confirmed</p><p className="text-xs font-bold">{analytics.confirmed}</p></div>
+                          <div className="text-center p-1 rounded bg-destructive/10"><p className="text-[9px] text-muted-foreground">Declined</p><p className="text-xs font-bold">{analytics.declined}</p></div>
+                          <div className="text-center p-1 rounded bg-warning/10"><p className="text-[9px] text-muted-foreground">Maybe</p><p className="text-xs font-bold">{analytics.maybe}</p></div>
                         </div>
                       )}
                       {tickets.length > 0 && (
@@ -156,7 +171,7 @@ export default function Events() {
               <div><Label className="text-xs" htmlFor="rsvpGuests">Guests</Label><Input id="rsvpGuests" name="rsvpGuests" type="number" value={rsvpGuests} onChange={(e) => setRsvpGuests(e.target.value)} min="1" /></div>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setRsvpOpen(false)}>Cancel</Button><Button disabled={!rsvpName} onClick={() => { if (selId) { addRSVP({ event_id: selId, guest: rsvpName, status: rsvpStatus, guests_count: Number(rsvpGuests), notes: "" }); setRsvps(getRSVPs(selId)); setRsvpOpen(false); toast.success("RSVP added"); } }}>Submit</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setRsvpOpen(false)}>Cancel</Button><Button disabled={!rsvpName} onClick={async () => { if (selId) { await addRSVP({ event_id: selId, guest: rsvpName, status: rsvpStatus, guests_count: Number(rsvpGuests), notes: "" }); setRsvps(await getRSVPs(selId)); setRsvpOpen(false); toast.success("RSVP added"); } }}>Submit</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -167,7 +182,7 @@ export default function Events() {
             <div><Label className="text-xs" htmlFor="tixName">Ticket Name</Label><Input id="tixName" name="tixName" value={tixName} onChange={(e) => setTixName(e.target.value)} placeholder="e.g. VIP" /></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="tixPrice">Price (₹)</Label><Input id="tixPrice" name="tixPrice" type="number" value={tixPrice} onChange={(e) => setTixPrice(e.target.value)} /></div><div><Label className="text-xs" htmlFor="tixQty">Quantity</Label><Input id="tixQty" name="tixQty" type="number" value={tixQty} onChange={(e) => setTixQty(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setTixOpen(false)}>Cancel</Button><Button disabled={!tixName || !tixQty} onClick={() => { if (selId) { addTicketType({ event_id: selId, name: tixName, price: Number(tixPrice) || 0, quantity: Number(tixQty), sold: 0 }); setTickets(getTickets(selId)); setTixOpen(false); toast.success("Ticket added"); } }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setTixOpen(false)}>Cancel</Button><Button disabled={!tixName || !tixQty} onClick={async () => { if (selId) { await addTicketType({ event_id: selId, name: tixName, price: Number(tixPrice) || 0, quantity: Number(tixQty), sold: 0 }); setTickets(await getTickets(selId)); setTixOpen(false); toast.success("Ticket added"); } }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

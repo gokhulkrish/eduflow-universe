@@ -14,13 +14,17 @@ import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { subscribeAppSync } from "@/lib/app-sync";
 import { classesMgmtKey, getClasses, createClass, deleteClass, GRADES, SECTIONS } from "@/lib/class-mgmt";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function ClassManagement() {
-  const [items, setItems] = useState(() => getClasses());
-  const refresh = () => setItems(getClasses());
+  const [items, setItems] = useState<Awaited<ReturnType<typeof getClasses>>>([]);
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => { setItems(await getClasses()); };
   const [open, setOpen] = useState(false); const [program, setProgram] = useState(""); const [section, setSection] = useState(""); const [room, setRoom] = useState(""); const [capacity, setCapacity] = useState("");
 
+  useEffect(() => { refresh().finally(() => setLoading(false)); }, []);
   useEffect(() => subscribeAppSync([classesMgmtKey], refresh), []);
+  useRealtime("classes", refresh);
 
   const pag = usePagination({ data: items, pageSize: 10 });
 
@@ -32,16 +36,17 @@ export default function ClassManagement() {
       <Table>
         <TableHeader className=""><TableRow><TableHead className="text-xs">Program</TableHead><TableHead className="text-xs">Section</TableHead><TableHead className="text-xs">Room</TableHead><TableHead className="text-xs">Capacity</TableHead><TableHead className="text-xs">Actions</TableHead></TableRow></TableHeader>
         <TableBody>
-          {pag.pageData.map((c) => (
+          {loading ? <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">Loading...</TableCell></TableRow> :
+            pag.pageData.map((c) => (
             <TableRow key={c.id}>
               <TableCell className="text-xs font-medium">{c.grade}</TableCell>
               <TableCell className="text-xs">{c.section}</TableCell>
               <TableCell className="text-xs">{c.room || "—"}</TableCell>
               <TableCell className="text-xs">{c.capacity}</TableCell>
-              <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { deleteClass(c.id); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
+              <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={async () => { await deleteClass(c.id); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
             </TableRow>
           ))}
-          {items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">No cohorts created</TableCell></TableRow>}
+          {!loading && items.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">No cohorts created</TableCell></TableRow>}
         </TableBody>
       </Table>
 
@@ -52,7 +57,7 @@ export default function ClassManagement() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="program">Program</Label><Select name="program" value={program} onValueChange={setProgram}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{GRADES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="section">Section</Label><Select name="section" value={section} onValueChange={setSection}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="room">Room</Label><Input id="room" name="room" value={room} onChange={(e) => setRoom(e.target.value)} /></div><div><Label className="text-xs" htmlFor="capacity">Capacity</Label><Input id="capacity" name="capacity" type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></div></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!program || !section} onClick={() => { createClass({ grade: program, section, room, capacity: Number(capacity) || 40, teacher_id: "" }); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!program || !section} onClick={async () => { await createClass({ grade: program, section, room, capacity: Number(capacity) || 40, teacher_id: "" }); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

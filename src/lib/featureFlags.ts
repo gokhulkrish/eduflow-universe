@@ -183,6 +183,24 @@ export const MIGRATION_PATCH_FLAGS: MigrationFlagDefinition[] = [
     description: "Integrated Financial & Human Resource Management — next-gen HR module with contracts, audit, bulk ops, and user management integration.",
     defaultEnabled: true,
   },
+  {
+    key: "patch-027-departments-gate",
+    label: "Patch 027: Departments & Programs migration gate",
+    description: "Keep Departments & Programs behind the migration gate until its workflow, persistence, and state contracts are confirmed safe.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-028-faculty-hr-gate",
+    label: "Patch 028: Faculty & HR migration gate",
+    description: "Keep Faculty & HR behind the migration gate until its workflow, persistence, and state contracts are confirmed safe.",
+    defaultEnabled: true,
+  },
+  {
+    key: "patch-029-curriculum-outcomes-gate",
+    label: "Patch 029: Curriculum & Outcomes migration gate",
+    description: "Keep Curriculum & Outcomes behind the migration gate until its workflow, persistence, and state contracts are confirmed safe.",
+    defaultEnabled: true,
+  },
 ];
 
 const isBrowser = () => typeof window !== "undefined";

@@ -23,6 +23,18 @@ ALTER TABLE public.fee_categories ADD COLUMN IF NOT EXISTS institution_id uuid;
 ALTER TABLE public.class_levels ADD COLUMN IF NOT EXISTS institution_id uuid;
 ALTER TABLE public.academic_years ADD COLUMN IF NOT EXISTS institution_id uuid;
 
-ALTER TABLE public.fee_payments ALTER COLUMN amount DROP NOT NULL;
-ALTER TABLE public.fee_payments ALTER COLUMN invoice_id DROP NOT NULL;
-ALTER TABLE public.fee_structures ALTER COLUMN name DROP NOT NULL;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fee_payments' AND column_name = 'amount') THEN
+    ALTER TABLE public.fee_payments ALTER COLUMN amount DROP NOT NULL;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fee_payments' AND column_name = 'invoice_id') THEN
+    ALTER TABLE public.fee_payments ALTER COLUMN invoice_id DROP NOT NULL;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fee_structures' AND column_name = 'name') THEN
+    ALTER TABLE public.fee_structures ALTER COLUMN name DROP NOT NULL;
+  END IF;
+END $$;

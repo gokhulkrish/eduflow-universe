@@ -1,7 +1,10 @@
 import "@/lib/runtime-storage";
-import { useEffect, useState } from "react";
-import { Monitor, Plus, Calendar, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Monitor, Plus, Calendar, Clock, CheckCircle2, XCircle, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,61 +16,27 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { generateId } from "@/lib/utils";
-
+import { useRealtime } from "@/lib/use-realtime";
+import { getLabs, createLab, updateLab, deleteLab, getBookings, createBooking, updateBooking, deleteBookingsByLab, ItLab, ItLabBooking } from "@/lib/it-labs";
 type LabStatus = "active" | "inactive" | "maintenance";
 type BookingStatus = "pending" | "approved" | "cancelled" | "completed";
-
-type ItLab = {
-  id: string;
-  name: string;
-  location: string;
-  capacity: number;
-  systems_count: number;
-  incharge: string;
-  status: LabStatus;
-  equipment: string;
-  created_at: string;
-};
-
-type ItLabBooking = {
-  id: string;
-  lab_id: string;
-  lab_name: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  faculty_name: string;
-  faculty_id: string;
-  purpose: string;
-  batch: string;
-  status: BookingStatus;
-  created_at: string;
-};
-
-const LABS_KEY = "eduflow_it_labs";
-const BOOKINGS_KEY = "eduflow_it_lab_bookings";
-
-function ll(): ItLab[] { try { return JSON.parse(localStorage.getItem(LABS_KEY) ?? "[]"); } catch { return []; } }
-function ls(v: ItLab[]) { localStorage.setItem(LABS_KEY, JSON.stringify(v)); emitAppSync(LABS_KEY); }
-function bl(): ItLabBooking[] { try { return JSON.parse(localStorage.getItem(BOOKINGS_KEY) ?? "[]"); } catch { return []; } }
-function bs(v: ItLabBooking[]) { localStorage.setItem(BOOKINGS_KEY, JSON.stringify(v)); emitAppSync(BOOKINGS_KEY); }
 
 const LAB_STATUS_COLORS: Record<LabStatus, string> = { active: "bg-success/15 text-success", inactive: "bg-muted text-muted-foreground", maintenance: "bg-warning/15 text-warning" };
 const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = { pending: "bg-warning/15 text-warning", approved: "bg-success/15 text-success", cancelled: "bg-destructive/15 text-destructive", completed: "bg-info/15 text-info" };
 
 export default function ItLabs() {
-  const [labs, setLabs] = useState<ItLab[]>(ll);
-  const [bookings, setBookings] = useState<ItLabBooking[]>(bl);
-  const refresh = () => { setLabs(ll()); setBookings(bl()); };
+  const navigate = useNavigate();
+  const [labs, setLabs] = useState<ItLab[]>([]);
+  const [bookings, setBookings] = useState<ItLabBooking[]>([]);
+  const refresh = useCallback(async () => { setLabs(await getLabs()); setBookings(await getBookings()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("it_labs", refresh);
+  useRealtime("it_lab_bookings", refresh);
   const [tab, setTab] = useState("labs");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LabStatus | "all">("all");
-
-  useEffect(() => subscribeAppSync([LABS_KEY, BOOKINGS_KEY], refresh), []);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filteredLabs = labs.filter((l) => {
     if (statusFilter !== "all" && l.status !== statusFilter) return false;
@@ -79,6 +48,7 @@ export default function ItLabs() {
 
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formName, setFormName] = useState(""); const [formLoc, setFormLoc] = useState(""); const [formCap, setFormCap] = useState(""); const [formSys, setFormSys] = useState(""); const [formIncharge, setFormIncharge] = useState(""); const [formEquip, setFormEquip] = useState("");
 
   const [bookOpen, setBookOpen] = useState(false); const [bookLab, setBookLab] = useState<string>(""); const [bookDate, setBookDate] = useState(""); const [bookStart, setBookStart] = useState(""); const [bookEnd, setBookEnd] = useState(""); const [bookFaculty, setBookFaculty] = useState(""); const [bookPurpose, setBookPurpose] = useState(""); const [bookBatch, setBookBatch] = useState("");
@@ -86,46 +56,39 @@ export default function ItLabs() {
   function openAdd() { setEditId(null); setFormName(""); setFormLoc(""); setFormCap(""); setFormSys(""); setFormIncharge(""); setFormEquip(""); setOpen(true); }
   function openEdit(l: ItLab) { setEditId(l.id); setFormName(l.name); setFormLoc(l.location); setFormCap(String(l.capacity)); setFormSys(String(l.systems_count)); setFormIncharge(l.incharge); setFormEquip(l.equipment); setOpen(true); }
 
-  function save() {
+  async function save() {
     if (!formName.trim()) { toast.error("Lab name is required"); return; }
-    const list = ll();
+    const data = { name: formName.trim(), location: formLoc, capacity: parseInt(formCap) || 0, systems_count: parseInt(formSys) || 0, incharge: formIncharge, equipment: formEquip };
     if (editId) {
-      const idx = list.findIndex((l) => l.id === editId);
-      if (idx >= 0) list[idx] = { ...list[idx], name: formName.trim(), location: formLoc, capacity: parseInt(formCap) || 0, systems_count: parseInt(formSys) || 0, incharge: formIncharge, equipment: formEquip };
+      await updateLab(editId, data);
     } else {
-      list.push({ id: generateId(), name: formName.trim(), location: formLoc, capacity: parseInt(formCap) || 0, systems_count: parseInt(formSys) || 0, incharge: formIncharge, equipment: formEquip, status: "active", created_at: new Date().toISOString() });
+      await createLab({ ...data, status: "active" });
     }
-    ls(list); refresh(); setOpen(false); toast.success(editId ? "Lab updated" : "Lab added");
+    refresh(); setOpen(false); toast.success(editId ? "Lab updated" : "Lab added");
   }
 
-  function toggleLabStatus(l: ItLab) {
-    const next: LabStatus = l.status === "active" ? "maintenance" : l.status === "maintenance" ? "inactive" : "active";
-    const list = ll(); const idx = list.findIndex((x) => x.id === l.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status: next }; ls(list); refresh(); toast.success(`Lab ${next}`); }
+  async function toggleLabStatus(l: ItLab) {
+    const next = l.status === "active" ? "maintenance" : l.status === "maintenance" ? "inactive" : "active";
+    await updateLab(l.id, { status: next });
+    refresh(); toast.success(`Lab ${next}`);
   }
 
-  function doDeleteLab(l: ItLab) {
-    if (!confirm(`Delete ${l.name}?`)) return;
-    ls(ll().filter((x) => x.id !== l.id));
-    bs(bl().filter((b) => b.lab_id !== l.id));
+  async function doDeleteLab(id: string) {
+    await deleteLab(id);
+    await deleteBookingsByLab(id);
     refresh(); toast.success("Lab deleted");
   }
 
-  function createBooking() {
+  async function createBooking() {
     if (!bookLab || !bookDate || !bookStart || !bookEnd || !bookFaculty.trim()) { toast.error("Fill required fields"); return; }
     const lab = labs.find((l) => l.id === bookLab);
-    bl().forEach((b) => {
-      if (b.lab_id === bookLab && b.date === bookDate && b.status !== "cancelled") {
-        if (bookStart < b.end_time && bookEnd > b.start_time) { toast.error("Time slot conflicts with existing booking"); return; }
-      }
-    });
-    bs([...bl(), { id: generateId(), lab_id: bookLab, lab_name: lab?.name ?? "", date: bookDate, start_time: bookStart, end_time: bookEnd, faculty_name: bookFaculty.trim(), faculty_id: "", purpose: bookPurpose, batch: bookBatch, status: "pending", created_at: new Date().toISOString() }]);
+    await createBooking({ lab_id: bookLab, lab_name: lab?.name ?? "", date: bookDate, start_time: bookStart, end_time: bookEnd, faculty_name: bookFaculty.trim(), faculty_id: "", purpose: bookPurpose, batch: bookBatch, status: "pending" });
     refresh(); setBookOpen(false); toast.success("Booking request created");
   }
 
-  function updateBookingStatus(b: ItLabBooking, status: BookingStatus) {
-    const list = bl(); const idx = list.findIndex((x) => x.id === b.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status }; bs(list); refresh(); toast.success(`Booking ${status}`); }
+  async function updateBookingStatus(b: ItLabBooking, status: string) {
+    await updateBooking(b.id, { status });
+    refresh(); toast.success(`Booking ${status}`);
   }
 
   const todayBookings = bookings.filter((b) => b.date === new Date().toISOString().slice(0, 10)).sort((a, b) => a.start_time.localeCompare(b.start_time));
@@ -152,6 +115,8 @@ export default function ItLabs() {
               <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem></SelectContent>
             </Select>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=it-labs")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(filteredLabs, "it-labs", [{key:"name",label:"Lab"},{key:"location",label:"Location"},{key:"capacity",label:"Capacity"},{key:"systems_count",label:"Systems"},{key:"incharge",label:"Incharge"},{key:"status",label:"Status"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Lab</Button>
           </div>
           <TablePagination {...pag} />
@@ -170,7 +135,7 @@ export default function ItLabs() {
                     <div className="flex gap-1">
                       <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px]" onClick={() => openEdit(l)}>Edit</Button>
                       <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px]" onClick={() => toggleLabStatus(l)}>{l.status === "active" ? "Maint" : l.status === "maintenance" ? "Deact" : "Activate"}</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px] text-destructive" onClick={() => doDeleteLab(l)}>Delete</Button>
+                      <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px] text-destructive" onClick={() => setDeleteId(l.id)}>Delete</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -185,6 +150,8 @@ export default function ItLabs() {
             <div className="flex gap-2">{["pending", "approved", "completed", "cancelled"].map((s) => (
               <Badge key={s} className={`text-[9px] cursor-pointer ${BOOKING_STATUS_COLORS[s as BookingStatus]}`} onClick={() => setTab("bookings")}>{s}</Badge>
             ))}</div>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=it-labs")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(bookings, "it-lab-bookings", [{key:"date",label:"Date"},{key:"lab_name",label:"Lab"},{key:"start_time",label:"Start"},{key:"end_time",label:"End"},{key:"faculty_name",label:"Faculty"},{key:"purpose",label:"Purpose"},{key:"batch",label:"Batch"},{key:"status",label:"Status"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setBookLab(labs[0]?.id ?? ""); setBookDate(new Date().toISOString().slice(0, 10)); setBookStart("09:00"); setBookEnd("10:00"); setBookFaculty(""); setBookPurpose(""); setBookBatch(""); setBookOpen(true); }}><Calendar className="h-4 w-4 mr-1" /> New Booking</Button>
           </div>
           <Table>
@@ -212,6 +179,10 @@ export default function ItLabs() {
           </Table>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Lab</AlertDialogTitle><AlertDialogDescription>This will permanently remove this lab. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await doDeleteLab(deleteId); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

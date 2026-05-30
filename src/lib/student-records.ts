@@ -321,41 +321,21 @@ export async function fetchStudentRegister(): Promise<StudentRegisterRow[]> {
     if (nextTime >= currentTime) latestInvoiceByStudent.set(studentId, invoice as Record<string, unknown>);
   }
 
+  const attendanceMap = attendanceByStudent;
+  const invoiceMap = latestInvoiceByStudent;
+
   return (studentsResult.data ?? []).map((student) => {
     const studentRecord = student as Record<string, unknown>;
-    const attendance = attendanceByStudent.get(String(studentRecord.id ?? "")) ?? { total: 0, present: 0 };
-    const latestInvoice = latestInvoiceByStudent.get(String(studentRecord.id ?? "")) ?? null;
+    const attendance = attendanceMap.get(String(studentRecord.id ?? "")) ?? { total: 0, present: 0 };
+    const latestInvoice = invoiceMap.get(String(studentRecord.id ?? "")) ?? null;
     const feeStatus = String(studentRecord.fee_status ?? latestInvoice?.status ?? "pending");
     const attendancePercent = attendance.total ? Math.round((attendance.present / attendance.total) * 100) : Number(studentRecord.attendance_percent ?? 0) || 0;
 
     return {
-      id: String(studentRecord.id ?? ""),
-      student_id: String(studentRecord.id ?? ""),
-      display_name: String(studentRecord.display_name ?? [studentRecord.first_name, studentRecord.last_name].filter(Boolean).join(" ")),
-      first_name: String(studentRecord.first_name ?? ""),
-      last_name: typeof studentRecord.last_name === "string" ? studentRecord.last_name : null,
-      admission_no: String(studentRecord.admission_no ?? ""),
-      regno: String(studentRecord.regno ?? studentRecord.admission_no ?? ""),
-      grade: typeof studentRecord.grade === "string" ? studentRecord.grade : readMetaString(studentRecord.meta as Json | null, "academic", "grade") || null,
-      section: typeof studentRecord.section === "string" ? studentRecord.section : readMetaString(studentRecord.meta as Json | null, "academic", "section") || null,
-      roll_number: typeof studentRecord.roll_number === "number" ? studentRecord.roll_number : readMetaNumber(studentRecord.meta as Json | null, "academic", "roll"),
+      ...normalizeStudentRegisterRowFromStudent(studentRecord as Record<string, unknown>),
+      email: typeof studentRecord.email === "string" ? studentRecord.email : null,
       attendance_percent: attendancePercent,
       fee_status: feeStatus,
-      status: String(studentRecord.status ?? "active"),
-      updated_at: String(studentRecord.updated_at ?? studentRecord.created_at ?? ""),
-      email: typeof studentRecord.email === "string" ? studentRecord.email : null,
-      dob: typeof studentRecord.dob === "string" ? studentRecord.dob : null,
-      gender: typeof studentRecord.gender === "string" ? studentRecord.gender : null,
-      blood_group: typeof studentRecord.blood_group === "string" ? studentRecord.blood_group : null,
-      phone: typeof studentRecord.phone === "string" ? studentRecord.phone : null,
-      house: typeof studentRecord.house === "string" ? studentRecord.house : readMetaString(studentRecord.meta as Json | null, "academic", "house"),
-      guardian_name:
-        readMetaString(studentRecord.meta as Json | null, "family", "guardianName") ||
-        readMetaString(studentRecord.meta as Json | null, "family", "fatherName") ||
-        readMetaString(studentRecord.meta as Json | null, "family", "motherName"),
-      guardian_phone: readMetaString(studentRecord.meta as Json | null, "family", "guardianPhone"),
-      community: typeof studentRecord.community === "string" ? studentRecord.community : null,
-      district: typeof studentRecord.district === "string" ? studentRecord.district : null,
     };
   });
 }
@@ -576,25 +556,436 @@ export async function saveStudentRecord(values: StudentFormValues) {
   return savedStudent;
 }
 
-export async function deleteStudentRecord(studentId: string) {
+export async function deleteStudentRecord(studentId: string, options: StudentBatchMutationOptions = {}) {
+  const result = await deleteStudentRecords([studentId], options);
+  if (result.failures.length > 0 || result.deletedIds.length === 0) {
+    throw new Error(result.failures[0]?.error ?? "Unable to delete student record");
+  }
+}
+
+export type StudentDeleteFailure = {
+  id: string;
+  error: string;
+};
+
+export type StudentBatchProgress = {
+  label: string;
+  total: number;
+  processed: number;
+  failed: number;
+  currentId?: string;
+  status: string;
+};
+
+export type StudentBatchProgressHandler = (progress: StudentBatchProgress) => void;
+
+type StudentBatchMutationOptions = {
+  onProgress?: StudentBatchProgressHandler;
+  progressLabel?: string;
+};
+
+export type StudentDeleteResult = {
+  deletedIds: string[];
+  failures: StudentDeleteFailure[];
+};
+
+export type StudentDeactivateFailure = {
+  id: string;
+  error: string;
+};
+
+export type StudentDeactivateResult = {
+  deactivatedIds: string[];
+  failures: StudentDeactivateFailure[];
+};
+
+export type StudentStatusUpdateFailure = {
+  id: string;
+  error: string;
+};
+
+export type StudentStatusUpdateResult = {
+  updatedIds: string[];
+  failures: StudentStatusUpdateFailure[];
+};
+
+const VALID_STUDENT_STATUSES = new Set(["active", "inactive", "graduated", "transferred", "withdrawn", "alumni"]);
+const ENROLLMENT_STATUS_BY_STUDENT_STATUS: Record<string, string | null> = {
+  active: "active",
+  inactive: null,
+  graduated: "completed",
+  transferred: "transferred",
+  withdrawn: "withdrawn",
+  alumni: "completed",
+};
+
+const buildBatchProgressStatus = (label: string, processed: number, total: number, failed: number) =>
+  `${label} ${processed} of ${total} student record(s)${failed > 0 ? ` | ${failed} failed` : ""}`;
+
+const emitBatchProgress = (
+  onProgress: StudentBatchProgressHandler | undefined,
+  progress: StudentBatchProgress,
+) => {
+  onProgress?.(progress);
+};
+
+export async function bulkUpdateStudentRecords(
+  studentIds: string[],
+  changes: Record<string, unknown>,
+  reason = "bulk update",
+  options: StudentBatchMutationOptions = {},
+): Promise<StudentStatusUpdateResult> {
   if (!(await tableExists("students"))) {
     throw new Error("Student records are not available yet. Run the core student migrations first.");
   }
 
+  const uniqueIds = [...new Set(studentIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { updatedIds: [], failures: [] };
+  }
+
+  const normalizedChanges = { ...changes };
+  const normalizedStatus = typeof normalizedChanges.status === "string" ? String(normalizedChanges.status).trim().toLowerCase() : null;
+  if (normalizedStatus && !VALID_STUDENT_STATUSES.has(normalizedStatus)) {
+    throw new Error(`Unsupported student status "${normalizedChanges.status}"`);
+  }
+
+  if (normalizedStatus) {
+    normalizedChanges.status = normalizedStatus;
+  }
+
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
-  const { error } = await supabase.from("students").delete().eq("id", studentId);
-  if (error) throwDataError(error);
-  if (await tableExists("audit_log")) {
-    await supabase.from("audit_log").insert({
-      actor: userId,
-      action: "student.deleted",
-      entity: "students",
-      entity_id: studentId,
+  const auditLogAvailable = await tableExists("audit_log");
+  const updatedIds: string[] = [];
+  const failures: StudentStatusUpdateFailure[] = [];
+  const leftOn = normalizedStatus === "transferred" || normalizedStatus === "withdrawn" ? new Date().toISOString().slice(0, 10) : null;
+  const enrollmentStatus = normalizedStatus ? ENROLLMENT_STATUS_BY_STUDENT_STATUS[normalizedStatus] : null;
+  const progressLabel = options.progressLabel ?? reason;
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: 0,
+    failed: 0,
+    status: buildBatchProgressStatus(progressLabel, 0, uniqueIds.length, 0),
+  });
+
+  for (const studentId of uniqueIds) {
+    const { error: studentError } = await supabase
+      .from("students")
+      .update(normalizedChanges as never)
+      .eq("id", studentId);
+
+    if (studentError) {
+      failures.push({ id: studentId, error: formatDataError(studentError) });
+    } else {
+      updatedIds.push(studentId);
+
+      if (normalizedStatus && enrollmentStatus) {
+        const updatePayload: Record<string, unknown> = { status: enrollmentStatus };
+        if (leftOn) updatePayload.left_on = leftOn;
+        const { error: enrollmentError } = await supabase
+          .from("enrollments")
+          .update(updatePayload as never)
+          .eq("student_id", studentId);
+
+        if (enrollmentError) {
+          console.warn("Failed to update enrollment while changing student status:", studentId, enrollmentError);
+        }
+      }
+
+      if (auditLogAvailable) {
+        await supabase.from("audit_log").insert({
+          actor: userId,
+          action: normalizedStatus ? "student.status_updated" : "student.updated",
+          entity: "students",
+          entity_id: studentId,
+          metadata: { reason, changes: normalizedChanges, left_on: leftOn },
+        });
+      }
+    }
+
+    const processed = updatedIds.length + failures.length;
+    emitBatchProgress(options.onProgress, {
+      label: progressLabel,
+      total: uniqueIds.length,
+      processed,
+      failed: failures.length,
+      currentId: studentId,
+      status: buildBatchProgressStatus(progressLabel, processed, uniqueIds.length, failures.length),
     });
   }
 
-  emitAppSync(studentRegisterSyncKey);
+  if (updatedIds.length > 0) {
+    emitAppSync(studentRegisterSyncKey);
+  }
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: updatedIds.length + failures.length,
+    failed: failures.length,
+    status: buildBatchProgressStatus(progressLabel, updatedIds.length + failures.length, uniqueIds.length, failures.length),
+  });
+
+  return { updatedIds, failures };
+}
+
+export async function deleteStudentRecords(
+  studentIds: string[],
+  options: StudentBatchMutationOptions = {},
+): Promise<StudentDeleteResult> {
+  if (!(await tableExists("students"))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
+  const uniqueIds = [...new Set(studentIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { deletedIds: [], failures: [] };
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  const auditLogAvailable = await tableExists("audit_log");
+  const deletedIds: string[] = [];
+  const failures: StudentDeleteFailure[] = [];
+  const progressLabel = options.progressLabel ?? "Deleting";
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: 0,
+    failed: 0,
+    status: buildBatchProgressStatus(progressLabel, 0, uniqueIds.length, 0),
+  });
+
+  for (const studentId of uniqueIds) {
+    const { error } = await supabase.rpc("hard_delete_student_record", { student_id: studentId });
+    if (error) {
+      failures.push({ id: studentId, error: formatDataError(error) });
+    } else {
+      deletedIds.push(studentId);
+
+      if (auditLogAvailable) {
+        await supabase.from("audit_log").insert({
+          actor: userId,
+          action: "student.deleted",
+          entity: "students",
+          entity_id: studentId,
+        });
+      }
+    }
+
+    const processed = deletedIds.length + failures.length;
+    emitBatchProgress(options.onProgress, {
+      label: progressLabel,
+      total: uniqueIds.length,
+      processed,
+      failed: failures.length,
+      currentId: studentId,
+      status: buildBatchProgressStatus(progressLabel, processed, uniqueIds.length, failures.length),
+    });
+  }
+
+  if (deletedIds.length > 0) {
+    emitAppSync(studentRegisterSyncKey);
+  }
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: deletedIds.length + failures.length,
+    failed: failures.length,
+    status: buildBatchProgressStatus(progressLabel, deletedIds.length + failures.length, uniqueIds.length, failures.length),
+  });
+
+  return { deletedIds, failures };
+}
+
+export async function deactivateStudentRecords(
+  studentIds: string[],
+  reason = "removed from active register",
+  options: StudentBatchMutationOptions = {},
+): Promise<StudentDeactivateResult> {
+  if (!(await tableExists("students"))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
+  const uniqueIds = [...new Set(studentIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { deactivatedIds: [], failures: [] };
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  const auditLogAvailable = await tableExists("audit_log");
+  const deactivatedIds: string[] = [];
+  const failures: StudentDeactivateFailure[] = [];
+  const leftOn = new Date().toISOString().slice(0, 10);
+  const progressLabel = options.progressLabel ?? "Removing from active register";
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: 0,
+    failed: 0,
+    status: buildBatchProgressStatus(progressLabel, 0, uniqueIds.length, 0),
+  });
+
+  for (const studentId of uniqueIds) {
+    const { error: studentError } = await supabase
+      .from("students")
+      .update({ status: "transferred" } as never)
+      .eq("id", studentId);
+
+    if (studentError) {
+      failures.push({ id: studentId, error: formatDataError(studentError) });
+    } else {
+      deactivatedIds.push(studentId);
+
+      const { error: enrollmentError } = await supabase
+        .from("enrollments")
+        .update({ status: "transferred", left_on: leftOn } as never)
+        .eq("student_id", studentId);
+
+      if (enrollmentError) {
+        console.warn("Failed to update student enrollment during soft delete:", studentId, enrollmentError);
+      }
+
+      if (auditLogAvailable) {
+        await supabase.from("audit_log").insert({
+          actor: userId,
+          action: "student.deactivated",
+          entity: "students",
+          entity_id: studentId,
+          metadata: { reason, left_on: leftOn },
+        });
+      }
+    }
+
+    const processed = deactivatedIds.length + failures.length;
+    emitBatchProgress(options.onProgress, {
+      label: progressLabel,
+      total: uniqueIds.length,
+      processed,
+      failed: failures.length,
+      currentId: studentId,
+      status: buildBatchProgressStatus(progressLabel, processed, uniqueIds.length, failures.length),
+    });
+  }
+
+  if (deactivatedIds.length > 0) {
+    emitAppSync(studentRegisterSyncKey);
+  }
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: deactivatedIds.length + failures.length,
+    failed: failures.length,
+    status: buildBatchProgressStatus(progressLabel, deactivatedIds.length + failures.length, uniqueIds.length, failures.length),
+  });
+
+  return { deactivatedIds, failures };
+}
+
+export async function updateStudentStatuses(
+  studentIds: string[],
+  status: string,
+  reason = "bulk status update",
+  options: StudentBatchMutationOptions = {},
+): Promise<StudentStatusUpdateResult> {
+  if (!(await tableExists("students"))) {
+    throw new Error("Student records are not available yet. Run the core student migrations first.");
+  }
+
+  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+  if (!VALID_STUDENT_STATUSES.has(normalizedStatus)) {
+    throw new Error(`Unsupported student status "${status}"`);
+  }
+
+  const uniqueIds = [...new Set(studentIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return { updatedIds: [], failures: [] };
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id ?? null;
+  const auditLogAvailable = await tableExists("audit_log");
+  const updatedIds: string[] = [];
+  const failures: StudentStatusUpdateFailure[] = [];
+  const leftOn = normalizedStatus === "transferred" || normalizedStatus === "withdrawn" ? new Date().toISOString().slice(0, 10) : null;
+  const enrollmentStatus = ENROLLMENT_STATUS_BY_STUDENT_STATUS[normalizedStatus];
+  const progressLabel = options.progressLabel ?? `Setting status to ${normalizedStatus}`;
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: 0,
+    failed: 0,
+    status: buildBatchProgressStatus(progressLabel, 0, uniqueIds.length, 0),
+  });
+
+  for (const studentId of uniqueIds) {
+    const { error: studentError } = await supabase
+      .from("students")
+      .update({ status: normalizedStatus } as never)
+      .eq("id", studentId);
+
+    if (studentError) {
+      failures.push({ id: studentId, error: formatDataError(studentError) });
+    } else {
+      updatedIds.push(studentId);
+
+      if (enrollmentStatus) {
+        const updatePayload: Record<string, unknown> = { status: enrollmentStatus };
+        if (leftOn) updatePayload.left_on = leftOn;
+        const { error: enrollmentError } = await supabase
+          .from("enrollments")
+          .update(updatePayload as never)
+          .eq("student_id", studentId);
+
+        if (enrollmentError) {
+          console.warn("Failed to update enrollment while changing student status:", studentId, enrollmentError);
+        }
+      }
+
+      if (auditLogAvailable) {
+        await supabase.from("audit_log").insert({
+          actor: userId,
+          action: "student.status_updated",
+          entity: "students",
+          entity_id: studentId,
+          metadata: { reason, status: normalizedStatus, left_on: leftOn },
+        });
+      }
+    }
+
+    const processed = updatedIds.length + failures.length;
+    emitBatchProgress(options.onProgress, {
+      label: progressLabel,
+      total: uniqueIds.length,
+      processed,
+      failed: failures.length,
+      currentId: studentId,
+      status: buildBatchProgressStatus(progressLabel, processed, uniqueIds.length, failures.length),
+    });
+  }
+
+  if (updatedIds.length > 0) {
+    emitAppSync(studentRegisterSyncKey);
+  }
+
+  emitBatchProgress(options.onProgress, {
+    label: progressLabel,
+    total: uniqueIds.length,
+    processed: updatedIds.length + failures.length,
+    failed: failures.length,
+    status: buildBatchProgressStatus(progressLabel, updatedIds.length + failures.length, uniqueIds.length, failures.length),
+  });
+
+  return { updatedIds, failures };
 }
 
 export type RecentNotification = {

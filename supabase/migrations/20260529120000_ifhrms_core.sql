@@ -26,13 +26,15 @@ CREATE POLICY "staff_admin_all" ON staff
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- Create IFHRMS permissions
-INSERT INTO permissions (key, label, description, category, module_key)
-SELECT * FROM (VALUES
-  ('ifhrms.view', 'View IFHRMS', 'Access the IFHRMS module', 'ifhrms', 'ifhrms'),
-  ('ifhrms.edit', 'Edit IFHRMS', 'Create and modify IFHRMS records', 'ifhrms', 'ifhrms'),
-  ('ifhrms.payroll', 'Manage Payroll', 'Process payroll runs', 'ifhrms', 'ifhrms'),
-  ('ifhrms.leave', 'Manage Leave', 'Approve and manage leave', 'ifhrms', 'ifhrms'),
-  ('ifhrms.appraisal', 'Manage Appraisals', 'Create and complete appraisals', 'ifhrms', 'ifhrms'),
-  ('ifhrms.recruit', 'Manage Recruitment', 'Manage job openings and candidates', 'ifhrms', 'ifhrms')
-) AS v(key, label, description, category, module_key)
-WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE key = v.key);
+INSERT INTO permissions (module_key, action, label)
+SELECT module_key, action, label FROM (VALUES
+  ('ifhrms'::text, 'view'::text, 'View IFHRMS'::text),
+  ('ifhrms', 'edit', 'Edit IFHRMS'),
+  ('ifhrms', 'payroll', 'Manage Payroll'),
+  ('ifhrms', 'leave', 'Manage Leave'),
+  ('ifhrms', 'appraisal', 'Manage Appraisals'),
+  ('ifhrms', 'recruit', 'Manage Recruitment')
+) AS v(module_key, action, label)
+WHERE NOT EXISTS (
+  SELECT 1 FROM permissions WHERE module_key = v.module_key AND action = v.action
+);

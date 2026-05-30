@@ -28,8 +28,9 @@ describe("legacy adapter layer", () => {
   });
 
   it("translates legacy routes to the current shell routes", () => {
-    expect(translateLegacyRoute("/registeredStudents")).toBe("/students");
+    expect(translateLegacyRoute("/registeredStudents")).toBe("/registeredStudents");
     expect(translateLegacyRoute("settings-backup")).toBe("/settings");
+    expect(translateLegacyRoute("add-student")).toBe("/students/new");
   });
 
   it("translates known legacy storage aliases", () => {

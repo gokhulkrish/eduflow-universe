@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Plus, Trash2, Users, FileText, CalendarCheck, Phone, Mail, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,32 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { generateId } from "@/lib/utils";
-
-interface Task {
-  id: string; title: string; description: string; assignee: string; priority: "low" | "medium" | "high" | "critical"; status: "open" | "in-progress" | "completed"; dueDate: string; category: string;
-}
-
-interface Notice {
-  id: string; title: string; content: string; audience: string; date: string;
-}
-
-const TASKS_KEY = "sms.admin.tasks.v1";
-const NOTICES_KEY = "sms.admin.notices.v1";
-
-function loadT(): Task[] { try { return JSON.parse(localStorage.getItem(TASKS_KEY) || "[]"); } catch { return []; } }
-function saveT(t: Task[]) { localStorage.setItem(TASKS_KEY, JSON.stringify(t)); }
-function loadN(): Notice[] { try { return JSON.parse(localStorage.getItem(NOTICES_KEY) || "[]"); } catch { return []; } }
-function saveN(n: Notice[]) { localStorage.setItem(NOTICES_KEY, JSON.stringify(n)); }
-
-const PRIORITIES: Task["priority"][] = ["low", "medium", "high", "critical"];
+import { getTasks, createTask, updateTask, deleteTask, getNotices, createNotice, deleteNotice, type Task, type Notice, PRIORITIES } from "@/lib/administration";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function Administration() {
   const [tab, setTab] = useState("tasks");
-  const [tasks, setTasks] = useState(loadT);
-  const [notices, setNotices] = useState(loadN);
-  const refreshT = () => setTasks(loadT());
-  const refreshN = () => setNotices(loadN());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const refreshT = async () => setTasks(await getTasks());
+  const refreshN = async () => setNotices(await getNotices());
+
+  useEffect(() => { Promise.all([refreshT(), refreshN()]).then(() => setLoading(false)); }, []);
+  useRealtime("admin_tasks", refreshT);
+  useRealtime("admin_notices", refreshN);
 
   const [tOpen, setTOpen] = useState(false);
   const [tTitle, setTTitle] = useState(""); const [tDesc, setTDesc] = useState(""); const [tAssignee, setTAssignee] = useState(""); const [tPriority, setTPriority] = useState<Task["priority"]>("medium"); const [tCat, setTCat] = useState(""); const [tDue, setTDue] = useState("");
@@ -46,31 +34,29 @@ export default function Administration() {
 
   const stats = { total: tasks.length, open: tasks.filter((t) => t.status === "open").length, completed: tasks.filter((t) => t.status === "completed").length, critical: tasks.filter((t) => t.priority === "critical" && t.status !== "completed").length };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!tTitle) { toast.error("Title required"); return; }
-    const all = loadT();
-    all.push({ id: generateId(), title: tTitle, description: tDesc, assignee: tAssignee, priority: tPriority, status: "open", dueDate: tDue, category: tCat });
-    saveT(all); refreshT(); setTOpen(false); setTTitle(""); setTDesc(""); setTAssignee(""); setTPriority("medium"); setTCat(""); setTDue(""); toast.success("Task created");
+    await createTask({ title: tTitle, description: tDesc, assignee: tAssignee, priority: tPriority, status: "open", dueDate: tDue, category: tCat });
+    await refreshT(); setTOpen(false); setTTitle(""); setTDesc(""); setTAssignee(""); setTPriority("medium"); setTCat(""); setTDue(""); toast.success("Task created");
   };
 
-  const updateTaskStatus = (id: string, status: Task["status"]) => {
-    const all = loadT().map((t) => t.id === id ? { ...t, status } : t);
-    saveT(all); refreshT(); toast.success(`Task ${status}`);
+  const updateTaskStatus = async (id: string, status: Task["status"]) => {
+    await updateTask(id, { status });
+    await refreshT(); toast.success(`Task ${status}`);
   };
 
-  const deleteTask = (id: string) => {
-    saveT(loadT().filter((t) => t.id !== id)); refreshT(); toast.success("Deleted");
+  const deleteTask = async (id: string) => {
+    await deleteTask(id); await refreshT(); toast.success("Deleted");
   };
 
-  const handleCreateNotice = () => {
+  const handleCreateNotice = async () => {
     if (!nTitle) { toast.error("Title required"); return; }
-    const all = loadN();
-    all.push({ id: generateId(), title: nTitle, content: nContent, audience: nAudience || "All", date: new Date().toISOString() });
-    saveN(all); refreshN(); setNOpen(false); setNTitle(""); setNContent(""); setNAudience(""); toast.success("Notice posted");
+    await createNotice({ title: nTitle, content: nContent, audience: nAudience || "All", date: new Date().toISOString() });
+    await refreshN(); setNOpen(false); setNTitle(""); setNContent(""); setNAudience(""); toast.success("Notice posted");
   };
 
-  const deleteNotice = (id: string) => {
-    saveN(loadN().filter((n) => n.id !== id)); refreshN(); toast.success("Deleted");
+  const deleteNotice = async (id: string) => {
+    await deleteNotice(id); await refreshN(); toast.success("Deleted");
   };
 
   return (

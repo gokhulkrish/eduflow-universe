@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import { ClipboardCheck, Plus, Trash2, Send, BarChart3, GripVertical } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ClipboardCheck, Plus, Trash2, Send, BarChart3, GripVertical, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,56 +14,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { useRealtime } from "@/lib/use-realtime";
+import { getFeedbacks, createFeedback, updateFeedback, deleteFeedback, FeedbackForm } from "@/lib/comms-feedback";
 import { generateId } from "@/lib/utils";
 
 type QuestionType = "text" | "rating" | "choice";
-
-interface Question {
-  id: string;
-  type: QuestionType;
-  label: string;
-  options: string[];
-  required: boolean;
-}
-
-interface FeedbackForm {
-  id: string;
-  title: string;
-  description: string;
-  questions: Question[];
-  audience: string;
-  channel: string;
-  status: "draft" | "published" | "closed";
-  responseCount: number;
-  created_at: string;
-}
-
-const KEY = "eduflow_feedback_forms";
-function ls(): FeedbackForm[] {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? "[]"); } catch { return []; }
-}
-function ss(v: FeedbackForm[]) {
-  localStorage.setItem(KEY, JSON.stringify(v));
-  emitAppSync(KEY);
-}
+interface Question { id: string; type: QuestionType; label: string; options: string[]; required: boolean; }
 
 const AUDIENCE_PRESETS = ["All Students", "All Staff", "All Parents", "All Teachers", "Entire Institution"];
 
 export default function CommsFeedback() {
-  const [items, setItems] = useState<FeedbackForm[]>(ls());
-  const refresh = () => setItems(ls());
+  const navigate = useNavigate();
+  const [items, setItems] = useState<FeedbackForm[]>([]);
+  const refresh = useCallback(async () => { setItems(await getFeedbacks()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("comms_feedback", refresh);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [audience, setAudience] = useState("All Students");
   const [channel, setChannel] = useState("email");
   const [status, setStatus] = useState<FeedbackForm["status"]>("draft");
-  const [questions, setQuestions] = useState<Question[]>([]);
-
-  useEffect(() => subscribeAppSync([KEY], refresh), []);
+  const [questions, setQuestions] = useState<any[]>([]);
 
   const addQuestion = (type: QuestionType) => {
     setQuestions([...questions, {
@@ -113,32 +91,29 @@ export default function CommsFeedback() {
     setOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title) { toast.error("Title is required"); return; }
     if (questions.length === 0) { toast.error("Add at least one question"); return; }
     if (questions.some((q) => !q.label)) { toast.error("All questions need a label"); return; }
-    const now = new Date().toISOString();
     if (editingId) {
-      ss(ls().map((x) => x.id === editingId ? { ...x, title, description, questions, audience, channel, status } : x));
+      await updateFeedback(editingId, { title, description, questions, audience, channel, status });
       toast.success("Form updated");
     } else {
-      const forms = ls();
-      forms.unshift({ id: generateId(), title, description, questions, audience, channel, status, responseCount: 0, created_at: now });
-      ss(forms);
+      await createFeedback({ title, description, questions, audience, channel, status });
       toast.success("Form created");
     }
     setOpen(false);
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    ss(ls().filter((x) => x.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteFeedback(id);
     refresh();
     toast.success("Form deleted");
   };
 
-  const handleSend = (id: string) => {
-    ss(ls().map((x) => x.id === id ? { ...x, status: "published" } : x));
+  const handleSend = async (id: string) => {
+    await updateFeedback(id, { status: "published" });
     refresh();
     toast.success("Form published and sent to audience");
   };
@@ -147,7 +122,9 @@ export default function CommsFeedback() {
     <div>
       <PageHeader title="Feedback Forms" subtitle="Create surveys & feedback campaigns" icon={<ClipboardCheck className="h-6 w-6" />} />
 
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-2 mb-4">
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=comms-feedback")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(items, "feedback-forms", [{key:"title",label:"Title"},{key:"description",label:"Description"},{key:"audience",label:"Audience"},{key:"channel",label:"Channel"},{key:"status",label:"Status"},{key:"responseCount",label:"Responses"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" /> New Feedback Form
         </Button>
@@ -184,7 +161,7 @@ export default function CommsFeedback() {
                     <Send className="h-3 w-3 mr-1" /> Publish & Send
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => handleDelete(f.id)}>
+                <Button variant="ghost" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => setDeleteId(f.id)}>
                   <Trash2 className="h-3 w-3 mr-1" /> Delete
                 </Button>
               </div>
@@ -192,6 +169,10 @@ export default function CommsFeedback() {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Form</AlertDialogTitle><AlertDialogDescription>This will permanently remove this feedback form. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await deleteFeedback(deleteId); refresh(); toast.success("Deleted"); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xl">

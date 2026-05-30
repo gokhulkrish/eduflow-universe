@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NotebookPen, Plus, Trash2, CalendarDays, Clock, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,50 +11,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { generateId } from "@/lib/utils";
+import { getHomework, createHomework, updateHomework, deleteHomework, CLASSES, SUBJECTS } from "@/lib/homework";
+import { useRealtime } from "@/lib/use-realtime";
 
-interface HomeworkItem {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  className: string;
-  dueDate: string;
-  status: "pending" | "submitted" | "overdue";
-  createdAt: string;
-}
 
-const STORAGE_KEY = "sms.homework.v1";
-const CLASSES = ["Class 1-A", "Class 1-B", "Class 2-A", "Class 2-B", "Class 3-A", "Class 4-A", "Class 5-A", "Class 6-A", "Class 7-A", "Class 8-A", "Class 9-A", "Class 10-A", "Class 11-A", "Class 11-B", "Class 12-A", "Class 12-B"];
-const SUBJECTS = ["Mathematics", "English", "Hindi", "Science", "Social Studies", "Physics", "Chemistry", "Biology", "History", "Geography", "Computer Science", "Physical Education"];
-
-function load(): HomeworkItem[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function save(items: HomeworkItem[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 
 export default function Homework() {
   const [tab, setTab] = useState("all");
-  const [items, setItems] = useState(load);
-  const refresh = () => setItems(load());
+  const [items, setItems] = useState<HomeworkItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => { setLoading(true); setItems(await getHomework()); setLoading(false); };
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(""); const [desc, setDesc] = useState(""); const [subject, setSubject] = useState(""); const [cls, setCls] = useState(""); const [due, setDue] = useState("");
 
-  const handleCreate = () => {
+  useEffect(() => { (async () => { setItems(await getHomework()); setLoading(false); })(); }, []);
+  useRealtime("homework_assignments", refresh);
+
+  const handleCreate = async () => {
     if (!title || !subject || !cls || !due) { toast.error("Fill all fields"); return; }
-    const all = load();
-    all.push({ id: generateId(), title, description: desc, subject, className: cls, dueDate: due, status: "pending", createdAt: new Date().toISOString() });
-    save(all); refresh(); setOpen(false); setTitle(""); setDesc(""); setSubject(""); setCls(""); setDue(""); toast.success("Homework assigned");
+    await createHomework({ title, description: desc, subject, className: cls, dueDate: due, status: "pending" });
+    await refresh(); setOpen(false); setTitle(""); setDesc(""); setSubject(""); setCls(""); setDue(""); toast.success("Homework assigned");
   };
 
-  const markSubmitted = (id: string) => {
-    const all = load().map((h) => h.id === id ? { ...h, status: "submitted" as const } : h);
-    save(all); refresh(); toast.success("Marked submitted");
+  const markSubmitted = async (id: string) => {
+    await updateHomework(id, { status: "submitted" });
+    await refresh(); toast.success("Marked submitted");
   };
 
-  const deleteItem = (id: string) => {
-    const all = load().filter((h) => h.id !== id);
-    save(all); refresh(); toast.success("Deleted");
+  const deleteItem = async (id: string) => {
+    await deleteHomework(id);
+    await refresh(); toast.success("Deleted");
   };
 
   const filtered = tab === "all" ? items : items.filter((h) => h.status === tab);
@@ -72,8 +58,9 @@ export default function Homework() {
         <TabsContent value={tab}>
           <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Assign Homework</Button></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No homework assigned</CardContent></Card>}
-            {filtered.map((h) => (
+            {loading && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">Loading...</CardContent></Card>}
+            {!loading && filtered.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No homework assigned</CardContent></Card>}
+            {!loading && filtered.map((h) => (
               <Card key={h.id} className="border-border/40">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">

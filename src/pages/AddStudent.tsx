@@ -32,6 +32,7 @@ import {
 import { buildRegistrySections, getHeaderFieldMeta, invalidateRegistryCache, loadCustomImportFields, loadHeaderRegistrySettings, registryStorageKey } from "@/lib/header-registry";
 import { importStorageKeys } from "@/lib/student-import";
 import { subscribeAppSync } from "@/lib/app-sync";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useStudentCapability } from "@/hooks/useStudentCapability";
 import { traceStudentFieldChange, traceStudentAction } from "@/lib/student-workspace-messaging";
@@ -39,9 +40,11 @@ import { traceStudentFieldChange, traceStudentAction } from "@/lib/student-works
 export default function AddStudent() {
   const navigate = useNavigate();
   const { studentId } = useParams();
-  const { canEdit } = useStudentCapability();
+  const { canEdit, profileId } = useStudentCapability();
+  const canDeleteStudent = profileId === "admin";
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [registrySettings, setRegistrySettings] = useState(() => loadHeaderRegistrySettings());
   const [customFields, setCustomFields] = useState(() => loadCustomImportFields());
   const studentQuery = useQuery({
@@ -92,6 +95,21 @@ export default function AddStudent() {
       setSubmitting(false);
     }
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!studentId) throw new Error("No student is loaded for deletion");
+      return deleteStudentRecord(studentId);
+    },
+    onSuccess: () => {
+      toast.success("Student deleted permanently");
+      navigate("/students");
+    },
+    onError: (error) => {
+      toast.error(formatDataError(error));
+      setDeleting(false);
+    },
+  });
 
   return (
     <div>
@@ -164,9 +182,35 @@ export default function AddStudent() {
       </div>
 
       <StickyActionBar className="justify-end">
-        <Button variant="ghost" className="rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" /> Delete
-        </Button>
+        {studentId && canDeleteStudent && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deleting || deleteMutation.isPending}>
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this student permanently?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes the student record and all linked register data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeleting(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setDeleting(true);
+                    deleteMutation.mutate();
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
         <Button variant="outline" onClick={reset} className="rounded-xl">
           <RotateCcw className="mr-2 h-4 w-4" /> Reset
         </Button>

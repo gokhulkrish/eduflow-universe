@@ -63,8 +63,11 @@ export function Topbar() {
         <Input
           id="topbar-search"
           name="topbarSearch"
-          placeholder="Search students, classes, fees…"
-          className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9 pr-16 focus-visible:ring-primary/40"
+          placeholder="Search modules, pages, features…"
+          className="h-10 rounded-xl border-border/60 bg-secondary/60 pl-9 pr-16 focus-visible:ring-primary/40 cursor-pointer"
+          readOnly
+          onClick={() => document.dispatchEvent(new CustomEvent("open-command-palette"))}
+          onFocus={() => document.dispatchEvent(new CustomEvent("open-command-palette"))}
         />
         <kbd className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-flex">
           <Command className="h-3 w-3" /> K

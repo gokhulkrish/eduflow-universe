@@ -16,10 +16,17 @@ create table if not exists public.message_templates (
   unique (institution_id, code)
 );
 
+-- Add columns if table already existed with legacy schema
+alter table public.message_templates add column if not exists code text;
+alter table public.message_templates add column if not exists channel text;
+alter table public.message_templates add column if not exists is_active boolean not null default true;
+alter table public.message_templates add column if not exists deleted_at timestamptz;
+
 alter table public.message_templates enable row level security;
 create policy "message_templates_select" on public.message_templates for select to authenticated using (true);
 create policy "message_templates_insert" on public.message_templates for insert to authenticated with check (true);
 create policy "message_templates_update" on public.message_templates for update to authenticated using (true);
+drop trigger if exists trg_message_templates_updated_at on public.message_templates;
 create trigger trg_message_templates_updated_at before update on public.message_templates
   for each row execute function public.update_updated_at_column();
 
@@ -36,10 +43,15 @@ create table if not exists public.message_campaigns (
   updated_at timestamptz not null default now()
 );
 
+-- Add columns if table already existed with legacy schema
+alter table public.message_campaigns add column if not exists institution_id uuid;
+alter table public.message_campaigns add column if not exists audience_query jsonb;
+
 alter table public.message_campaigns enable row level security;
 create policy "message_campaigns_select" on public.message_campaigns for select to authenticated using (true);
 create policy "message_campaigns_insert" on public.message_campaigns for insert to authenticated with check (true);
 create policy "message_campaigns_update" on public.message_campaigns for update to authenticated using (true);
+drop trigger if exists trg_message_campaigns_updated_at on public.message_campaigns;
 create trigger trg_message_campaigns_updated_at before update on public.message_campaigns
   for each row execute function public.update_updated_at_column();
 
@@ -64,6 +76,7 @@ alter table public.message_queue enable row level security;
 create policy "message_queue_select" on public.message_queue for select to authenticated using (true);
 create policy "message_queue_insert" on public.message_queue for insert to authenticated with check (true);
 create policy "message_queue_update" on public.message_queue for update to authenticated using (true);
+drop trigger if exists trg_message_queue_updated_at on public.message_queue;
 create trigger trg_message_queue_updated_at before update on public.message_queue
   for each row execute function public.update_updated_at_column();
 
@@ -80,6 +93,14 @@ create table if not exists public.message_logs (
   error_message text,
   created_at timestamptz not null default now()
 );
+
+-- Add columns if table already existed with legacy schema
+alter table public.message_logs add column if not exists institution_id uuid;
+alter table public.message_logs add column if not exists queue_id uuid;
+alter table public.message_logs add column if not exists channel text;
+alter table public.message_logs add column if not exists to_address text;
+alter table public.message_logs add column if not exists payload jsonb;
+alter table public.message_logs add column if not exists error_message text;
 
 alter table public.message_logs enable row level security;
 create policy "message_logs_select" on public.message_logs for select to authenticated using (true);

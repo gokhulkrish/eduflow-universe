@@ -1,6 +1,9 @@
-import { useEffect, useState, useRef } from "react";
-import { ClipboardList, Plus, Trash2, Pin, Bold, Italic, Heading, List, ListOrdered, Link, Image, Send, Clock } from "lucide-react";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { ClipboardList, Plus, Trash2, Pin, Bold, Italic, Heading, List, ListOrdered, Link, Image, Send, Clock, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,33 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
-
-type NoticeStatus = "draft" | "published" | "scheduled";
-
-interface Notice {
-  id: string;
-  title: string;
-  body: string;
-  priority: "normal" | "high" | "urgent";
-  pinned: boolean;
-  audience: string;
-  schedule?: string;
-  status: NoticeStatus;
-  attachments: { name: string; url: string }[];
-  created_at: string;
-}
-
-const NOTICES_KEY = "eduflow_comms_notices";
-
-function ls(): Notice[] {
-  try { return JSON.parse(localStorage.getItem(NOTICES_KEY) ?? "[]"); } catch { return []; }
-}
-function ss(v: Notice[]) {
-  localStorage.setItem(NOTICES_KEY, JSON.stringify(v));
-  emitAppSync(NOTICES_KEY);
-}
+import { useRealtime } from "@/lib/use-realtime";
+import { getNotices, createNotice, updateNotice, deleteNotice, CommsNotice } from "@/lib/comms-notices";
 
 const PRIORITY_BADGE: Record<string, string> = {
   normal: "bg-muted text-muted-foreground",
@@ -47,23 +25,25 @@ const PRIORITY_BADGE: Record<string, string> = {
 const AUDIENCE_PRESETS = ["All Students", "All Staff", "All Parents", "All Teachers", "Entire Institution"];
 
 export default function CommsNotices() {
-  const [items, setItems] = useState<Notice[]>(ls());
-  const refresh = () => setItems(ls());
+  const navigate = useNavigate();
+  const [items, setItems] = useState<CommsNotice[]>([]);
+  const refresh = useCallback(async () => { setItems(await getNotices()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("comms_notices", refresh);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [priority, setPriority] = useState<Notice["priority"]>("normal");
+  const [priority, setPriority] = useState<CommsNotice["priority"]>("normal");
   const [audience, setAudience] = useState("All Students");
   const [schedule, setSchedule] = useState("");
-  const [status, setStatus] = useState<NoticeStatus>("published");
+  const [status, setStatus] = useState<CommsNotice["status"]>("published");
   const [attachments, setAttachments] = useState<{ name: string; url: string }[]>([]);
   const [attachName, setAttachName] = useState("");
   const [attachUrl, setAttachUrl] = useState("");
-
-  useEffect(() => subscribeAppSync([NOTICES_KEY], refresh), []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -71,7 +51,7 @@ export default function CommsNotices() {
     setSchedule(""); setStatus("published"); setAttachments([]); setOpen(true);
   };
 
-  const openEdit = (n: Notice) => {
+  const openEdit = (n: CommsNotice) => {
     setEditingId(n.id);
     setTitle(n.title); setBody(n.body); setPriority(n.priority);
     setAudience(n.audience); setSchedule(n.schedule ?? "");
@@ -79,42 +59,28 @@ export default function CommsNotices() {
     setOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title || !body) { toast.error("Title and body are required"); return; }
-    const now = new Date().toISOString();
+    const effectiveStatus = schedule ? "scheduled" as const : status;
     if (editingId) {
-      ss(ls().map((x) => x.id === editingId ? {
-        ...x, title, body, priority, audience,
-        schedule: schedule || undefined,
-        status: schedule ? "scheduled" : status,
-        attachments,
-      } : x));
+      await updateNotice(editingId, { title, body, priority, audience, schedule: schedule || undefined, status: effectiveStatus, attachments });
       toast.success("Notice updated");
     } else {
-      const items = ls();
-      items.unshift({
-        id: generateId(), title, body, priority,
-        pinned: false, audience,
-        schedule: schedule || undefined,
-        status: schedule ? "scheduled" : status,
-        attachments,
-        created_at: now,
-      });
-      ss(items);
+      await createNotice({ title, body, priority, pinned: false, audience, schedule: schedule || undefined, status: effectiveStatus, attachments });
       toast.success("Notice created");
     }
     setOpen(false);
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    ss(ls().filter((x) => x.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteNotice(id);
     refresh();
     toast.success("Notice deleted");
   };
 
-  const handlePin = (id: string) => {
-    ss(ls().map((x) => x.id === id ? { ...x, pinned: !x.pinned } : x));
+  const handlePin = async (id: string, current: boolean) => {
+    await updateNotice(id, { pinned: !current });
     refresh();
   };
 
@@ -151,7 +117,9 @@ export default function CommsNotices() {
     <div>
       <PageHeader title="Notice Composition" subtitle="Create rich formatted notices with targeting & scheduling" icon={<ClipboardList className="h-6 w-6" />} />
 
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-2 mb-4">
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=comms-notices")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(items, "notices", [{key:"title",label:"Title"},{key:"body",label:"Body"},{key:"priority",label:"Priority"},{key:"audience",label:"Audience"},{key:"status",label:"Status"},{key:"pinned",label:"Pinned"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" /> New Notice
         </Button>
@@ -187,10 +155,10 @@ export default function CommsNotices() {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => handlePin(n.id)} title={n.pinned ? "Unpin" : "Pin"}>
+                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => handlePin(n.id, n.pinned)} title={n.pinned ? "Unpin" : "Pin"}>
                     <Pin className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7 text-destructive" onClick={() => handleDelete(n.id)} title="Delete">
+                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7 text-destructive" onClick={() => setDeleteId(n.id)} title="Delete">
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -199,6 +167,10 @@ export default function CommsNotices() {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Notice</AlertDialogTitle><AlertDialogDescription>This will permanently remove this notice. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await deleteNotice(deleteId); refresh(); toast.success("Deleted"); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xl">

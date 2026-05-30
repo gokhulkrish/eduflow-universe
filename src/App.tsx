@@ -23,7 +23,7 @@ import { studentRegisterSyncKey } from "@/lib/student-records";
 import { requestMonitoringRefresh } from "@/lib/monitoring-refresh";
 import { ensureCanonicalStudentFields } from "@/lib/canonical-student-fields";
 import { useActivityTrace } from "@/stores/activityTrace";
-import { Shield, Briefcase } from "lucide-react";
+import { Shield, Briefcase, Users, BookOpen } from "lucide-react";
 import { initializeTraceProfiles } from "@/stores/traceProfiles";
 
 function retryableLazy<T extends ComponentType<any>>(importFn: () => Promise<{ default: T }>) {
@@ -153,6 +153,7 @@ const VideoRooms = retryableLazy(() => import("./pages/VideoRooms"));
 const Administration = retryableLazy(() => import("./pages/Administration"));
 const SystemPage = retryableLazy(() => import("./pages/System"));
 const Departments = retryableLazy(() => import("./pages/Departments"));
+const FacultyHR = retryableLazy(() => import("./pages/FacultyHR"));
 const CurriculumOutcomes = retryableLazy(() => import("./pages/CurriculumOutcomes"));
 const LmsElearning = retryableLazy(() => import("./pages/LmsElearning"));
 const ResearchInnovation = retryableLazy(() => import("./pages/ResearchInnovation"));
@@ -370,6 +371,7 @@ const PATH_LABELS: Record<string, string> = {
   "/administration": "Administration",
   "/system": "System",
   "/departments": "Departments",
+  "/faculty-hr": "Faculty & HR",
   "/curriculum": "Curriculum",
   "/lms": "LMS",
   "/research": "Research",
@@ -521,8 +523,21 @@ const App = () => {
                 <Route path="/video-rooms" element={<LazyRoute element={<VideoRooms />} />} />
                 <Route path="/administration" element={<LazyRoute element={<Administration />} />} />
                 <Route path="/system" element={<LazyRoute element={<SystemPage />} />} />
-                <Route path="/departments" element={<LazyRoute element={<Departments />} />} />
-                <Route path="/curriculum" element={<LazyRoute element={<CurriculumOutcomes />} />} />
+                <Route path="/departments" element={
+                  isMigrationFlagEnabled("patch-027-departments-gate")
+                    ? <LazyRoute element={<Departments />} />
+                    : <LazyRoute element={<div className="flex h-[60vh] items-center justify-center"><div className="flex flex-col items-center gap-3"><Building2 className="h-12 w-12 text-muted-foreground" /><p className="text-lg font-medium text-muted-foreground">Departments & Programs</p><p className="text-sm text-muted-foreground">Coming soon — gated behind migration patch 027</p></div></div>} />
+                } />
+                <Route path="/faculty-hr" element={
+                  isMigrationFlagEnabled("patch-028-faculty-hr-gate")
+                    ? <LazyRoute element={<FacultyHR />} />
+                    : <LazyRoute element={<div className="flex h-[60vh] items-center justify-center"><div className="flex flex-col items-center gap-3"><Users className="h-12 w-12 text-muted-foreground" /><p className="text-lg font-medium text-muted-foreground">Faculty & HR</p><p className="text-sm text-muted-foreground">Coming soon — gated behind migration patch 028</p></div></div>} />
+                } />
+                <Route path="/curriculum" element={
+                  isMigrationFlagEnabled("patch-029-curriculum-outcomes-gate")
+                    ? <LazyRoute element={<CurriculumOutcomes />} />
+                    : <LazyRoute element={<div className="flex h-[60vh] items-center justify-center"><div className="flex flex-col items-center gap-3"><BookOpen className="h-12 w-12 text-muted-foreground" /><p className="text-lg font-medium text-muted-foreground">Curriculum & Outcomes</p><p className="text-sm text-muted-foreground">Coming soon — gated behind migration patch 029</p></div></div>} />
+                } />
                 <Route path="/lms" element={<LazyRoute element={<LmsElearning />} />} />
                 <Route path="/research" element={<LazyRoute element={<ResearchInnovation />} />} />
                 <Route path="/accreditation" element={<LazyRoute element={<AccreditationIQAC />} />} />

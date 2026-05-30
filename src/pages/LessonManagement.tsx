@@ -1,7 +1,9 @@
 import "@/lib/runtime-storage";
 import { useEffect, useState } from "react";
-import { BookOpen, Plus, Trash2, FileText } from "lucide-react";
+import { BookOpen, Plus, Pencil, Trash2, FileText, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,23 +12,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
-
-type Lesson = { id: string; title: string; subject: string; class_id: string; topic: string; objectives: string; materials: string; status: string; created_at: string; };
-export const lessonsKey = "eduflow_lessons";
-function ls(): Lesson[] { try { return JSON.parse(localStorage.getItem(lessonsKey) ?? "[]"); } catch { return []; } }
-function ss(v: Lesson[]) { localStorage.setItem(lessonsKey, JSON.stringify(v)); emitAppSync(lessonsKey); }
+import { useRealtime } from "@/lib/use-realtime";
+import { getLessons, createLesson, updateLesson, deleteLesson, lessonsKey, type Lesson } from "@/lib/lessons";
 
 export default function LessonManagement() {
-  const [items, setItems] = useState(ls());
+  const navigate = useNavigate();
+  const [items, setItems] = useState<Lesson[]>([]);
   const [tab, setTab] = useState("plans");
-  const refresh = () => setItems(ls());
-  const [open, setOpen] = useState(false); const [title, setTitle] = useState(""); const [subject, setSubject] = useState(""); const [topic, setTopic] = useState(""); const [objectives, setObjectives] = useState(""); const [materials, setMaterials] = useState("");
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => setItems(await getLessons());
+  const [open, setOpen] = useState(false); const [editId, setEditId] = useState<string | null>(null); const [title, setTitle] = useState(""); const [subject, setSubject] = useState(""); const [topic, setTopic] = useState(""); const [objectives, setObjectives] = useState(""); const [materials, setMaterials] = useState(""); const [deleteId, setDeleteId] = useState<string | null>(null);
+  const openAdd = () => { setEditId(null); setTitle(""); setSubject(""); setTopic(""); setObjectives(""); setMaterials(""); setOpen(true); };
+  const openEdit = (l: Lesson) => { setEditId(l.id); setTitle(l.title); setSubject(l.subject); setTopic(l.topic); setObjectives(l.objectives); setMaterials(l.materials || ""); setOpen(true); };
 
-  useEffect(() => subscribeAppSync([lessonsKey], refresh), []);
+  useEffect(() => { refresh().then(() => setLoading(false)); }, []); useRealtime("lesson_plans", refresh);
+
+  const exportCols = [{key:"title",label:"Title"},{key:"status",label:"Status"},{key:"subject",label:"Subject"},{key:"topic",label:"Topic"},{key:"objectives",label:"Objectives"},{key:"materials",label:"Materials"}];
 
   return (
     <div>
@@ -37,7 +41,7 @@ export default function LessonManagement() {
           <TabsTrigger value="syllabus">Syllabus Status</TabsTrigger>
         </TabsList>
         <TabsContent value="plans">
-          <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setTitle(""); setSubject(""); setTopic(""); setObjectives(""); setMaterials(""); setOpen(true); }}><Plus className="h-4 w-4 mr-1" /> New Lesson Plan</Button></div>
+          <div className="flex justify-end mb-4"><Button size="sm" variant="outline" className="rounded-xl mr-2" onClick={() => navigate("/import?module=lessons")}><Upload className="h-4 w-4 mr-1" /> Import</Button><Button size="sm" variant="outline" className="rounded-xl mr-2" onClick={() => exportToCsv(items, "lesson-plans", exportCols)}><Download className="h-4 w-4 mr-1" /> Export</Button><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> New Lesson Plan</Button></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((l) => (
               <Card key={l.id} className="border-border/40">
@@ -46,8 +50,9 @@ export default function LessonManagement() {
                   <p className="text-muted-foreground"><strong>Objectives:</strong> {l.objectives}</p>
                   <p className="text-muted-foreground"><strong>Materials:</strong> {l.materials || "—"}</p>
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { ss(ls().map((x) => x.id === l.id ? { ...x, status: x.status === "completed" ? "draft" : x.status === "in-progress" ? "completed" : "in-progress" } : x)); refresh(); toast.success("Updated"); }}>Advance</Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { ss(ls().filter((x) => x.id !== l.id)); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={async () => { await updateLesson(l.id, { status: l.status === "completed" ? "draft" : l.status === "in-progress" ? "completed" : "in-progress" }); await refresh(); toast.success("Updated"); }}>Advance</Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => openEdit(l)}><Pencil className="h-3 w-3" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => setDeleteId(l.id)}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -60,16 +65,20 @@ export default function LessonManagement() {
         </TabsContent>
       </Tabs>
 
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Lesson Plan</AlertDialogTitle><AlertDialogDescription>This will permanently remove this lesson plan. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await deleteLesson(deleteId); await refresh(); toast.success("Deleted"); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>New Lesson Plan</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editId ? "Edit Lesson Plan" : "New Lesson Plan"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label className="text-xs" htmlFor="lessonTitle">Title</Label><Input id="lessonTitle" name="lessonTitle" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="lessonSubject">Subject</Label><Input id="lessonSubject" name="lessonSubject" value={subject} onChange={(e) => setSubject(e.target.value)} /></div><div><Label className="text-xs" htmlFor="lessonTopic">Topic</Label><Input id="lessonTopic" name="lessonTopic" value={topic} onChange={(e) => setTopic(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="lessonObjectives">Objectives</Label><Textarea id="lessonObjectives" name="lessonObjectives" value={objectives} onChange={(e) => setObjectives(e.target.value)} rows={2} /></div>
             <div><Label className="text-xs" htmlFor="lessonMaterials">Materials/Resources</Label><Textarea id="lessonMaterials" name="lessonMaterials" value={materials} onChange={(e) => setMaterials(e.target.value)} rows={2} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !subject} onClick={() => { const items = ls(); items.push({ id: generateId(), title, subject, class_id: "", topic, objectives, materials, status: "draft", created_at: new Date().toISOString() }); ss(items); refresh(); setOpen(false); toast.success("Created"); }}>Create</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title || !subject} onClick={async () => { if (editId) { await updateLesson(editId, { title, subject, topic, objectives, materials }); } else { await createLesson({ title, subject, class_id: "", topic, objectives, materials, status: "draft" }); } await refresh(); setOpen(false); toast.success(editId ? "Updated" : "Created"); }}>{editId ? "Update" : "Create"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

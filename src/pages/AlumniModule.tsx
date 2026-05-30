@@ -13,20 +13,18 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
-
-type Alumni = { id: string; name: string; batch: string; email: string; phone: string; occupation: string; company: string; city: string; };
-const ALUMNI_KEY = "eduflow_alumni";
-function ls(): Alumni[] { try { return JSON.parse(localStorage.getItem(ALUMNI_KEY) ?? "[]"); } catch { return []; } }
-function ss(v: Alumni[]) { localStorage.setItem(ALUMNI_KEY, JSON.stringify(v)); emitAppSync(ALUMNI_KEY); }
+import { subscribeAppSync } from "@/lib/app-sync";
+import { getAlumni, createAlumni, deleteAlumni, type Alumni } from "@/lib/alumni";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function AlumniModule() {
-  const [items, setItems] = useState(ls()); const [search, setSearch] = useState(""); const refresh = () => setItems(ls());
+  const [items, setItems] = useState<Alumni[]>([]); const [search, setSearch] = useState(""); const [loading, setLoading] = useState(false); const refresh = async () => { setLoading(true); setItems(await getAlumni()); setLoading(false); };
   const [open, setOpen] = useState(false); const [name, setName] = useState(""); const [batch, setBatch] = useState(""); const [email, setEmail] = useState(""); const [phone, setPhone] = useState(""); const [occupation, setOccupation] = useState(""); const [company, setCompany] = useState(""); const [city, setCity] = useState("");
   const filtered = items.filter((a) => !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.batch.includes(search) || a.company?.toLowerCase().includes(search.toLowerCase()));
 
-  useEffect(() => subscribeAppSync([ALUMNI_KEY], refresh), []);
+  useEffect(() => { refresh(); }, []);
+  useEffect(() => subscribeAppSync(["eduflow_alumni"], refresh), []);
+  useRealtime("alumni", refresh);
 
   const pag = usePagination({ data: filtered, pageSize: 10 });
 
@@ -49,7 +47,7 @@ export default function AlumniModule() {
               <TableCell className="text-xs">{a.occupation || "—"}</TableCell>
               <TableCell className="text-xs">{a.company || "—"}</TableCell>
               <TableCell className="text-xs">{a.city || "—"}</TableCell>
-              <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={() => { ss(ls().filter((x) => x.id !== a.id)); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
+              <TableCell><Button variant="outline" size="sm" className="rounded-lg h-6 text-[9px] text-destructive" onClick={async () => { await deleteAlumni(a.id); await refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button></TableCell>
             </TableRow>
           ))}
           {filtered.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">{search ? "No matching alumni" : "No alumni added"}</TableCell></TableRow>}
@@ -65,7 +63,7 @@ export default function AlumniModule() {
             <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="occupation">Occupation</Label><Input id="occupation" name="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} /></div><div><Label className="text-xs" htmlFor="company">Company</Label><Input id="company" name="company" value={company} onChange={(e) => setCompany(e.target.value)} /></div></div>
             <div><Label className="text-xs" htmlFor="city">City</Label><Input id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !batch} onClick={() => { const items = ls(); items.push({ id: generateId(), name, batch, email, phone, occupation, company, city }); ss(items); refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!name || !batch} onClick={async () => { await createAlumni({ name, batch, email, phone, occupation, company, city }); await refresh(); setOpen(false); toast.success("Added"); }}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

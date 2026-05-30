@@ -16,6 +16,14 @@ alter table public.import_batches
 alter table public.import_batches
   drop constraint if exists import_batches_status_check;
 
+-- Migrate existing rows with old status values
+update public.import_batches
+  set status = 'draft'
+  where status not in (
+    'draft', 'uploaded', 'keying', 'duplicates', 'validating',
+    'preview', 'ready_to_transfer', 'transferring', 'completed', 'failed', 'expired'
+  );
+
 alter table public.import_batches
   add constraint import_batches_status_check
   check (status in (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Calendar, Plus, Loader2, AlertTriangle, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { useRealtime } from "@/lib/use-realtime";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -41,6 +42,9 @@ export default function Timetable() {
   const { data: subjects } = useQuery<TimetableSubject[]>({ queryKey: ["tt-subjects"], queryFn: getTimetableSubjects, enabled: timetableReady });
   const { data: staffList } = useQuery<TimetableStaff[]>({ queryKey: ["tt-staff"], queryFn: getTimetableStaff, enabled: timetableReady });
   const { data: subsList } = useQuery({ queryKey: ["tt-subs"], queryFn: () => getSubstitutions(), enabled: timetableReady });
+  useRealtime("time_slots", () => { qc.invalidateQueries({ queryKey: ["tt-slots"] }); });
+  useRealtime("timetable_entries", () => { qc.invalidateQueries({ queryKey: ["tt-entries"] }); });
+  useRealtime("substitutions", () => { qc.invalidateQueries({ queryKey: ["tt-subs"] }); });
 
   const classOptions = classes ?? [];
   const subjectOptions = subjects ?? [];

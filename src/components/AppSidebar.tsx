@@ -98,8 +98,6 @@ const academics: SidebarItem[] = [
   { title: "Scoring Workspace", url: "/scoring", icon: BarChart3 },
   { title: "Monitoring Dashboard", url: "/monitor", icon: Activity },
   { title: "Data Quality", url: "/data-quality", icon: Database },
-  { title: "Departments", url: "/departments", icon: Building2 },
-  { title: "Curriculum & Outcomes", url: "/curriculum", icon: BookOpen },
   { title: "LMS & E-Learning", url: "/lms", icon: GraduationCap },
   { title: "Research & Innovation", url: "/research", icon: Layers },
 ];
@@ -244,13 +242,21 @@ export function AppSidebar() {
   }, [accessQuery.refetch]);
 
   const groups = useMemo(() => [
-    { label: "Academics", items: academics },
+    {
+      label: "Academics",
+      items: isMigrationFlagEnabled("patch-027-departments-gate")
+        ? [...academics, { title: "Departments", url: "/departments", icon: Building2 }, { title: "Curriculum & Outcomes", url: "/curriculum", icon: BookOpen }]
+        : isMigrationFlagEnabled("patch-029-curriculum-outcomes-gate")
+          ? [...academics, { title: "Curriculum & Outcomes", url: "/curriculum", icon: BookOpen }]
+          : academics,
+    },
     { label: "Finance", items: finance },
     {
       label: "People",
-      items: isMigrationFlagEnabled("patch-026-ifhrms-gate")
-        ? [{ title: "IFHRMS", url: "/ifhrms", icon: Briefcase }, ...people]
-        : people,
+      items: (isMigrationFlagEnabled("patch-026-ifhrms-gate") ? [{ title: "IFHRMS", url: "/ifhrms", icon: Briefcase }] : []).concat(
+        isMigrationFlagEnabled("patch-028-faculty-hr-gate") ? [{ title: "Faculty & HR", url: "/faculty-hr", icon: Users }] : [],
+        ...people
+      ),
     },
     { label: "Campus", items: campus },
     { label: "Community", items: community },

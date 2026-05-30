@@ -179,6 +179,14 @@ export async function updateStudent(studentId: string, input: Partial<CreateStud
 export async function deactivateStudent(studentId: string, reason?: string) {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth.user?.id ?? null;
+  const leftOn = new Date().toISOString().slice(0, 10);
+
+  const { error: studentError } = await supabase
+    .from("students")
+    .update({ status: "transferred" })
+    .eq("id", studentId);
+
+  if (studentError) throw studentError;
 
   const { data: before } = await supabase
     .from("enrollments")
@@ -188,7 +196,7 @@ export async function deactivateStudent(studentId: string, reason?: string) {
 
   const { error } = await supabase
     .from("enrollments")
-    .update({ status: "transferred" })
+    .update({ status: "transferred", left_on: leftOn })
     .eq("student_id", studentId);
 
   if (error) throw error;
@@ -203,8 +211,8 @@ export async function deactivateStudent(studentId: string, reason?: string) {
     entity: "students",
     entityId: studentId,
     before: before as unknown as Record<string, unknown>,
-    after: { status: "transferred" },
-    metadata: { reason: reason ?? null },
+    after: { status: "transferred", leftOn },
+    metadata: { reason: reason ?? null, leftOn },
     source: "native",
   });
 

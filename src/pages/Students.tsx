@@ -24,13 +24,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
-import { fetchStudentRegister, deleteStudentRecord, formatDataError, cohortLabelForStudent, initialsForStudent, studentRegisterSyncKey, type StudentRegisterRow } from "@/lib/student-records";
+import { fetchStudentRegister, deactivateStudentRecords, deleteStudentRecords, bulkUpdateStudentRecords, updateStudentStatuses, formatDataError, cohortLabelForStudent, initialsForStudent, studentRegisterSyncKey, type StudentRegisterRow, type StudentBatchProgress } from "@/lib/student-records";
 import { subscribeAppSync } from "@/lib/app-sync";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePagination } from "@/hooks/usePagination";
 import { useStudentCapability } from "@/hooks/useStudentCapability";
 import { traceStudentExport, traceStudentPrint } from "@/lib/student-workspace-messaging";
+import { Progress } from "@/components/ui/progress";
 import { TablePagination } from "@/components/TablePagination";
 import { RegisteredStudentsRibbon, ColumnSettingsDesigner, FilterSettingsDesigner, RegistryGroupManager } from "@/components/registered-students";
 import { REGISTEREDRIBBONACTIONS, confirmBulkUpdate, getRegisteredClipboardState, setRegisteredClipboardState } from "@/components/registered-students";
@@ -92,13 +93,17 @@ const downloadStudentsCsv = (rows: StudentTableRow[]) => {
   toast.success(`Exported ${rows.length} student record(s)`);
 };
 
+const isNextRuntime = () =>
+  typeof window !== "undefined" && Boolean((window as Window & { __NEXT_DATA__?: unknown }).__NEXT_DATA__);
+
 const apiPost = async (path: string, body: unknown) => {
+  if (!isNextRuntime()) return null;
   try {
     const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error(`API ${path} returned ${res.status}`);
     return await res.json();
   } catch (e) {
-    console.warn(`API call to ${path} failed (expected in Vite dev mode):`, e);
+    console.warn(`API call to ${path} failed:`, e);
     return null;
   }
 };
@@ -125,7 +130,8 @@ const liveRegisterRowsToTable = (rows: StudentRegisterRow[]): StudentTableRow[] 
   }));
 
 export default function Students() {
-  const { canExport, canPrint, canEdit } = useStudentCapability();
+  const { canExport, canPrint, canEdit, profileId } = useStudentCapability();
+  const canDeleteStudent = profileId === "admin";
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
@@ -133,6 +139,8 @@ export default function Students() {
   const [registryGroupOpen, setRegistryGroupOpen] = useState(false);
   const [splitDetail, setSplitDetail] = useState<StudentTableRow | null>(null);
   const [drawerStudent, setDrawerStudent] = useState<StudentTableRow | null>(null);
+  const [operationProgress, setOperationProgress] = useState<StudentBatchProgress | null>(null);
+  const [bulkActionPending, setBulkActionPending] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {
@@ -155,28 +163,126 @@ export default function Students() {
 
   const rows = studentsQuery.data ?? [];
   const tableRows: StudentTableRow[] = liveRegisterRowsToTable(rows);
+  const activeTableRows = useMemo(
+    () => tableRows.filter((row) => String(row.status ?? "").toLowerCase() === "active"),
+    [tableRows],
+  );
+  const activeLearnerCount = activeTableRows.length;
+  const activeLearnerLabel = `${activeLearnerCount.toLocaleString()} active learner${activeLearnerCount === 1 ? "" : "s"}`;
+
+  const clearSelectedIds = (ids: string[]) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      let changed = false;
+      ids.forEach((id) => {
+        if (next.delete(id)) changed = true;
+      });
+      return changed ? next : current;
+    });
+  };
+
+  const removeMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return deactivateStudentRecords(ids, "removed from active register", {
+        onProgress: setOperationProgress,
+        progressLabel: "Removing from active register",
+      });
+    },
+    onSuccess: (result) => {
+      if (result.deactivatedIds.length > 0) {
+        clearSelectedIds(result.deactivatedIds);
+      }
+      queryClient.invalidateQueries({ queryKey: ["student-register"] });
+
+      if (result.deactivatedIds.length > 0) {
+        toast.success(`Removed ${result.deactivatedIds.length} student record(s) from the active register`);
+      }
+
+      if (result.failures.length > 0) {
+        const preview = result.failures
+          .slice(0, 2)
+          .map((failure) => `${failure.id}: ${failure.error}`)
+          .join(" | ");
+        toast.error(
+          result.deactivatedIds.length > 0
+            ? `Removed ${result.deactivatedIds.length} record(s); ${result.failures.length} failed${preview ? ` - ${preview}` : ""}`
+            : `Could not remove ${result.failures.length} selected record(s)${preview ? ` - ${preview}` : ""}`,
+        );
+      }
+    },
+    onError: (error) => {
+      setOperationProgress((current) => (current ? { ...current, status: `Failed: ${formatDataError(error)}` } : current));
+      toast.error(formatDataError(error));
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => deleteStudentRecord(id)));
+      return deleteStudentRecords(ids, {
+        onProgress: setOperationProgress,
+        progressLabel: "Deleting permanently",
+      });
     },
-    onSuccess: (_data, ids) => {
-      setSelected(new Set());
+    onSuccess: (result) => {
+      if (result.deletedIds.length > 0) {
+        clearSelectedIds(result.deletedIds);
+      }
       queryClient.invalidateQueries({ queryKey: ["student-register"] });
-      toast.success(`${ids.length} student record(s) deleted`);
+
+      if (result.deletedIds.length > 0) {
+        toast.success(`Deleted ${result.deletedIds.length} student record(s) permanently`);
+      }
+
+      if (result.failures.length > 0) {
+        const preview = result.failures
+          .slice(0, 2)
+          .map((failure) => `${failure.id}: ${failure.error}`)
+          .join(" | ");
+        toast.error(
+          result.deletedIds.length > 0
+            ? `Deleted ${result.deletedIds.length} record(s); ${result.failures.length} failed${preview ? ` - ${preview}` : ""}`
+            : `Could not delete ${result.failures.length} selected record(s)${preview ? ` - ${preview}` : ""}`,
+        );
+      }
     },
-    onError: (error) => toast.error(formatDataError(error)),
+    onError: (error) => {
+      setOperationProgress((current) => (current ? { ...current, status: `Failed: ${formatDataError(error)}` } : current));
+      toast.error(formatDataError(error));
+    },
   });
+
+  const destructiveActionPending = removeMutation.isPending || deleteMutation.isPending || bulkActionPending;
+
+  useEffect(() => {
+    if (destructiveActionPending || !operationProgress) return;
+    const timer = window.setTimeout(() => {
+      setOperationProgress(null);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [destructiveActionPending, operationProgress]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return tableRows;
-    return tableRows.filter((s) =>
+    if (!q) return activeTableRows;
+    return activeTableRows.filter((s) =>
       [s.name, s.admission_no, s.id, s.cohort, s.email ?? "", s.community ?? "", s.district ?? "", s.status ?? ""].some((v) => v.toLowerCase().includes(q))
     );
-  }, [query, tableRows]);
+  }, [query, activeTableRows]);
 
   const pag = usePagination({ data: filtered, pageSize: 10 });
+
+  useEffect(() => {
+    const visibleIds = new Set(filtered.map((row) => row.id));
+    setSelected((current) => {
+      let changed = false;
+      const next = new Set<string>();
+      current.forEach((id) => {
+        if (visibleIds.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : current;
+    });
+  }, [filtered]);
 
   const allChecked = filtered.length > 0 && filtered.every((s) => selected.has(s.id));
   const toggleAll = () => {
@@ -215,15 +321,48 @@ export default function Students() {
     const def = REGISTEREDRIBBONACTIONS[actionId];
     if (!def || !activeRows.length) return;
     if (!confirmBulkUpdate(activeRows.length, def.label)) return;
-    logAction(actionId, activeRows.map((row) => row.id));
-    const updated = activeRows.map((row) => ({
-      ...row,
-      ...Object.fromEntries(
-        Object.entries(def.changes).map(([k, v]) => [k, v]),
-      ),
-    }));
-    toast.success(`${def.label} applied to ${updated.length} record(s)`);
-    queryClient.invalidateQueries({ queryKey: ["student-register"] });
+    const ids = activeRows.map((row) => row.id);
+    logAction(actionId, ids);
+    const progressLabel =
+      actionId.startsWith("set-status-") || actionId === "approve" || actionId === "reject"
+        ? `Setting status to ${String(def.changes.status ?? "").toLowerCase()}`
+        : def.label;
+    setBulkActionPending(true);
+    void (async () => {
+      try {
+        const result = actionId.startsWith("set-status-") || actionId === "approve" || actionId === "reject"
+          ? await updateStudentStatuses(ids, String(def.changes.status ?? ""), def.label, {
+              onProgress: setOperationProgress,
+              progressLabel,
+            })
+          : await bulkUpdateStudentRecords(ids, def.changes, def.label, {
+              onProgress: setOperationProgress,
+              progressLabel,
+            });
+
+        if (result.updatedIds.length > 0) {
+          toast.success(`${def.label} applied to ${result.updatedIds.length} record(s)`);
+        }
+
+        if (result.failures.length > 0) {
+          const preview = result.failures
+            .slice(0, 2)
+            .map((failure) => `${failure.id}: ${failure.error}`)
+            .join(" | ");
+          toast.error(
+            result.updatedIds.length > 0
+              ? `${def.label} applied to ${result.updatedIds.length} record(s); ${result.failures.length} failed${preview ? ` - ${preview}` : ""}`
+              : `Could not apply ${def.label.toLowerCase()} to ${result.failures.length} record(s)${preview ? ` - ${preview}` : ""}`,
+          );
+        }
+      } catch (error) {
+        setOperationProgress((current) => (current ? { ...current, status: `Failed: ${formatDataError(error)}` } : current));
+        toast.error(formatDataError(error));
+      } finally {
+        setBulkActionPending(false);
+        queryClient.invalidateQueries({ queryKey: ["student-register"] });
+      }
+    })();
   };
 
   const handleRibbonAction = (action: string) => {
@@ -266,8 +405,14 @@ export default function Students() {
         window.print(); break;
       case "delete-record":
         if (activeRows.length) {
-          logAction("delete", activeRows.map((row) => row.id));
-          deleteMutation.mutate(activeRows.map((row) => row.id));
+          const ids = activeRows.map((row) => row.id);
+          if (canDeleteStudent) {
+            logAction("delete", ids);
+            deleteMutation.mutate(ids);
+          } else {
+            logAction("remove-from-register", ids);
+            removeMutation.mutate(ids);
+          }
         } else toast.error("Select records to delete");
         break;
       case "quick-save":
@@ -278,6 +423,8 @@ export default function Students() {
       case "set-status-transfer":
       case "set-status-alumni":
       case "set-status-dropout":
+      case "approve":
+      case "reject":
       case "scholarship-flag":
       case "verification-pending":
         applyBulkAction(action);
@@ -499,10 +646,6 @@ export default function Students() {
         break;
 
       /* ── Review / Approval ── */
-      case "approve":
-      case "reject":
-        applyBulkAction(action);
-        break;
       case "compare-versions":
         if (firstActive) navigate(`/students/${firstActive.id}/history`);
         else toast.error("Select a student first");
@@ -550,8 +693,8 @@ export default function Students() {
   return (
     <div>
       <PageHeader
-        title="Student Management"
-        subtitle="2,847 active learners · live sync · RBAC controlled"
+        title="Student Register"
+        subtitle={`${activeLearnerLabel} · live sync · RBAC controlled`}
         icon={<Users className="h-6 w-6" />}
         actions={
           <>
@@ -560,28 +703,69 @@ export default function Students() {
                 <Download className="mr-2 h-4 w-4" />Export
               </Button>
             )}
-            {selected.size > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />Delete Selected
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete selected students?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This removes {selected.size} student record(s), including linked enrollment and guardian references.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
+            {canEdit && selected.size > 0 && (
+              <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="rounded-xl border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={destructiveActionPending}>
+                      <Trash2 className="mr-2 h-4 w-4" />Remove from Register
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove selected students from the active register?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This marks {selected.size} student record(s) as transferred so they no longer appear in the active register.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={destructiveActionPending}
+                      onClick={() => {
+                        const ids = Array.from(selected);
+                        logAction("remove-from-register", ids);
+                        removeMutation.mutate(ids);
+                      }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                {canDeleteStudent && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="rounded-xl border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={destructiveActionPending}>
+                      <Trash2 className="mr-2 h-4 w-4" />Delete Permanently
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete selected students permanently?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This permanently deletes {selected.size} student record(s) and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMutation.mutate(Array.from(selected))} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction
+                      disabled={destructiveActionPending}
+                      onClick={() => {
+                        const ids = Array.from(selected);
+                        logAction("delete", ids);
+                        deleteMutation.mutate(ids);
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
                       Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                )}
+              </>
             )}
             <Button asChild className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
               <Link to="/students/new"><Plus className="mr-2 h-4 w-4" />New Student</Link>
@@ -590,9 +774,39 @@ export default function Students() {
         }
       />
 
+      {operationProgress && (
+        <Card className="mb-4 border-destructive/20 bg-destructive/5 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-destructive">{operationProgress.label}</p>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {operationProgress.total > 0 ? `${Math.round((operationProgress.processed / operationProgress.total) * 100)}%` : "0%"}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{operationProgress.status}</p>
+              <Progress
+                value={operationProgress.total > 0 ? (operationProgress.processed / operationProgress.total) * 100 : 0}
+                className="mt-3 h-2 bg-destructive/10"
+              />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  {operationProgress.processed} / {operationProgress.total} processed
+                </span>
+                <span>{operationProgress.failed > 0 ? `${operationProgress.failed} failed` : "No failures yet"}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <RegisteredStudentsRibbon
         context={ribbonContext}
         sortField={sortField}
+        deleteActionLabel={canDeleteStudent ? "Delete Permanently" : "Remove from Register"}
         visibleHeaders={[
           { key: "name", label: "Student Name" },
           { key: "admission_no", label: "Admission No" },
@@ -673,7 +887,7 @@ export default function Students() {
 
         {studentsQuery.isLoading && (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-secondary/30 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading registered students…
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading student register…
           </div>
         )}
 

@@ -38,6 +38,9 @@ describe("REGISTEREDRIBBONACTIONS", () => {
     for (const key of expected) {
       expect(REGISTEREDRIBBONACTIONS[key]).toBeDefined();
     }
+    expect(REGISTEREDRIBBONACTIONS["set-status-dropout"].changes).toEqual({ status: "withdrawn" });
+    expect(REGISTEREDRIBBONACTIONS["approve"].changes).toEqual({ status: "active" });
+    expect(REGISTEREDRIBBONACTIONS["reject"].changes).toEqual({ status: "inactive" });
   });
 });
 

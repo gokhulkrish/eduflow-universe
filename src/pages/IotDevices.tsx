@@ -1,7 +1,10 @@
 import "@/lib/runtime-storage";
-import { useEffect, useState } from "react";
-import { Cpu, Plus, Radio, Thermometer, Activity, Zap, AlertTriangle, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Cpu, Plus, Radio, Thermometer, Activity, Zap, AlertTriangle, Trash2, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,75 +16,28 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { generateId } from "@/lib/utils";
-
-type IotDeviceType = "sensor" | "rfid_reader" | "smart_board" | "camera" | "beacon" | "gateway" | "other";
-type IotDeviceStatus = "active" | "inactive" | "error";
-
-type IotDevice = {
-  id: string;
-  name: string;
-  type: IotDeviceType;
-  model: string;
-  serial_no: string;
-  location: string;
-  status: IotDeviceStatus;
-  firmware: string;
-  last_seen: string;
-  battery_level: number;
-  ip_address: string;
-  notes: string;
-  created_at: string;
-};
-
-type IotReading = {
-  id: string;
-  device_id: string;
-  metric: string;
-  value: number;
-  unit: string;
-  recorded_at: string;
-};
-
-type RfidLog = {
-  id: string;
-  reader_id: string;
-  reader_name: string;
-  tag_id: string;
-  student_name: string;
-  student_id: string;
-  timestamp: string;
-  direction: "in" | "out";
-};
-
-const DEVICES_KEY = "eduflow_iot_devices";
-const READINGS_KEY = "eduflow_iot_readings";
-const RFID_KEY = "eduflow_iot_rfid";
-
-function dl(): IotDevice[] { try { return JSON.parse(localStorage.getItem(DEVICES_KEY) ?? "[]"); } catch { return []; } }
-function ds(v: IotDevice[]) { localStorage.setItem(DEVICES_KEY, JSON.stringify(v)); emitAppSync(DEVICES_KEY); }
-function rl(): IotReading[] { try { return JSON.parse(localStorage.getItem(READINGS_KEY) ?? "[]"); } catch { return []; } }
-function rs(v: IotReading[]) { localStorage.setItem(READINGS_KEY, JSON.stringify(v)); emitAppSync(READINGS_KEY); }
-function fl(): RfidLog[] { try { return JSON.parse(localStorage.getItem(RFID_KEY) ?? "[]"); } catch { return []; } }
-function fs(v: RfidLog[]) { localStorage.setItem(RFID_KEY, JSON.stringify(v)); emitAppSync(RFID_KEY); }
+import { useRealtime } from "@/lib/use-realtime";
+import { getIotDevices, createIotDevice, updateIotDevice, deleteIotDevice, getIotReadings, createIotReading, deleteReadingsByDevice, getRfidLogs, createRfidLog, IotDevice, IotReading, RfidLog } from "@/lib/iot-devices";
 
 const DEVICE_TYPES: IotDeviceType[] = ["sensor", "rfid_reader", "smart_board", "camera", "beacon", "gateway", "other"];
 const STATUS_COLORS: Record<IotDeviceStatus, string> = { active: "bg-success/15 text-success", inactive: "bg-muted text-muted-foreground", error: "bg-destructive/15 text-destructive" };
 const TYPE_ICONS: Record<IotDeviceType, string> = { sensor: "📡", rfid_reader: "📋", smart_board: "🖥️", camera: "📷", beacon: "🔵", gateway: "🌐", other: "📦" };
 
 export default function IotDevices() {
-  const [devices, setDevices] = useState<IotDevice[]>(dl);
-  const [readings, setReadings] = useState<IotReading[]>(rl);
-  const [rfidLogs, setRfidLogs] = useState<RfidLog[]>(fl);
-  const refresh = () => { setDevices(dl()); setReadings(rl()); setRfidLogs(fl()); };
+  const navigate = useNavigate();
+  const [devices, setDevices] = useState<IotDevice[]>([]);
+  const [readings, setReadings] = useState<IotReading[]>([]);
+  const [rfidLogs, setRfidLogs] = useState<RfidLog[]>([]);
+  const refresh = useCallback(async () => { setDevices(await getIotDevices()); setReadings(await getIotReadings()); setRfidLogs(await getRfidLogs()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("iot_devices", refresh);
+  useRealtime("iot_readings", refresh);
+  useRealtime("iot_rfid_logs", refresh);
   const [tab, setTab] = useState("devices");
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<IotDeviceType | "all">("all");
-
-  useEffect(() => subscribeAppSync([DEVICES_KEY, READINGS_KEY, RFID_KEY], refresh), []);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const filtered = devices.filter((d) => {
     if (typeFilter !== "all" && d.type !== typeFilter) return false;
@@ -93,6 +49,7 @@ export default function IotDevices() {
 
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formName, setFormName] = useState(""); const [formType, setFormType] = useState<IotDeviceType>("sensor"); const [formModel, setFormModel] = useState(""); const [formSerial, setFormSerial] = useState(""); const [formLoc, setFormLoc] = useState(""); const [formFW, setFormFW] = useState(""); const [formBatt, setFormBatt] = useState(""); const [formIP, setFormIP] = useState(""); const [formNotes, setFormNotes] = useState("");
 
   const [readingOpen, setReadingOpen] = useState(false); const [readingDevice, setReadingDevice] = useState(""); const [readingMetric, setReadingMetric] = useState(""); const [readingVal, setReadingVal] = useState(""); const [readingUnit, setReadingUnit] = useState("");
@@ -102,43 +59,40 @@ export default function IotDevices() {
   function openAdd() { setEditId(null); setFormName(""); setFormType("sensor"); setFormModel(""); setFormSerial(""); setFormLoc(""); setFormFW(""); setFormBatt(""); setFormIP(""); setFormNotes(""); setOpen(true); }
   function openEdit(d: IotDevice) { setEditId(d.id); setFormName(d.name); setFormType(d.type); setFormModel(d.model); setFormSerial(d.serial_no); setFormLoc(d.location); setFormFW(d.firmware); setFormBatt(String(d.battery_level)); setFormIP(d.ip_address); setFormNotes(d.notes); setOpen(true); }
 
-  function save() {
+  async function save() {
     if (!formName.trim()) { toast.error("Device name required"); return; }
-    const list = dl();
+    const data = { name: formName.trim(), type: formType, model: formModel, serial_no: formSerial, location: formLoc, firmware: formFW, battery_level: parseInt(formBatt) || 0, ip_address: formIP, notes: formNotes };
     if (editId) {
-      const idx = list.findIndex((d) => d.id === editId);
-      if (idx >= 0) list[idx] = { ...list[idx], name: formName.trim(), type: formType, model: formModel, serial_no: formSerial, location: formLoc, firmware: formFW, battery_level: parseInt(formBatt) || 0, ip_address: formIP, notes: formNotes };
+      await updateIotDevice(editId, data);
     } else {
-      list.push({ id: generateId(), name: formName.trim(), type: formType, model: formModel, serial_no: formSerial, location: formLoc, status: "active", firmware: formFW, last_seen: new Date().toISOString(), battery_level: parseInt(formBatt) || 100, ip_address: formIP, notes: formNotes, created_at: new Date().toISOString() });
+      await createIotDevice({ ...data, status: "active", last_seen: new Date().toISOString() });
     }
-    ds(list); refresh(); setOpen(false); toast.success(editId ? "Device updated" : "Device added");
+    refresh(); setOpen(false); toast.success(editId ? "Device updated" : "Device added");
   }
 
-  function toggleStatus(d: IotDevice) {
-    const next: IotDeviceStatus = d.status === "active" ? "inactive" : d.status === "inactive" ? "error" : "active";
-    const list = dl(); const idx = list.findIndex((x) => x.id === d.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status: next, last_seen: new Date().toISOString() }; ds(list); refresh(); toast.success(`Device ${next}`); }
+  async function toggleStatus(d: IotDevice) {
+    const next = d.status === "active" ? "inactive" : d.status === "inactive" ? "error" : "active";
+    await updateIotDevice(d.id, { status: next, last_seen: new Date().toISOString() });
+    refresh(); toast.success(`Device ${next}`);
   }
 
-  function doDelete(d: IotDevice) {
-    if (!confirm(`Delete ${d.name}?`)) return;
-    ds(dl().filter((x) => x.id !== d.id));
-    rs(rl().filter((r) => r.device_id !== d.id));
+  async function doDelete(id: string) {
+    await deleteIotDevice(id);
+    await deleteReadingsByDevice(id);
     refresh(); toast.success("Deleted");
   }
 
-  function saveReading() {
+  async function saveReading() {
     if (!readingDevice || !readingMetric.trim() || !readingVal) { toast.error("Fill required fields"); return; }
-    rs([...rl(), { id: generateId(), device_id: readingDevice, metric: readingMetric.trim(), value: parseFloat(readingVal) || 0, unit: readingUnit, recorded_at: new Date().toISOString() }]);
-    const list = dl(); const idx = list.findIndex((d) => d.id === readingDevice);
-    if (idx >= 0) { list[idx] = { ...list[idx], last_seen: new Date().toISOString() }; ds(list); }
+    await createIotReading({ device_id: readingDevice, metric: readingMetric.trim(), value: parseFloat(readingVal) || 0, unit: readingUnit });
+    await updateIotDevice(readingDevice, { last_seen: new Date().toISOString() });
     refresh(); setReadingOpen(false); toast.success("Reading recorded");
   }
 
-  function saveRfid() {
+  async function saveRfid() {
     if (!rfidReader || !rfidTag.trim() || !rfidStudent.trim()) { toast.error("Fill required fields"); return; }
     const reader = devices.find((d) => d.id === rfidReader);
-    fs([...fl(), { id: generateId(), reader_id: rfidReader, reader_name: reader?.name ?? "", tag_id: rfidTag.trim(), student_name: rfidStudent.trim(), student_id: "", timestamp: new Date().toISOString(), direction: rfidDirection }]);
+    await createRfidLog({ reader_id: rfidReader, reader_name: reader?.name ?? "", tag_id: rfidTag.trim(), student_name: rfidStudent.trim(), student_id: "", timestamp: new Date().toISOString(), direction: rfidDirection });
     refresh(); setRfidOpen(false); toast.success(`RFID ${rfidDirection} logged`);
   }
 
@@ -178,6 +132,8 @@ export default function IotDevices() {
               <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>{DEVICE_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}<SelectItem value="all">All Types</SelectItem></SelectContent>
             </Select>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=iot-devices")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(filtered, "iot-devices", [{key:"name",label:"Device"},{key:"type",label:"Type"},{key:"serial_no",label:"Serial"},{key:"location",label:"Location"},{key:"status",label:"Status"},{key:"battery_level",label:"Battery %"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Device</Button>
             <Button size="sm" variant="outline" className="rounded-xl" onClick={() => { setReadingDevice(""); setReadingMetric(""); setReadingVal(""); setReadingUnit(""); setReadingOpen(true); }}><Activity className="h-4 w-4 mr-1" /> Log Reading</Button>
             <Button size="sm" variant="outline" className="rounded-xl" onClick={() => { setRfidReader(""); setRfidTag(""); setRfidStudent(""); setRfidDirection("in"); setRfidOpen(true); }}><Radio className="h-4 w-4 mr-1" /> RFID Scan</Button>
@@ -201,7 +157,7 @@ export default function IotDevices() {
                   <Button variant="outline" size="sm" className="rounded-lg h-6 px-2 text-[9px]" onClick={() => openEdit(d)}>Edit</Button>
                   <Button variant="outline" size="sm" className="rounded-lg h-6 px-2 text-[9px]" onClick={() => toggleStatus(d)}>Toggle</Button>
                   <Button variant="outline" size="sm" className="rounded-lg h-6 px-2 text-[9px]" onClick={() => { setReadingDevice(d.id); setReadingMetric(""); setReadingVal(""); setReadingUnit(""); setReadingOpen(true); }}><Activity className="h-3 w-3 mr-1" />Reading</Button>
-                  <Button variant="outline" size="sm" className="rounded-lg h-6 px-2 text-[9px] text-destructive" onClick={() => doDelete(d)}><Trash2 className="h-3 w-3" /></Button>
+                  <Button variant="outline" size="sm" className="rounded-lg h-6 px-2 text-[9px] text-destructive" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               </Card>);
             })}
@@ -249,6 +205,10 @@ export default function IotDevices() {
           </Table>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Device</AlertDialogTitle><AlertDialogDescription>This will permanently remove this IoT device. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await doDelete(deleteId); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

@@ -12,20 +12,18 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
-
-type Quiz = { id: string; title: string; questions: { q: string; options: string[]; correct: number }[]; class_id: string; time_limit: number; created_at: string; };
-export const quizzesKey = "eduflow_quizzes";
-function ls(): Quiz[] { try { return JSON.parse(localStorage.getItem(quizzesKey) ?? "[]"); } catch { return []; } }
-function ss(v: Quiz[]) { localStorage.setItem(quizzesKey, JSON.stringify(v)); emitAppSync(quizzesKey); }
+import { subscribeAppSync } from "@/lib/app-sync";
+import { type Quiz, getQuizzes, createQuiz, deleteQuiz, quizzesKey } from "@/lib/quiz";
+import { useRealtime } from "@/lib/use-realtime";
 
 export default function QuizModule() {
-  const [items, setItems] = useState(ls()); const refresh = () => setItems(ls());
+  const [items, setItems] = useState<Quiz[]>([]); const refresh = async () => setItems(await getQuizzes());
   const [open, setOpen] = useState(false); const [title, setTitle] = useState(""); const [qText, setQText] = useState(""); const [opts, setOpts] = useState(""); const [correct, setCorrect] = useState("0"); const [timeLimit, setTimeLimit] = useState("5");
   const [activeQuiz, setActiveQuiz] = useState<string | null>(null); const [answers, setAnswers] = useState<Record<number, number>>({});
 
+  useEffect(() => { refresh(); }, []);
   useEffect(() => subscribeAppSync([quizzesKey], refresh), []);
+  useRealtime("quizzes", refresh);
 
   return (
     <div>
@@ -72,7 +70,7 @@ export default function QuizModule() {
                 <p className="text-muted-foreground">{qz.questions.length} questions · {qz.time_limit} min</p>
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" onClick={() => { setActiveQuiz(qz.id); setAnswers({}); }}><Play className="h-3 w-3 mr-1" />Take Quiz</Button>
-                  <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={() => { ss(ls().filter((x) => x.id !== qz.id)); refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
+                  <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px] text-destructive" onClick={async () => { await deleteQuiz(qz.id); await refresh(); toast.success("Deleted"); }}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               </CardContent>
             </Card>
@@ -93,11 +91,11 @@ export default function QuizModule() {
               toast.success("Question added (will be saved with quiz)");
             }}>Add Question</Button>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={() => {
+          <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button disabled={!title} onClick={async () => {
             const optsArr = opts.split(",").map((s) => s.trim()).filter(Boolean);
             const qs = qText && optsArr.length > 1 ? [{ q: qText, options: optsArr, correct: Number(correct) }] : [];
-            const items = ls(); items.push({ id: generateId(), title, questions: qs, class_id: "", time_limit: Number(timeLimit) || 5, created_at: new Date().toISOString() });
-            ss(items); refresh(); setOpen(false); toast.success("Quiz created");
+            await createQuiz({ title, questions: qs, class_id: "", time_limit: Number(timeLimit) || 5 });
+            await refresh(); setOpen(false); toast.success("Quiz created");
           }}>Create</Button></DialogFooter>
         </DialogContent>
       </Dialog>

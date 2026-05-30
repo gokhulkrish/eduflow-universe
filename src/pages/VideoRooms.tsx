@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Video, Plus, Trash2, Users, Clock, Copy, CalendarDays, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,53 +10,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { generateId } from "@/lib/utils";
+import { getRooms, createRoom, updateRoom, deleteRoom as deleteRoomApi } from "@/lib/video-rooms";
+import { useRealtime } from "@/lib/use-realtime";
 
-interface Room {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  duration: number;
-  host: string;
-  participants: string[];
-  status: "scheduled" | "live" | "ended";
-}
 
-const STORAGE_KEY = "sms.videorooms.v1";
-
-function load(): Room[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function save(rooms: Room[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms)); }
 
 export default function VideoRooms() {
   const [tab, setTab] = useState("scheduled");
-  const [rooms, setRooms] = useState(load);
-  const refresh = () => setRooms(load());
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => { setLoading(true); setRooms(await getRooms()); setLoading(false); };
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(""); const [date, setDate] = useState(""); const [time, setTime] = useState(""); const [duration, setDuration] = useState("30");
 
-  const handleCreate = () => {
+  useEffect(() => { (async () => { setRooms(await getRooms()); setLoading(false); })(); }, []);
+  useRealtime("video_rooms", refresh);
+
+  const handleCreate = async () => {
     if (!title || !date || !time) { toast.error("Fill all fields"); return; }
-    const all = load();
-    all.push({ id: generateId(), title, date, time, duration: Number(duration), host: "Current User", participants: [], status: "scheduled" });
-    save(all); refresh(); setOpen(false); setTitle(""); setDate(""); setTime(""); setDuration("30"); toast.success("Room created");
+    await createRoom({ title, date, time, duration: Number(duration), host: "Current User", participants: [], status: "scheduled" });
+    await refresh(); setOpen(false); setTitle(""); setDate(""); setTime(""); setDuration("30"); toast.success("Room created");
   };
 
-  const startRoom = (id: string) => {
-    const all = load().map((r) => r.id === id ? { ...r, status: "live" as const } : r);
-    save(all); refresh(); toast.success("Room started");
+  const startRoom = async (id: string) => {
+    await updateRoom(id, { status: "live" });
+    await refresh(); toast.success("Room started");
   };
 
-  const endRoom = (id: string) => {
-    const all = load().map((r) => r.id === id ? { ...r, status: "ended" as const } : r);
-    save(all); refresh(); toast.success("Room ended");
+  const endRoom = async (id: string) => {
+    await updateRoom(id, { status: "ended" });
+    await refresh(); toast.success("Room ended");
   };
 
-  const deleteRoom = (id: string) => {
-    const all = load().filter((r) => r.id !== id);
-    save(all); refresh(); toast.success("Deleted");
+  const deleteRoom = async (id: string) => {
+    await deleteRoomApi(id);
+    await refresh(); toast.success("Deleted");
   };
 
   const copyLink = (id: string) => {
@@ -79,8 +67,9 @@ export default function VideoRooms() {
         <TabsContent value={tab}>
           <div className="flex justify-end mb-4"><Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" /> Schedule Room</Button></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No video rooms</CardContent></Card>}
-            {filtered.map((r) => (
+            {loading && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">Loading...</CardContent></Card>}
+            {!loading && filtered.length === 0 && <Card className="col-span-full"><CardContent className="py-12 text-center text-sm text-muted-foreground">No video rooms</CardContent></Card>}
+            {!loading && filtered.map((r) => (
               <Card key={r.id} className="border-border/40">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">

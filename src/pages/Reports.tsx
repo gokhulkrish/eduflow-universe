@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { BarChart3, Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { BarChart3, Download, FileSpreadsheet, FileText, CalendarPlus, Loader2, Clock, Trash2, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,6 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   getOverviewKpis, getGradeDistribution, getSubjectPerformance, getExamPassFail,
   getMonthlyCollection, getDefaulterReport, getAttendanceReport, getConcessionSummary,
@@ -20,6 +22,41 @@ import {
 } from "@/lib/reports";
 import { fetchStudentRegister } from "@/lib/student-records";
 import { isModuleEnabled } from "@/lib/module-access";
+import {
+  allReportGenerators,
+  reportGeneratorsByCategory,
+  type ReportGenerator,
+  type ReportCategory,
+} from "@/lib/report-generators";
+import {
+  exportToPdf,
+  exportToExcel,
+  exportToCsvWithColumns,
+  exportToJson,
+} from "@/lib/report-export";
+import {
+  getSchedules,
+  addSchedule,
+  removeSchedule,
+  toggleSchedule,
+  type ReportSchedule,
+} from "@/lib/report-scheduler";
+
+const CATEGORY_LABELS: Record<ReportCategory, string> = {
+  overview: "Overview",
+  academic: "Academic",
+  financial: "Financial",
+  attendance: "Attendance",
+  students: "Students",
+  staff: "Staff",
+  library: "Library",
+  hostel: "Hostel",
+  transport: "Transport",
+  admissions: "Admissions",
+  inventory: "Inventory",
+};
+
+// ── Helper components ───────────────────────────────────────────
 
 function KpiGrid({ cards }: { cards: KpiCard[] }) {
   return (
@@ -46,6 +83,127 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color?
   );
 }
 
+function ReportExportButtons({ generator }: { generator: ReportGenerator }) {
+  const [loading, setLoading] = useState<"csv" | "xlsx" | "pdf" | "json" | null>(null);
+  const [data, setData] = useState<unknown[] | null>(null);
+  const [fetched, setFetched] = useState(false);
+
+  const ensureData = useCallback(async () => {
+    if (!fetched) {
+      const d = await generator.generate();
+      setData(d);
+      setFetched(true);
+      return d;
+    }
+    return data;
+  }, [generator, data, fetched]);
+
+  const handleExport = async (format: "csv" | "xlsx" | "pdf" | "json") => {
+    setLoading(format);
+    try {
+      const d = await ensureData();
+      if (!d || d.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+      const filename = generator.id;
+      if (format === "csv") exportToCsvWithColumns(d as Record<string, unknown>[], filename, generator.columns);
+      else if (format === "xlsx") await exportToExcel(d as Record<string, unknown>[], filename, generator.columns);
+      else if (format === "json") exportToJson(d, filename);
+      else if (format === "pdf") await exportToPdf("report-pdf-content", `${filename}-report`);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" disabled={loading !== null} onClick={() => handleExport("csv")}>
+        {loading === "csv" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3 w-3 mr-1" />} CSV
+      </Button>
+      <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" disabled={loading !== null} onClick={() => handleExport("xlsx")}>
+        {loading === "xlsx" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3 w-3 mr-1" />} XLSX
+      </Button>
+      <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" disabled={loading !== null} onClick={() => handleExport("pdf")}>
+        {loading === "pdf" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />} PDF
+      </Button>
+      <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" disabled={loading !== null} onClick={() => handleExport("json")}>
+        {loading === "json" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Download className="h-3 w-3 mr-1" />} JSON
+      </Button>
+    </div>
+  );
+}
+
+function ScheduleDialog({ generator }: { generator: ReportGenerator }) {
+  const [open, setOpen] = useState(false);
+  const [format, setFormat] = useState<ReportSchedule["format"]>("csv");
+  const [frequency, setFrequency] = useState<ReportSchedule["frequency"]>("weekly");
+  const [nextRun, setNextRun] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [recipients, setRecipients] = useState("");
+
+  const handleSubmit = () => {
+    addSchedule(generator.id, generator.title, format, frequency, nextRun, recipients);
+    toast.success(`"${generator.title}" scheduled for ${frequency} delivery`);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg"><CalendarPlus className="h-3 w-3 mr-1" /> Schedule</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle className="text-base">Schedule Report</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm font-medium">{generator.title}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Format</Label>
+              <Select value={format} onValueChange={(v) => setFormat(v as ReportSchedule["format"])}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Frequency</Label>
+              <Select value={frequency} onValueChange={(v) => setFrequency(v as ReportSchedule["frequency"])}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Next Run Date</Label>
+            <Input type="date" value={nextRun} onChange={(e) => setNextRun(e.target.value)} className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Recipients (comma-separated emails)</Label>
+            <Input type="text" placeholder="admin@college.edu, hod@college.edu" value={recipients} onChange={(e) => setRecipients(e.target.value)} className="h-8 text-xs" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSubmit}>Create Schedule</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ───────────────────────────────────────────────────
+
 export default function Reports() {
   const [tab, setTab] = useState("overview");
   const [cohortFilter, setCohortFilter] = useState("");
@@ -62,6 +220,9 @@ export default function Reports() {
   const { data: concessions } = useQuery({ queryKey: ["rpt-concessions"], queryFn: getConcessionSummary });
 
   const cohorts = [...new Set((students ?? []).map((s) => s.grade).filter(Boolean))].sort();
+  const [schedules, setSchedules] = useState<ReportSchedule[]>(() => getSchedules());
+
+  const refreshSchedules = () => setSchedules([...getSchedules()]);
 
   const exportCsv = (filename: string, rows: Record<string, unknown>[]) => {
     downloadFile(toCsv(rows), `${filename}.csv`, "text/csv");
@@ -89,6 +250,8 @@ export default function Reports() {
           <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="generators">Generators</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="export">Exports</TabsTrigger>
         </TabsList>
 
@@ -97,11 +260,20 @@ export default function Reports() {
           {kpis && <KpiGrid cards={kpis} />}
 
           <Card>
-            <CardHeader><CardTitle className="text-sm">Cohort-wise Distribution</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Cohort-wise Distribution</CardTitle>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("cohort-distribution", cohortDist ?? [])} disabled={!cohortDist}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => {
+                  if (cohortDist) await exportToExcel(cohortDist as any, "cohort-distribution", [{ key: "grade", label: "Cohort" }, { key: "total", label: "Students" }, { key: "present", label: "Present" }, { key: "absent", label: "Absent" }, { key: "paid", label: "Fee Paid" }, { key: "pending", label: "Fee Pending" }, { key: "passed", label: "Passed" }, { key: "failed", label: "Failed" }]);
+                }} disabled={!cohortDist}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => exportToPdf("report-pdf-content", "cohort-distribution")} disabled={!cohortDist}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+              </div>
+            </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto rounded-lg border">
+              <div id="report-pdf-content" className="overflow-x-auto rounded-lg border">
               <Table className="min-w-max">
-              <TableHeader className="">
+              <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">Cohort</TableHead>
                   <TableHead className="text-xs text-right">Students</TableHead>
@@ -144,12 +316,16 @@ export default function Reports() {
             <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-sm">Subject Performance</CardTitle>
-                <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("subject-performance", subjPerf ?? [])} disabled={!subjPerf}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("subject-performance", subjPerf ?? [])} disabled={!subjPerf}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => { if (subjPerf) await exportToExcel(subjPerf as any, "subject-performance"); }} disabled={!subjPerf}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => exportToPdf("rpt-subj-pdf", "subject-performance")} disabled={!subjPerf}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto rounded-lg border">
+                <div id="rpt-subj-pdf" className="overflow-x-auto rounded-lg border">
                 <Table className="min-w-max">
-                <TableHeader className="">
+                <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Subject</TableHead>
                     <TableHead className="text-xs text-right">Avg</TableHead>
@@ -176,11 +352,17 @@ export default function Reports() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-sm">Pass / Fail by Cohort</CardTitle></CardHeader>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-sm">Pass / Fail by Cohort</CardTitle>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("pass-fail", passFail ?? [])} disabled={!passFail}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => { if (passFail) await exportToExcel(passFail as any, "pass-fail"); }} disabled={!passFail}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
+                </div>
+              </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto rounded-lg border">
                 <Table className="min-w-max">
-                <TableHeader className="">
+                <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Cohort</TableHead>
                     <TableHead className="text-xs text-right">Total</TableHead>
@@ -215,7 +397,9 @@ export default function Reports() {
           <Card>
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-sm">Cohort Distribution</CardTitle>
-              <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("cohort-distribution", cohortDist ?? [])} disabled={!cohortDist}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("cohort-distribution-detailed", cohortDist ?? [])} disabled={!cohortDist}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -259,12 +443,15 @@ export default function Reports() {
           <Card>
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-sm">Monthly Collection</CardTitle>
-              <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("monthly-collection", monthlyCol ?? [])} disabled={!monthlyCol}><Download className="h-3 w-3 mr-1" /> CSV</Button>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("monthly-collection", monthlyCol ?? [])} disabled={!monthlyCol}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => { if (monthlyCol) await exportToExcel(monthlyCol as any, "monthly-collection"); }} disabled={!monthlyCol}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto rounded-lg border">
               <Table className="min-w-max">
-              <TableHeader className="">
+              <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">Month</TableHead>
                   <TableHead className="text-xs text-right">Collected</TableHead>
@@ -277,7 +464,6 @@ export default function Reports() {
               <TableBody>
                 {(monthlyCol ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No payment data</TableCell></TableRow>}
                   {(monthlyCol ?? []).map((m) => {
-                    const total = m.collected;
                     return (
                       <TableRow key={m.month}>
                         <TableCell className="font-medium text-sm">{m.month}</TableCell>
@@ -299,7 +485,7 @@ export default function Reports() {
             <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-sm">Defaulters</CardTitle>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
                   <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
                     <SelectTrigger className="h-7 w-full text-[10px] sm:w-28"><SelectValue placeholder="All cohorts" /></SelectTrigger>
                     <SelectContent>
@@ -307,13 +493,14 @@ export default function Reports() {
                       {cohorts.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" className="w-full rounded-lg h-7 text-[10px] sm:w-auto" onClick={() => exportCsv("defaulters", defaulters ?? [])} disabled={!defaulters}><Download className="h-3 w-3 mr-1" /></Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("defaulters", defaulters ?? [])} disabled={!defaulters}><FileSpreadsheet className="h-3 w-3 mr-1" /></Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={async () => { if (defaulters) await exportToExcel(defaulters as any, "defaulters"); }} disabled={!defaulters}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto rounded-lg border">
                 <Table className="min-w-max">
-                <TableHeader className="">
+                <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Student</TableHead>
                     <TableHead className="text-xs">Cohort</TableHead>
@@ -339,11 +526,14 @@ export default function Reports() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-sm">Concessions by Type</CardTitle></CardHeader>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-sm">Concessions by Type</CardTitle>
+                <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={() => exportCsv("concessions", concessions ?? [])} disabled={!concessions}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+              </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto rounded-lg border">
                 <Table className="min-w-max">
-                <TableHeader className="">
+                <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Type</TableHead>
                     <TableHead className="text-xs text-right">Count</TableHead>
@@ -369,23 +559,23 @@ export default function Reports() {
 
         {/* ══════ ATTENDANCE ══════ */}
         <TabsContent value="attendance" className="space-y-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
-                    <SelectTrigger className="h-8 w-full text-xs sm:w-32"><SelectValue placeholder="All cohorts" /></SelectTrigger>
-                  <SelectContent>
-                  <SelectItem value="all">All cohorts</SelectItem>
-                  {cohorts.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" className="w-full rounded-lg h-8 text-xs sm:w-auto" onClick={() => exportCsv("attendance-report", attendance ?? [])} disabled={!attendance}><Download className="h-3 w-3 mr-1" /> CSV</Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select name="cohortFilter" value={cohortFilter} onValueChange={setCohortFilter}>
+              <SelectTrigger className="h-8 w-full text-xs sm:w-32"><SelectValue placeholder="All cohorts" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All cohorts</SelectItem>
+                {cohorts.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={() => exportCsv("attendance-report", attendance ?? [])} disabled={!attendance}><FileSpreadsheet className="h-3 w-3 mr-1" /> CSV</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={async () => { if (attendance) await exportToExcel(attendance as any, "attendance-report"); }} disabled={!attendance}><FileSpreadsheet className="h-3 w-3 mr-1" /> XLSX</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg" onClick={async () => exportToPdf("rpt-att-pdf", "attendance-report")} disabled={!attendance}><FileText className="h-3 w-3 mr-1" /> PDF</Button>
           </div>
 
           <Card>
             <CardHeader><CardTitle className="text-sm">Cohort-wise Attendance</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div id="rpt-att-pdf" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {(cohortDist ?? []).map((g) => {
                   const total = g.present + g.absent;
                   const pct = total > 0 ? Math.round((g.present / total) * 100) : 0;
@@ -412,7 +602,7 @@ export default function Reports() {
             <CardContent>
               <div className="overflow-x-auto rounded-lg border">
               <Table className="min-w-max">
-              <TableHeader className="">
+              <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">Student</TableHead>
                   <TableHead className="text-xs">Cohort</TableHead>
@@ -437,6 +627,81 @@ export default function Reports() {
                 </TableBody>
               </Table>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ══════ GENERATORS ══════ */}
+        <TabsContent value="generators" className="space-y-6">
+          <p className="text-sm text-muted-foreground">Per-module report generators — generate, preview, and export data from any module.</p>
+          {(Object.keys(reportGeneratorsByCategory) as ReportCategory[]).map((cat) => {
+            const gens = reportGeneratorsByCategory[cat];
+            if (!gens || gens.length === 0) return null;
+            return (
+              <Card key={cat}>
+                <CardHeader><CardTitle className="text-sm">{CATEGORY_LABELS[cat] ?? cat}</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {gens.map((gen) => (
+                      <GeneratorCard key={gen.id} generator={gen} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </TabsContent>
+
+        {/* ══════ SCHEDULE ══════ */}
+        <TabsContent value="schedule" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Scheduled Deliveries</CardTitle>
+              <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg" onClick={refreshSchedules}><Clock className="h-3 w-3 mr-1" /> Refresh</Button>
+            </CardHeader>
+            <CardContent>
+              {schedules.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <Clock className="mx-auto h-8 w-8 mb-2 opacity-40" />
+                  <p>No scheduled deliveries yet.</p>
+                  <p className="text-xs">Go to the Generators tab to schedule a report.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                <Table className="min-w-max">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Report</TableHead>
+                    <TableHead className="text-xs">Format</TableHead>
+                    <TableHead className="text-xs">Frequency</TableHead>
+                    <TableHead className="text-xs">Next Run</TableHead>
+                    <TableHead className="text-xs">Recipients</TableHead>
+                    <TableHead className="text-xs">Active</TableHead>
+                    <TableHead className="text-xs text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="text-sm font-medium">{s.title}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px] uppercase">{s.format}</Badge></TableCell>
+                      <TableCell className="text-xs capitalize">{s.frequency}</TableCell>
+                      <TableCell className="text-xs">{new Date(s.nextRun).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-xs max-w-[160px] truncate">{s.recipients || "—"}</TableCell>
+                      <TableCell>
+                        <Switch checked={s.enabled} onCheckedChange={() => { toggleSchedule(s.id); refreshSchedules(); }} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => { removeSchedule(s.id); refreshSchedules(); toast.success("Schedule removed"); }}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -470,6 +735,59 @@ export default function Reports() {
   );
 }
 
+// ── Sub-components ──────────────────────────────────────────────
+
+function GeneratorCard({ generator }: { generator: ReportGenerator }) {
+  const [data, setData] = useState<unknown[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showData, setShowData] = useState(false);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const result = await generator.generate();
+      setData(result);
+      setShowData(true);
+      if (result.length === 0) toast.info("No data returned");
+      else toast.success(`${result.length} rows loaded`);
+    } catch {
+      toast.error("Failed to generate report");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="border-border/40">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium">{generator.title}</CardTitle>
+        <p className="text-[10px] text-muted-foreground">{generator.description}</p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          <Button variant="default" size="sm" className="h-7 text-[10px] rounded-lg" onClick={handleGenerate} disabled={loading}>
+            {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Eye className="h-3 w-3 mr-1" />}
+            Generate
+          </Button>
+          <ReportExportButtons generator={generator} />
+          <ScheduleDialog generator={generator} />
+        </div>
+        {showData && data && (
+          <div className="mt-2 max-h-32 overflow-auto rounded border bg-muted/30 p-2">
+            <p className="text-[10px] text-muted-foreground mb-1">{data.length} rows</p>
+            {data.length > 0 && (
+              <pre className="text-[9px] leading-tight whitespace-pre-wrap break-all">
+                {JSON.stringify(data.slice(0, 3), null, 1)}
+                {data.length > 3 && "\n..."}
+              </pre>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function ExportCard({ label, filename, rows }: { label: string; filename: string; rows: Record<string, unknown>[] }) {
   const [loading, setLoading] = useState(false);
   return (
@@ -479,6 +797,10 @@ function ExportCard({ label, filename, rows }: { label: string; filename: string
         <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" disabled={rows.length === 0 || loading}
           onClick={() => { setLoading(true); downloadFile(toCsv(rows), `${filename}.csv`, "text/csv"); toast.success(`${filename}.csv downloaded`); setTimeout(() => setLoading(false), 500); }}>
           {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3 w-3 mr-1" />} CSV
+        </Button>
+        <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" disabled={rows.length === 0 || loading}
+          onClick={async () => { setLoading(true); await exportToExcel(rows, filename); setTimeout(() => setLoading(false), 500); }}>
+          {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3 w-3 mr-1" />} XLSX
         </Button>
         <Button variant="outline" size="sm" className="rounded-lg h-7 text-[10px]" disabled={rows.length === 0 || loading}
           onClick={() => { setLoading(true); downloadFile(JSON.stringify(rows, null, 2), `${filename}.json`, "application/json"); toast.success(`${filename}.json downloaded`); setTimeout(() => setLoading(false), 500); }}>

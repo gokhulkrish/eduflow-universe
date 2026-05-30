@@ -1,142 +1,102 @@
 import puppeteer from 'puppeteer';
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
 
-const BONAFIDE_TEMPLATE = `<!DOCTYPE html>
+function safeString(v) {
+  return v === undefined || v === null ? '' : String(v);
+}
+
+export function buildCertificateHtml(data, templateHtml) {
+  const tpl = templateHtml || `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificate</title>
 <style>
-  body{font-family: 'Times New Roman', serif;margin:0;padding:20px;background:#fff;color:#000}
-  .page{width:210mm;min-height:297mm;padding:28mm 22mm 24mm;border:1px solid #222;position:relative}
-  .center{text-align:center}.college-name{font-size:22px;font-weight:700}
-  .title{margin-top:26px;text-align:center;font-size:24px;font-weight:700;text-transform:uppercase}
-  .content{margin-top:34px;font-size:20px;line-height:2}
-  .qr-image{position:absolute;bottom:20mm;right:10mm;width:30mm;height:30mm}
-  @page{size:A4;margin:20mm}
-  @media print{body{background:#fff;padding:0}.page{border:none;box-shadow:none;margin:0;width:100%;min-height:100vh}}
-</style>
-</head><body><div class="page">
-  <div class="center"><div class="college-name">Government College of Technology</div></div>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Times New Roman',serif;color:#000;background:#fff}
+  .page{width:210mm;height:297mm;margin:0 auto;background:#fff;padding:20mm 22mm 16mm;border:1px solid #222;display:flex;flex-direction:column;overflow:hidden}
+  .center{text-align:center}
+  .college-name{font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px}
+  .college-place{margin-top:2px;font-size:16px;font-weight:700;text-transform:uppercase}
+  .college-affiliation{margin-top:2px;font-size:14px}
+  .meta{margin-top:18px;display:flex;justify-content:space-between;align-items:center;font-size:14px;border-bottom:1px solid #222;padding-bottom:8px}
+  .title{margin-top:16px;text-align:center;font-size:22px;font-weight:700;text-transform:uppercase;text-decoration:underline;letter-spacing:0.5px}
+  .content{margin-top:20px;font-size:17px;line-height:1.85;text-align:justify;flex:1}
+  .fill{display:inline-block;min-width:100px;border-bottom:1px dotted #000;padding:0 4px 1px;text-align:center;font-weight:700}
+  .fill-sm{min-width:70px}.fill-md{min-width:140px}.fill-lg{min-width:200px}.fill-xl{min-width:280px}
+  .to-block{margin-top:30px;font-size:16px;line-height:1.8}
+  .signature{margin-top:50px;display:flex;justify-content:space-between;align-items:flex-end}
+  .seal-box{width:100px;height:100px;border:1px dashed #444;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px}
+  .sign-area{width:220px;text-align:center;font-size:16px}
+  .sign-line{border-top:1px solid #000;padding-top:6px;margin-top:40px;font-weight:700}
+  .qr-image{position:absolute;bottom:15mm;right:8mm;width:25mm;height:25mm;object-fit:contain}
+</style></head><body><div class="page">
+  <div class="center"><div class="college-name">Government College of Technology</div><div class="college-place">Coimbatore - 641013</div><div class="college-affiliation">(Affiliated to Anna University, Chennai)</div></div>
+  <div class="meta"><div><strong>No.</strong> <span class="fill fill-md">{{NO}}</span></div><div><strong>Dated:</strong> <span class="fill fill-md">{{DATED}}</span></div></div>
   <div class="title">Bonafide Certificate</div>
-  <div class="content">This is to certify that <strong>{{NAME}}</strong> (Roll No. <strong>{{ROLL}}</strong>) is a bonafide student.</div>
+  <div class="content">This is to certify that <span class="fill fill-xl">{{NAME}}</span> (Roll No. <span class="fill fill-md">{{ROLL}}</span>) is a bonafide student of this college studying in <span class="fill fill-sm">{{YEAR}}</span> year of Four years of B.E./B.Tech. Degree course in <span class="fill fill-lg">{{BRANCH}}</span> during the academic year <span class="fill fill-md">{{ACADEMIC_YEAR}}</span>.<br><br>This certificate is issued with reference to his/her application dated <span class="fill fill-md">{{APPLICATION_DATE}}</span> to apply for <span class="fill fill-lg">{{APPLICATION_PURPOSE}}</span>.</div>
+  <div class="to-block"><strong>To</strong><br><span class="fill fill-lg">{{AUTHORITY}}</span></div>
+  <div class="signature"><div class="seal-box">Office Seal</div><div class="sign-area"><div class="sign-line">Office of the Principal</div></div></div>
   <img class="qr-image" src="{{QR_SRC}}" alt="QR" />
 </div></body></html>`;
 
-export async function buildHtml(data = {}, qrBase64 = null) {
-  let html = BONAFIDE_TEMPLATE;
-  html = html.replace(/\{\{NAME\}\}/g, data.name || '—');
-  html = html.replace(/\{\{ROLL\}\}/g, data.roll || '—');
-  html = html.replace(/\{\{QR_SRC\}\}/g, qrBase64 ? `data:image/png;base64,${qrBase64}` : '');
-  return html;
-}
-
-export async function generatePDFFromHtml(html) {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const buffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' } });
-  await browser.close();
-  return buffer;
-}
-
-export function signCertificate(pdfBuffer, privateKeyPem) {
-  const sign = crypto.createSign('RSA-SHA256');
-  sign.update(pdfBuffer);
-  sign.end();
-  const signature = sign.sign(privateKeyPem, 'base64');
-  return signature;
-}
-import { jsPDF } from 'jspdf';
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-
-const TEMPLATE_PATH = path.join(new URL('.', import.meta.url).pathname, 'bonafide-template.html');
-
-console.log('PDF Service initialized, template path:', TEMPLATE_PATH);
-console.log('Template exists:', fs.existsSync(TEMPLATE_PATH));
-
-/**
- * Inject certificate data + optional QR base64 into the HTML template.
- */
-export function buildHtmlTemplate(data, qrBase64 = '') {
-  console.log('Building HTML template with data:', data);
-  console.log('QR Base64 provided:', !!qrBase64);
-  
-  let html = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  console.log('Template loaded, length:', html.length);
-
-  // Embed QR image so jsPDF html2canvas renders it natively
-  const qrSrc = qrBase64 ? `data:image/jpeg;base64,${qrBase64}` : '';
+  let html = tpl;
+  const qrSrc = data.qrBase64 ? `data:image/png;base64,${data.qrBase64}` : '';
   html = html.replace(/{{QR_SRC}}/g, qrSrc);
-  console.log('QR_SRC replaced:', qrSrc.length > 0);
 
   const replacers = {
-    '{{NO}}': data.no ?? '',
-    '{{DATED}}': data.dated ?? '',
-    '{{NAME}}': data.name ?? '',
-    '{{ROLL}}': data.roll ?? '',
-    '{{YEAR}}': data.year ?? '',
-    '{{BRANCH}}': data.branch ?? '',
-    '{{ACADEMIC_YEAR}}': data.academicYear ?? '',
-    '{{APPLICATION_DATE}}': data.applicationDate ?? '',
-    '{{APPLICATION_PURPOSE}}': data.applicationPurpose ?? '',
-    '{{AUTHORITY}}': data.authority ?? '',
+    '{{NO}}': safeString(data.no),
+    '{{DATED}}': safeString(data.dated),
+    '{{NAME}}': safeString(data.name ?? data.studentName ?? data.student_name),
+    '{{ROLL}}': safeString(data.roll ?? data.admissionNo ?? data.admission_no),
+    '{{YEAR}}': safeString(data.year),
+    '{{BRANCH}}': safeString(data.branch),
+    '{{ACADEMIC_YEAR}}': safeString(data.academicYear ?? data.academic_year),
+    '{{APPLICATION_DATE}}': safeString(data.applicationDate ?? data.application_date),
+    '{{APPLICATION_PURPOSE}}': safeString(data.applicationPurpose ?? data.application_purpose ?? data.purpose),
+    '{{AUTHORITY}}': safeString(data.authority),
   };
 
-  Object.entries(replacers).forEach(([placeholder, value]) => {
-    html = html.split(placeholder).join(String(value));
+  Object.entries(replacers).forEach(([k, v]) => {
+    html = html.split(k).join(v);
   });
 
-  console.log('Template built successfully');
   return html;
 }
 
-/**
- * Generate a PDF Buffer from certificate data.
- * Requires `html2canvas` (and `canvas` polyfill for Node) to be installed.
- */
-export async function generatePDF(certificateData, qrImageBuffer) {
-  console.log('generatePDF called with:', certificateData);
-  console.log('QR Image Buffer provided:', !!qrImageBuffer);
-  
-  const doc = new jsPDF({
-    unit: 'mm',
-    format: 'a4',
-    orientation: 'portrait',
+export async function generatePDFFromHtml(html, options = {}) {
+  const {
+    format = 'A4',
+    margin = { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+    preferCSSPageSize = true,
+    printBackground = true,
+    scale = 1,
+  } = options;
+
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
 
-  const qrBase64 = qrImageBuffer ? qrImageBuffer.toString('base64') : '';
-  const html = buildHtmlTemplate(certificateData, qrBase64);
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
 
-  await new Promise((resolve, reject) => {
-    try {
-      doc.html(html, {
-        callback: function () {
-          console.log('PDF generation completed');
-          resolve();
-        },
-        x: 0,
-        y: 0,
-        width: 210,
-        windowWidth: 794,
-      });
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      reject(err);
-    }
-  });
+    const pdfConfig = {
+      format,
+      printBackground,
+      margin,
+      preferCSSPageSize,
+      scale,
+      omitBackground: false,
+    };
 
-  const output = Buffer.from(doc.output('arraybuffer'));
-  console.log('PDF output buffer created, size:', output.length);
-  return output;
+    const buffer = await page.pdf(pdfConfig);
+    return buffer;
+  } finally {
+    await browser.close();
+  }
 }
 
-/**
- * RSA-SHA256 sign the PDF buffer.
- */
-export function signCertificate(pdfBuffer, privateKeyPem) {
-  const sign = crypto.createSign('RSA-SHA256');
+export async function signCertificate(pdfBuffer, privateKeyPem) {
+  const { createSign } = await import('node:crypto');
+  const sign = createSign('RSA-SHA256');
   sign.update(pdfBuffer);
+  sign.end();
   return sign.sign(privateKeyPem, 'base64');
 }

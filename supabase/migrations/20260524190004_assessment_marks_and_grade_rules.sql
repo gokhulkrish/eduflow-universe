@@ -19,6 +19,17 @@ create table if not exists public.exam_marks (
   updated_at timestamptz not null default now()
 );
 
+-- Add missing columns if table already existed with different schema
+alter table public.exam_marks add column if not exists institution_id uuid;
+alter table public.exam_marks add column if not exists term_id uuid;
+alter table public.exam_marks add column if not exists component_id uuid;
+alter table public.exam_marks add column if not exists subject_id uuid;
+alter table public.exam_marks add column if not exists raw_marks numeric(6,2);
+alter table public.exam_marks add column if not exists max_marks numeric(6,2);
+alter table public.exam_marks add column if not exists weighted_marks numeric(8,3);
+alter table public.exam_marks add column if not exists source_system text default 'new-system';
+alter table public.exam_marks add column if not exists legacy_batch_id uuid;
+
 create unique index if not exists ux_exam_marks_main
   on public.exam_marks (institution_id, term_id, component_id, subject_id, student_id);
 
@@ -36,6 +47,7 @@ create policy "exam_marks_update" on public.exam_marks
 create policy "exam_marks_delete" on public.exam_marks
   for delete to authenticated using (true);
 
+drop trigger if exists trg_exam_marks_updated_at on public.exam_marks;
 create trigger trg_exam_marks_updated_at before update on public.exam_marks
   for each row execute function public.update_updated_at_column();
 

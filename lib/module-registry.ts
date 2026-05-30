@@ -492,7 +492,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "userManagement",
     "label": "User Management",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -500,14 +500,15 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "userManagement",
     "workspaceKey": "users",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/user-management",
+    "renderer": "renderUserManagementWorkspace",
     "submodules": [
       "overview",
       "users",
-      "institutes",
-      "passwordreset",
-      "records"
+      "roles",
+      "permissions",
+      "invitations",
+      "audit"
     ],
     "sourceLine": 79712,
     "domainKey": "instituteGovernance",
@@ -518,7 +519,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "academics",
     "label": "Academic Management",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -526,13 +527,13 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "academics",
     "workspaceKey": "classes",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/class-mgmt",
+    "renderer": "renderAcademicsWorkspace",
     "submodules": [
-      "overview",
       "classes",
       "subjects",
       "lessons",
+      "promotion",
       "records"
     ],
     "sourceLine": 79718,
@@ -544,7 +545,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "timetable",
     "label": "Timetable",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -552,8 +553,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "timetable",
     "workspaceKey": "creator",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/timetable",
+    "renderer": "renderTimetableWorkspace",
     "submodules": [
       "overview",
       "creator",
@@ -572,7 +573,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "homework",
     "label": "Homework",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -580,8 +581,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "homework",
     "workspaceKey": "planner",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/homework",
+    "renderer": "renderHomeworkWorkspace",
     "submodules": [
       "overview",
       "planner",
@@ -598,7 +599,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "assignments",
     "label": "Assignments",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -606,8 +607,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "assignments",
     "workspaceKey": "planner",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/assignments",
+    "renderer": "renderAssignmentsWorkspace",
     "submodules": [
       "overview",
       "planner",
@@ -679,7 +680,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "videoRooms",
     "label": "Video Rooms",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -687,8 +688,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "videoRooms",
     "workspaceKey": "live",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/video-rooms",
+    "renderer": "renderVideoRoomsWorkspace",
     "submodules": [
       "overview",
       "live",
@@ -705,7 +706,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "quiz",
     "label": "Quiz",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -713,8 +714,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "quiz",
     "workspaceKey": "quizzes",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/quiz",
+    "renderer": "renderQuizWorkspace",
     "submodules": [
       "overview",
       "banks",
@@ -761,7 +762,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "administration",
     "label": "Administration",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -769,8 +770,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "administration",
     "workspaceKey": "overview",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/administration",
+    "renderer": "renderAdministrationWorkspace",
     "submodules": [
       "overview",
       "records"
@@ -784,7 +785,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "payroll",
     "label": "Payroll",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -792,8 +793,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "payroll",
     "workspaceKey": "salary",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/hr",
+    "renderer": "renderPayrollWorkspace",
     "submodules": [
       "overview",
       "salary",
@@ -810,7 +811,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "reception",
     "label": "Reception",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -818,8 +819,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "reception",
     "workspaceKey": "visitors",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/reception",
+    "renderer": "renderReceptionWorkspace",
     "submodules": [
       "overview",
       "visitors",
@@ -921,7 +922,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "chat",
     "label": "Chat",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -929,8 +930,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "chat",
     "workspaceKey": "threads",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/chat",
+    "renderer": "renderChatWorkspace",
     "submodules": [
       "overview",
       "threads",
@@ -947,7 +948,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "events",
     "label": "Events & Holidays",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -955,8 +956,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "events",
     "workspaceKey": "calendar",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/events",
+    "renderer": "renderEventsWorkspace",
     "submodules": [
       "overview",
       "calendar",
@@ -974,7 +975,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "media",
     "label": "Media",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -982,8 +983,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "media",
     "workspaceKey": "uploads",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/media",
+    "renderer": "renderMediaWorkspace",
     "submodules": [
       "overview",
       "uploads",
@@ -1083,7 +1084,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "inventory",
     "label": "Inventory",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1091,8 +1092,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "inventory",
     "workspaceKey": "stock",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/inventory",
+    "renderer": "renderInventoryWorkspace",
     "submodules": [
       "overview",
       "products",
@@ -1137,7 +1138,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "placement",
     "label": "Placement",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1145,8 +1146,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "placement",
     "workspaceKey": "overview",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/placement",
+    "renderer": "renderPlacementWorkspace",
     "submodules": [
       "overview",
       "records"
@@ -1188,7 +1189,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "alumni",
     "label": "Alumni",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1196,8 +1197,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "alumni",
     "workspaceKey": "directory",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/alumni",
+    "renderer": "renderAlumniWorkspace",
     "submodules": [
       "overview",
       "directory",
@@ -1213,7 +1214,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "system",
     "label": "System",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1221,8 +1222,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "system",
     "workspaceKey": "overview",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/system",
+    "renderer": "renderSystemWorkspace",
     "submodules": [
       "overview",
       "records"
@@ -1236,7 +1237,7 @@ export const primaryModules: ModuleDefinition[] = [
   {
     "key": "settingsBackup",
     "label": "Settings & Backup",
-    "status": "coming-soon",
+    "status": "live",
     "launchType": "erp-workspace",
     "sectionId": "",
     "tabKey": "",
@@ -1244,8 +1245,8 @@ export const primaryModules: ModuleDefinition[] = [
     "tabId": "",
     "moduleKey": "settingsBackup",
     "workspaceKey": "academicYears",
-    "route": "",
-    "renderer": "renderWorkspaceComingSoon",
+    "route": "/settings",
+    "renderer": "renderSettingsWorkspace",
     "submodules": [
       "overview",
       "academicYears",
@@ -1390,15 +1391,30 @@ export const primaryModules: ModuleDefinition[] = [
     "domainLabel": "Platform & Registry",
     "kind": "architecture",
     "fields": []
-  }
-] as ModuleDefinition[];
-
-export const legacyPackModules: ModuleDefinition[] = [
+  },
   {
     "key": "departments",
     "label": "Departments & Programs",
-    "category": "Academic Governance",
-    "description": "Department registry, HOD ownership, program capacity, accreditation mapping, and academic-year readiness.",
+    "status": "live",
+    "launchType": "erp-workspace",
+    "sectionId": "",
+    "tabKey": "",
+    "step": "",
+    "tabId": "",
+    "moduleKey": "departments",
+    "workspaceKey": "departments",
+    "route": "/departments",
+    "renderer": "renderDepartmentsWorkspace",
+    "submodules": [
+      "department registry",
+      "hod ownership",
+      "program capacity",
+      "accreditation mapping"
+    ],
+    "sourceLine": 29828,
+    "domainKey": "academicDelivery",
+    "domainLabel": "Academic Delivery",
+    "kind": "architecture",
     "fields": [
       {
         "key": "departmentName",
@@ -1453,15 +1469,32 @@ export const legacyPackModules: ModuleDefinition[] = [
           "Re-Accreditation Due"
         ]
       }
-    ],
-    "kind": "legacy-pack",
-    "sourceLine": 29828
+    ]
   },
   {
     "key": "facultyHR",
     "label": "Faculty & HR",
-    "category": "People & Workforce",
-    "description": "Faculty profiles, workload, appointments, leave, service records, and compliance documentation.",
+    "status": "live",
+    "launchType": "erp-workspace",
+    "sectionId": "",
+    "tabKey": "",
+    "step": "",
+    "tabId": "",
+    "moduleKey": "facultyHR",
+    "workspaceKey": "faculty",
+    "route": "/faculty-hr",
+    "renderer": "renderFacultyHrWorkspace",
+    "submodules": [
+      "faculty profiles",
+      "workload",
+      "appointments",
+      "leave",
+      "compliance"
+    ],
+    "sourceLine": 29845,
+    "domainKey": "peopleWorkforce",
+    "domainLabel": "People & Workforce",
+    "kind": "architecture",
     "fields": [
       {
         "key": "facultyName",
@@ -1511,15 +1544,31 @@ export const legacyPackModules: ModuleDefinition[] = [
           "Retired"
         ]
       }
-    ],
-    "kind": "legacy-pack",
-    "sourceLine": 29845
+    ]
   },
   {
-    "key": "curriculumOutcome",
+    "key": "curriculumOutcomes",
     "label": "Curriculum & Outcomes",
-    "category": "Academic Delivery",
-    "description": "Curriculum versioning, CO-PO mapping, syllabus coverage, outcome attainment, and academic audit readiness.",
+    "status": "live",
+    "launchType": "erp-workspace",
+    "sectionId": "",
+    "tabKey": "",
+    "step": "",
+    "tabId": "",
+    "moduleKey": "curriculumOutcomes",
+    "workspaceKey": "curriculum",
+    "route": "/curriculum",
+    "renderer": "renderCurriculumWorkspace",
+    "submodules": [
+      "curriculum versioning",
+      "co-po mapping",
+      "syllabus coverage",
+      "outcome attainment"
+    ],
+    "sourceLine": 29828,
+    "domainKey": "academicDelivery",
+    "domainLabel": "Academic Delivery",
+    "kind": "architecture",
     "fields": [
       {
         "key": "curriculumName",
@@ -1573,10 +1622,11 @@ export const legacyPackModules: ModuleDefinition[] = [
           "Excellent"
         ]
       }
-    ],
-    "kind": "legacy-pack",
-    "sourceLine": 29862
-  },
+    ]
+  }
+] as ModuleDefinition[];
+
+export const legacyPackModules: ModuleDefinition[] = [
   {
     "key": "lmsElearning",
     "label": "LMS & E-Learning",

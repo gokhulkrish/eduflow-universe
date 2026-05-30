@@ -84,9 +84,9 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
     fileName: "test.csv",
     sourceType: "csv" as const,
     sheetName: "Sheet1",
-    headers: ["admissionNo", "firstName", "lastName", "dob", "grade"],
+    headers: ["admissionNo", "regno", "firstName", "lastName", "dob", "grade"],
     rows: [
-      { admissionNo: "ADM-001", firstName: "Alice", lastName: "Smith", dob: "2010-01-01", grade: "5" },
+      { admissionNo: "ADM-001", regno: "ADM-001", firstName: "Alice", lastName: "Smith", dob: "2010-01-01", grade: "5" },
     ],
   });
 
@@ -113,7 +113,7 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
 
   it("inserts when no match found and rule allows new entries", async () => {
     const { buildImportPreview } = await import("./student-import");
-    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
+    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", regno: "regno", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
       design: "reg_umis_emis" as any,
       threshold: 88,
       rule: "New Entry Only" as any,
@@ -123,7 +123,7 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
 
   it("skips when no match found and rule is Update Existing Only", async () => {
     const { buildImportPreview } = await import("./student-import");
-    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
+    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", regno: "regno", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
       design: "reg_umis_emis" as any,
       threshold: 88,
       rule: "Update Existing Only" as any,
@@ -133,7 +133,7 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
 
   it("skips when exact match found and rule is New Entry Only", async () => {
     const { buildImportPreview } = await import("./student-import");
-    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [existingRow as any], {
+    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", regno: "regno", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [existingRow as any], {
       design: "reg_umis_emis" as any,
       threshold: 88,
       rule: "New Entry Only" as any,
@@ -143,7 +143,7 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
 
   it("updates when exact match found and rule is Update Existing Only", async () => {
     const { buildImportPreview } = await import("./student-import");
-    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [existingRow as any], {
+    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", regno: "regno", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [existingRow as any], {
       design: "reg_umis_emis" as any,
       threshold: 88,
       rule: "Update Existing Only" as any,
@@ -153,7 +153,7 @@ describe("buildImportPreview — transfer rules affect defaultAction", () => {
 
   it("inserts when no match found and rule is Upsert", async () => {
     const { buildImportPreview } = await import("./student-import");
-    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
+    const preview = buildImportPreview(makeParsedFile(), { admissionNo: "admissionNo", regno: "regno", firstName: "firstName", lastName: "lastName", dob: "dob", grade: "grade" }, [], {
       design: "reg_umis_emis" as any,
       threshold: 88,
       rule: "Upsert" as any,

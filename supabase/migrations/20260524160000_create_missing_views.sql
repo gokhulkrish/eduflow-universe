@@ -1,4 +1,5 @@
-create or replace view public.student_register
+drop view if exists public.student_register;
+create view public.student_register
 with (security_invoker = true)
 as
 select

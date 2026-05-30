@@ -1,19 +1,23 @@
 import "@/lib/runtime-storage";
-import { useEffect, useState } from "react";
-import { Users, CheckCircle2, AlertCircle, FileText, UserCheck, RefreshCw, Upload, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Users, CheckCircle2, AlertCircle, FileText, Upload, Plus, Trash2, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PROGRAMS } from "@/lib/promotion";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
+import { fetchStudentRegister, studentRegisterSyncKey, formatDataError, updateStudentStatuses, type StudentRegisterRow } from "@/lib/student-records";
+import { useStudentCapability } from "@/hooks/useStudentCapability";
 import { generateId } from "@/lib/utils";
 
 // ---- Tab 1: Uploaded Data Validation ----
@@ -21,45 +25,44 @@ type ValidationRow = { id: string; name: string; grade: string; field: string; i
 const VK = "eduflow_validation";
 function vl(): ValidationRow[] { try { return JSON.parse(localStorage.getItem(VK) ?? "[]"); } catch { return []; } }
 function vs(v: ValidationRow[]) { localStorage.setItem(VK, JSON.stringify(v)); emitAppSync(VK); }
-
-// ---- Tab 2: Registered Student Info ----
-// Reuses localStorage key "eduflow_registered_students"
-type RegStudent = { id: string; name: string; grade: string; section: string; reg_no: string; reg_date: string; status: string; };
-const RK = "eduflow_registered_students";
-function rl(): RegStudent[] { try { return JSON.parse(localStorage.getItem(RK) ?? "[]"); } catch { return []; } }
-function rs(v: RegStudent[]) { localStorage.setItem(RK, JSON.stringify(v)); emitAppSync(RK); }
-
-// ---- Tab 3: Academic Status ----
+// ---- Tab 2: Academic Status ----
 type AcadStatus = { id: string; name: string; grade: string; overall: string; attendance: string; gpa: string; };
 const AK = "eduflow_academic_status";
 function al(): AcadStatus[] { try { return JSON.parse(localStorage.getItem(AK) ?? "[]"); } catch { return []; } }
 function as(v: AcadStatus[]) { localStorage.setItem(AK, JSON.stringify(v)); emitAppSync(AK); }
 
-// ---- Tab 4: Approval Status ----
+// ---- Tab 3: Approval Status ----
 type Approval = { id: string; name: string; type: string; status: string; submitted: string; };
 const APK = "eduflow_approvals";
 function apl(): Approval[] { try { return JSON.parse(localStorage.getItem(APK) ?? "[]"); } catch { return []; } }
 function aps(v: Approval[]) { localStorage.setItem(APK, JSON.stringify(v)); emitAppSync(APK); }
 
-// ---- Tab 5: Save as Draft ----
+// ---- Tab 4: Save as Draft ----
 type Draft = { id: string; name: string; grade: string; fields: string; saved: string; };
 const DK = "eduflow_draft_students";
 function dl(): Draft[] { try { return JSON.parse(localStorage.getItem(DK) ?? "[]"); } catch { return []; } }
 function ds(v: Draft[]) { localStorage.setItem(DK, JSON.stringify(v)); emitAppSync(DK); }
 
-// ---- Tab 6: Status Update ----
-const SUK = "eduflow_student_status";
+type RegisteredRow = {
+  id: string;
+  name: string;
+  regNo: string;
+  cohort: string;
+  status: string;
+  admissionNo: string;
+};
 
 export default function StudentInformation() {
+  const queryClient = useQueryClient();
+  const { canEdit } = useStudentCapability();
   const [tab, setTab] = useState("validation");
+  const [registerQuery, setRegisterQuery] = useState("");
+  const [statusQuery, setStatusQuery] = useState("");
+  const [statusValue, setStatusValue] = useState("active");
 
   // Validation
   const [vItems, setVItems] = useState(vl); const rv = () => setVItems(vl);
   const [vOpen, setVOpen] = useState(false); const [vName, setVName] = useState(""); const [vCohort, setVCohort] = useState(""); const [vField, setVField] = useState(""); const [vIssue, setVIssue] = useState("");
-
-  // Registered
-  const [rItems, setRItems] = useState(rl); const rr = () => setRItems(rl);
-  const [rOpen, setROpen] = useState(false); const [rName, setRName] = useState(""); const [rCohort, setRCohort] = useState(""); const [rSec, setRSec] = useState(""); const [rReg, setRReg] = useState("");
 
   // Academic
   const [aItems, setAItems] = useState(al); const ra = () => setAItems(al);
@@ -73,27 +76,86 @@ export default function StudentInformation() {
   const [dItems, setDItems] = useState(dl); const rd = () => setDItems(dl);
   const [dOpen, setDOpen] = useState(false); const [dName, setDName] = useState(""); const [dCohort, setDCohort] = useState(""); const [dFields, setDFields] = useState("");
 
-  // Status Update
-  const [suQuery, setSuQuery] = useState(""); const [suNewStatus, setSuNewStatus] = useState("");
-  const [suItems, setSuItems] = useState(rl);
-  const refreshSu = () => setSuItems(rl());
-
-  const stList = ["active", "inactive", "transferred", "graduated", "expelled"];
+  const registerRowsQuery = useQuery({
+    queryKey: ["student-register"],
+    queryFn: fetchStudentRegister,
+  });
 
   useEffect(() => {
-    return subscribeAppSync([VK, RK, AK, APK, DK], () => {
+    return subscribeAppSync([studentRegisterSyncKey], () => {
+      queryClient.invalidateQueries({ queryKey: ["student-register"] });
+    });
+  }, [queryClient]);
+
+  useEffect(() => {
+    return subscribeAppSync([VK, AK, APK, DK], () => {
       setVItems(vl());
-      setRItems(rl());
       setAItems(al());
       setApItems(apl());
       setDItems(dl());
-      setSuItems(rl());
     });
   }, []);
 
+  const registeredRows = useMemo<RegisteredRow[]>(() => {
+    return (registerRowsQuery.data ?? []).map((row: StudentRegisterRow) => ({
+      id: row.id,
+      name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(" "),
+      regNo: row.regno || row.admission_no,
+      cohort: [row.grade, row.section].filter(Boolean).join(" / ") || "—",
+      status: row.status,
+      admissionNo: row.admission_no,
+    }));
+  }, [registerRowsQuery.data]);
+
+  const filteredRegisteredRows = useMemo(() => {
+    const q = registerQuery.trim().toLowerCase();
+    if (!q) return registeredRows;
+    return registeredRows.filter((row) =>
+      [row.name, row.regNo, row.cohort, row.status, row.admissionNo, row.id].some((value) => value.toLowerCase().includes(q)),
+    );
+  }, [registerQuery, registeredRows]);
+
+  const filteredStatusRows = useMemo(() => {
+    const q = statusQuery.trim().toLowerCase();
+    if (!q) return registeredRows;
+    return registeredRows.filter((row) =>
+      [row.name, row.regNo, row.cohort, row.status, row.admissionNo, row.id].some((value) => value.toLowerCase().includes(q)),
+    );
+  }, [statusQuery, registeredRows]);
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async () => {
+      const ids = filteredStatusRows.map((row) => row.id);
+      return updateStudentStatuses(ids, statusValue, "StudentInformation bulk status update");
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["student-register"] });
+      if (result.updatedIds.length > 0) {
+        toast.success(`Updated ${result.updatedIds.length} student record(s) to ${statusValue}`);
+      }
+      if (result.failures.length > 0) {
+        const preview = result.failures.slice(0, 2).map((failure) => `${failure.id}: ${failure.error}`).join(" | ");
+        toast.error(
+          result.updatedIds.length > 0
+            ? `Updated ${result.updatedIds.length} record(s); ${result.failures.length} failed${preview ? ` - ${preview}` : ""}`
+            : `Could not update ${result.failures.length} record(s)${preview ? ` - ${preview}` : ""}`,
+        );
+      }
+    },
+    onError: (error) => toast.error(formatDataError(error)),
+  });
+
   return (
     <div>
-      <PageHeader title="Student Information" subtitle="Validation, registration, academics, approvals & more" icon={<Users className="h-6 w-6" />} />
+      <PageHeader title="Student Information" subtitle="Validation, register, academics, approvals & drafts" icon={<Users className="h-6 w-6" />} />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Button asChild className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+          <Link to="/students">Open Latest Register</Link>
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          The old localStorage register has been retired. Use the live register for all student record actions.
+        </p>
+      </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4 w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="validation">Validation</TabsTrigger>
@@ -129,24 +191,53 @@ export default function StudentInformation() {
 
         {/* Tab 2: Registered Student Info */}
         <TabsContent value="registered">
-          <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setRName(""); setRCohort(""); setRSec(""); setRReg(""); setROpen(true); }}><Plus className="h-4 w-4 mr-1" /> Register</Button></div>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Label className="text-xs" htmlFor="registered-search">Search register</Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="registered-search"
+                  value={registerQuery}
+                  onChange={(e) => setRegisterQuery(e.target.value)}
+                  placeholder="Name, register no, admission no"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <Button asChild className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90">
+              <Link to="/students/new"><Plus className="mr-2 h-4 w-4" /> Register</Link>
+            </Button>
+            <Button variant="outline" className="rounded-xl" onClick={() => queryClient.invalidateQueries({ queryKey: ["student-register"] })}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </div>
           <div className="overflow-x-auto rounded-lg border">
-          <Table className="min-w-max">
-            <TableHeader className=""><TableRow><TableHead className="text-xs">Reg No</TableHead><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Section</TableHead><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {rItems.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="text-xs font-mono">{r.reg_no}</TableCell>
-                  <TableCell className="text-xs">{r.name}</TableCell>
-                  <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{r.grade}</Badge></TableCell>
-                  <TableCell className="text-xs">{r.section}</TableCell>
-                  <TableCell className="text-xs">{new Date(r.reg_date).toLocaleDateString()}</TableCell>
-                  <TableCell><Badge className={`text-[9px] ${r.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>{r.status}</Badge></TableCell>
+            <Table className="min-w-max">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Register No</TableHead>
+                  <TableHead className="text-xs">Name</TableHead>
+                  <TableHead className="text-xs">Cohort</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
                 </TableRow>
-              ))}
-              {rItems.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">No registered students</TableCell></TableRow>}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredRegisteredRows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-xs font-mono">{r.regNo}</TableCell>
+                    <TableCell className="text-xs">{r.name}</TableCell>
+                    <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{r.cohort}</Badge></TableCell>
+                    <TableCell><Badge className={`text-[9px] ${r.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>{r.status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+                {filteredRegisteredRows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-xs text-muted-foreground">No registered students</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </TabsContent>
 
@@ -195,6 +286,66 @@ export default function StudentInformation() {
           </div>
         </TabsContent>
 
+        {/* Tab 5: Bulk Status Update */}
+        <TabsContent value="status">
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Label className="text-xs" htmlFor="status-search">Search students</Label>
+              <Input
+                id="status-search"
+                value={statusQuery}
+                onChange={(e) => setStatusQuery(e.target.value)}
+                placeholder="Name or register number"
+              />
+            </div>
+            <div className="min-w-[180px]">
+              <Label className="text-xs" htmlFor="status-value">New status</Label>
+              <Select value={statusValue} onValueChange={setStatusValue}>
+                <SelectTrigger id="status-value"><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectContent>
+                  {["active", "inactive", "graduated", "transferred", "withdrawn", "alumni"].map((status) => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="rounded-xl bg-gradient-primary shadow-glow hover:opacity-90"
+              disabled={!canEdit || filteredStatusRows.length === 0 || bulkStatusMutation.isPending}
+              onClick={() => bulkStatusMutation.mutate()}
+            >
+              {bulkStatusMutation.isPending ? "Updating…" : `Update ${filteredStatusRows.length} record(s)`}
+            </Button>
+          </div>
+          <div className="overflow-x-auto rounded-lg border">
+            <Table className="min-w-max">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Register No</TableHead>
+                  <TableHead className="text-xs">Name</TableHead>
+                  <TableHead className="text-xs">Cohort</TableHead>
+                  <TableHead className="text-xs">Current Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredStatusRows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-xs font-mono">{r.regNo}</TableCell>
+                    <TableCell className="text-xs">{r.name}</TableCell>
+                    <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{r.cohort}</Badge></TableCell>
+                    <TableCell><Badge className={`text-[9px] ${r.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>{r.status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+                {filteredStatusRows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-xs text-muted-foreground">No students matched your search</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
         {/* Tab 5: Save as Draft */}
         <TabsContent value="draft">
           <div className="flex justify-end mb-4"><Button size="sm" className="w-full rounded-xl bg-gradient-primary shadow-glow sm:w-auto" onClick={() => { setDName(""); setDCohort(""); setDFields(""); setDOpen(true); }}><FileText className="h-4 w-4 mr-1" /> New Draft</Button></div>
@@ -220,36 +371,6 @@ export default function StudentInformation() {
           </Table>
           </div>
         </TabsContent>
-
-        {/* Tab 6: Status Update */}
-        <TabsContent value="status">
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Bulk Status Update</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div><Label className="text-xs" htmlFor="suQuery">Search Student</Label><Input id="suQuery" name="suQuery" value={suQuery} onChange={(e) => setSuQuery(e.target.value)} placeholder="Name or Reg No" /></div>
-                <div><Label className="text-xs" htmlFor="suNewStatus">New Status</Label><Select name="suNewStatus" value={suNewStatus} onValueChange={setSuNewStatus}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{stList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-                <div className="flex items-end"><Button className="rounded-xl" disabled={!suQuery || !suNewStatus} onClick={() => { const all = rl().filter((r) => r.name.toLowerCase().includes(suQuery.toLowerCase()) || r.reg_no.toLowerCase().includes(suQuery.toLowerCase())); if (all.length === 0) { toast.error("No matches"); return; } const updated = rl().map((r) => all.find((m) => m.id === r.id) ? { ...r, status: suNewStatus } : r); rs(updated); refreshSu(); toast.success(`${all.length} updated to ${suNewStatus}`); }}><RefreshCw className="h-4 w-4 mr-1" /> Update</Button></div>
-              </div>
-              <div className="overflow-x-auto rounded-lg border">
-              <Table className="min-w-max">
-                <TableHeader className=""><TableRow><TableHead className="text-xs">Reg No</TableHead><TableHead className="text-xs">Name</TableHead><TableHead className="text-xs">Cohort</TableHead><TableHead className="text-xs">Current Status</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {suItems.filter((r) => !suQuery || r.name.toLowerCase().includes(suQuery.toLowerCase()) || r.reg_no.toLowerCase().includes(suQuery.toLowerCase())).map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="text-xs font-mono">{r.reg_no}</TableCell>
-                      <TableCell className="text-xs">{r.name}</TableCell>
-                      <TableCell><Badge className="text-[9px] bg-muted text-muted-foreground">{r.grade}</Badge></TableCell>
-                      <TableCell><Badge className={`text-[9px] ${r.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>{r.status}</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                  {suItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">No students registered</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Dialogs */}
@@ -263,18 +384,6 @@ export default function StudentInformation() {
           <DialogFooter><Button variant="outline" onClick={() => setVOpen(false)}>Cancel</Button><Button onClick={() => { const n: ValidationRow = { id: generateId(), name: vName, grade: vCohort, field: vField, issue: vIssue, status: "open" }; vs([...vl(), n]); rv(); setVOpen(false); toast.success("Added"); }} disabled={!vName || !vCohort || !vField}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={rOpen} onOpenChange={setROpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Register Student</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="rName">Name</Label><Input id="rName" name="rName" value={rName} onChange={(e) => setRName(e.target.value)} /></div><div><Label className="text-xs" htmlFor="rReg">Reg No</Label><Input id="rReg" name="rReg" value={rReg} onChange={(e) => setRReg(e.target.value)} /></div></div>
-            <div className="grid grid-cols-2 gap-3"><div><Label className="text-xs" htmlFor="rCohort">Cohort</Label><Select name="rCohort" value={rCohort} onValueChange={setRCohort}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PROGRAMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div><div><Label className="text-xs" htmlFor="rSec">Section</Label><Select name="rSec" value={rSec} onValueChange={setRSec}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["A", "B", "C", "D"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div></div>
-          </div>
-          <DialogFooter><Button variant="outline" onClick={() => setROpen(false)}>Cancel</Button><Button onClick={() => { rs([...rl(), { id: generateId(), name: rName, grade: rCohort, section: rSec, reg_no: rReg, reg_date: new Date().toISOString(), status: "active" }]); rr(); setROpen(false); toast.success("Registered"); }} disabled={!rName || !rCohort || !rReg}>Register</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={aOpen} onOpenChange={setAOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Academic Status</DialogTitle></DialogHeader>

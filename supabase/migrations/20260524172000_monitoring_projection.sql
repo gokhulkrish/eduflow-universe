@@ -47,7 +47,7 @@ LEFT JOIN LATERAL (
     metadata->>'dimensionScores' AS dimension_scores
   FROM audit_log
   WHERE entity = 'scoring'
-    AND entity_id = s.id
+    AND entity_id = s.id::text
   ORDER BY created_at DESC
   LIMIT 1
 ) ss ON true;

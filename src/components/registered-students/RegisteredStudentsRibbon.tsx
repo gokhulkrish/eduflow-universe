@@ -29,6 +29,7 @@ export interface RegisteredStudentsRibbonProps {
   context: RibbonActionContext;
   sortField: string;
   visibleHeaders: { key: string; label: string }[];
+  deleteActionLabel?: string;
   onAction: (action: string) => void;
   onOpenColumnSettings: () => void;
   onOpenFilterSettings: () => void;
@@ -63,7 +64,7 @@ const ACTION_ENABLED = {
   multiSelect: (ctx: RibbonActionContext) => ctx.selCount > 0 || ctx.hasRows,
 };
 
-const TABS: RibbonTabDef[] = [
+const createTabs = (deleteActionLabel: string): RibbonTabDef[] => [
   {
     id: "home", label: "Home",
     groups: [
@@ -83,7 +84,7 @@ const TABS: RibbonTabDef[] = [
           { id: "edit-record", label: "Edit", icon: Pencil, shortcut: "Alt+E", enabled: ACTION_ENABLED.hasActive },
           { id: "view-record", label: "View", icon: Eye, shortcut: "Alt+V", enabled: ACTION_ENABLED.hasActive },
           { id: "pdf-record", label: "PDF", icon: FileText, enabled: ACTION_ENABLED.hasActive },
-          { id: "delete-record", label: "Delete", icon: Trash2, shortcut: "Del", enabled: ACTION_ENABLED.hasActive },
+          { id: "delete-record", label: deleteActionLabel, icon: Trash2, shortcut: "Del", enabled: ACTION_ENABLED.hasActive },
           { id: "quick-save", label: "Quick Save", icon: Save, shortcut: "Ctrl+S", enabled: ACTION_ENABLED.hasActive },
           { id: "save-all", label: "Save All", icon: Save, enabled: ACTION_ENABLED.hasRows },
         ],
@@ -292,6 +293,7 @@ export function RegisteredStudentsRibbon({
   context,
   sortField,
   visibleHeaders,
+  deleteActionLabel = "Delete",
   onAction,
   onOpenColumnSettings,
   onOpenFilterSettings,
@@ -299,7 +301,8 @@ export function RegisteredStudentsRibbon({
   const { activeTab, setActiveTab, sortDirection, setSortField, setSortDirection } = useRegisteredRibbon();
   const tabBarRef = useRef<HTMLDivElement>(null);
 
-  const currentTab = TABS.find((t) => t.id === activeTab) ?? TABS[0];
+  const tabs = createTabs(deleteActionLabel);
+  const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0];
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -339,7 +342,7 @@ export function RegisteredStudentsRibbon({
     >
       {/* Tab Bar */}
       <div className="ribbon-tab-bar" ref={tabBarRef} role="tablist" aria-label="Ribbon tabs">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             role="tab"
@@ -354,7 +357,7 @@ export function RegisteredStudentsRibbon({
       </div>
 
       {/* Tab Panels */}
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <div
           key={tab.id}
           role="tabpanel"

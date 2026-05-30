@@ -25,7 +25,7 @@ export const REGISTEREDRIBBONACTIONS: Record<string, RegisteredRibbonActionDef> 
     label: "Set status to Alumni",
   },
   "set-status-dropout": {
-    changes: { status: "dropout" },
+    changes: { status: "withdrawn" },
     label: "Set status to Dropout",
   },
   "scholarship-flag": {
@@ -37,11 +37,11 @@ export const REGISTEREDRIBBONACTIONS: Record<string, RegisteredRibbonActionDef> 
     label: "Set verification pending",
   },
   "approve": {
-    changes: { status: "approved" },
+    changes: { status: "active" },
     label: "Approve selected records",
   },
   "reject": {
-    changes: { status: "rejected" },
+    changes: { status: "inactive" },
     label: "Reject selected records",
   },
   "mass-update": {

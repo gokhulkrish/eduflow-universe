@@ -1,7 +1,10 @@
 import "@/lib/runtime-storage";
-import { useEffect, useState } from "react";
-import { Network, Plus, Wifi, Server, Activity, Radio, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Network, Plus, Wifi, Server, Activity, Radio, Trash2, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,64 +16,27 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
-import { generateId } from "@/lib/utils";
-
-type NetDeviceType = "router" | "switch" | "access_point" | "firewall" | "server" | "modem" | "other";
-type NetDeviceStatus = "online" | "offline" | "maintenance";
-
-type ItNetworkDevice = {
-  id: string;
-  name: string;
-  type: NetDeviceType;
-  brand: string;
-  model: string;
-  ip_address: string;
-  mac_address: string;
-  location: string;
-  status: NetDeviceStatus;
-  firmware_version: string;
-  purchase_date: string;
-  uplink: string;
-  notes: string;
-  created_at: string;
-};
-
-type IpAllocation = {
-  id: string;
-  ip_address: string;
-  device_name: string;
-  device_type: string;
-  location: string;
-  assigned_to: string;
-  notes: string;
-  created_at: string;
-};
-
-const DEVICES_KEY = "eduflow_it_network_devices";
-const IPAM_KEY = "eduflow_it_ipam";
-
-function dl(): ItNetworkDevice[] { try { return JSON.parse(localStorage.getItem(DEVICES_KEY) ?? "[]"); } catch { return []; } }
-function ds(v: ItNetworkDevice[]) { localStorage.setItem(DEVICES_KEY, JSON.stringify(v)); emitAppSync(DEVICES_KEY); }
-function il(): IpAllocation[] { try { return JSON.parse(localStorage.getItem(IPAM_KEY) ?? "[]"); } catch { return []; } }
-function is(v: IpAllocation[]) { localStorage.setItem(IPAM_KEY, JSON.stringify(v)); emitAppSync(IPAM_KEY); }
+import { useRealtime } from "@/lib/use-realtime";
+import { getNetworkDevices, createNetworkDevice, updateNetworkDevice, deleteNetworkDevice, getIpAllocations, createIpAllocation, ItNetworkDevice, IpAllocation } from "@/lib/it-network";
 
 const DEVICE_TYPES: NetDeviceType[] = ["router", "switch", "access_point", "firewall", "server", "modem", "other"];
 const STATUS_COLORS: Record<NetDeviceStatus, string> = { online: "bg-success/15 text-success", offline: "bg-destructive/15 text-destructive", maintenance: "bg-warning/15 text-warning" };
 const TYPE_ICONS: Record<NetDeviceType, string> = { router: "🌐", switch: "🔀", access_point: "📡", firewall: "🛡️", server: "🖥️", modem: "📞", other: "🔌" };
 
 export default function ItNetwork() {
-  const [devices, setDevices] = useState<ItNetworkDevice[]>(dl);
-  const [allocations, setAllocations] = useState<IpAllocation[]>(il);
-  const refresh = () => { setDevices(dl()); setAllocations(il()); };
+  const navigate = useNavigate();
+  const [devices, setDevices] = useState<ItNetworkDevice[]>([]);
+  const [allocations, setAllocations] = useState<IpAllocation[]>([]);
+  const refresh = useCallback(async () => { setDevices(await getNetworkDevices()); setAllocations(await getIpAllocations()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("it_network_devices", refresh);
+  useRealtime("it_ip_allocations", refresh);
   const [tab, setTab] = useState("devices");
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<NetDeviceType | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<NetDeviceStatus | "all">("all");
-
-  useEffect(() => subscribeAppSync([DEVICES_KEY, IPAM_KEY], refresh), []);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filtered = devices.filter((d) => {
     if (typeFilter !== "all" && d.type !== typeFilter) return false;
@@ -83,6 +49,7 @@ export default function ItNetwork() {
 
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formName, setFormName] = useState(""); const [formType, setFormType] = useState<NetDeviceType>("switch"); const [formBrand, setFormBrand] = useState(""); const [formModel, setFormModel] = useState(""); const [formIP, setFormIP] = useState(""); const [formMAC, setFormMAC] = useState(""); const [formLoc, setFormLoc] = useState(""); const [formFW, setFormFW] = useState(""); const [formPurch, setFormPurch] = useState(""); const [formUplink, setFormUplink] = useState(""); const [formNotes, setFormNotes] = useState("");
 
   const [ipOpen, setIpOpen] = useState(false); const [ipAddr, setIpAddr] = useState(""); const [ipDevice, setIpDevice] = useState(""); const [ipTypeDNS, setIpTypeDNS] = useState(""); const [ipLoc, setIpLoc] = useState(""); const [ipAssign, setIpAssign] = useState(""); const [ipNotes, setIpNotes] = useState("");
@@ -90,32 +57,31 @@ export default function ItNetwork() {
   function openAdd() { setEditId(null); setFormName(""); setFormType("switch"); setFormBrand(""); setFormModel(""); setFormIP(""); setFormMAC(""); setFormLoc(""); setFormFW(""); setFormPurch(""); setFormUplink(""); setFormNotes(""); setOpen(true); }
   function openEdit(d: ItNetworkDevice) { setEditId(d.id); setFormName(d.name); setFormType(d.type); setFormBrand(d.brand); setFormModel(d.model); setFormIP(d.ip_address); setFormMAC(d.mac_address); setFormLoc(d.location); setFormFW(d.firmware_version); setFormPurch(d.purchase_date); setFormUplink(d.uplink); setFormNotes(d.notes); setOpen(true); }
 
-  function save() {
+  async function save() {
     if (!formName.trim()) { toast.error("Device name is required"); return; }
-    const list = dl();
+    const data = { name: formName.trim(), type: formType, brand: formBrand, model: formModel, ip_address: formIP, mac_address: formMAC, location: formLoc, firmware_version: formFW, purchase_date: formPurch, uplink: formUplink, notes: formNotes };
     if (editId) {
-      const idx = list.findIndex((d) => d.id === editId);
-      if (idx >= 0) list[idx] = { ...list[idx], name: formName.trim(), type: formType, brand: formBrand, model: formModel, ip_address: formIP, mac_address: formMAC, location: formLoc, firmware_version: formFW, purchase_date: formPurch, uplink: formUplink, notes: formNotes };
+      await updateNetworkDevice(editId, data);
     } else {
-      list.push({ id: generateId(), name: formName.trim(), type: formType, brand: formBrand, model: formModel, ip_address: formIP, mac_address: formMAC, location: formLoc, status: "online", firmware_version: formFW, purchase_date: formPurch, uplink: formUplink, notes: formNotes, created_at: new Date().toISOString() });
+      await createNetworkDevice({ ...data, status: "online" });
     }
-    ds(list); refresh(); setOpen(false); toast.success(editId ? "Device updated" : "Device added");
+    refresh(); setOpen(false); toast.success(editId ? "Device updated" : "Device added");
   }
 
-  function toggleStatus(d: ItNetworkDevice) {
-    const next: NetDeviceStatus = d.status === "online" ? "offline" : d.status === "offline" ? "maintenance" : "online";
-    const list = dl(); const idx = list.findIndex((x) => x.id === d.id);
-    if (idx >= 0) { list[idx] = { ...list[idx], status: next }; ds(list); refresh(); toast.success(`Device ${next}`); }
+  async function toggleStatus(d: ItNetworkDevice) {
+    const next = d.status === "online" ? "offline" : d.status === "offline" ? "maintenance" : "online";
+    await updateNetworkDevice(d.id, { status: next });
+    refresh(); toast.success(`Device ${next}`);
   }
 
-  function doDelete(d: ItNetworkDevice) {
-    if (!confirm(`Delete ${d.name}?`)) return;
-    ds(dl().filter((x) => x.id !== d.id)); refresh(); toast.success("Deleted");
+  async function doDelete(id: string) {
+    await deleteNetworkDevice(id);
+    refresh(); toast.success("Deleted");
   }
 
-  function saveIpAllocation() {
+  async function saveIpAllocation() {
     if (!ipAddr.trim()) { toast.error("IP address required"); return; }
-    is([...il(), { id: generateId(), ip_address: ipAddr.trim(), device_name: ipDevice, device_type: ipTypeDNS, location: ipLoc, assigned_to: ipAssign, notes: ipNotes, created_at: new Date().toISOString() }]);
+    await createIpAllocation({ ip_address: ipAddr.trim(), device_name: ipDevice, device_type: ipTypeDNS, location: ipLoc, assigned_to: ipAssign, notes: ipNotes });
     refresh(); setIpOpen(false); toast.success("IP allocation recorded");
   }
 
@@ -148,6 +114,8 @@ export default function ItNetwork() {
               <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="online">Online</SelectItem><SelectItem value="offline">Offline</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem></SelectContent>
             </Select>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=it-network")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(filtered, "network-devices", [{key:"name",label:"Device"},{key:"type",label:"Type"},{key:"ip_address",label:"IP Address"},{key:"mac_address",label:"MAC"},{key:"location",label:"Location"},{key:"status",label:"Status"},{key:"firmware_version",label:"Firmware"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Add Device</Button>
           </div>
           <TablePagination {...pag} />
@@ -167,7 +135,7 @@ export default function ItNetwork() {
                     <div className="flex gap-1">
                       <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px]" onClick={() => openEdit(d)}>Edit</Button>
                       <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px]" onClick={() => toggleStatus(d)}>Toggle</Button>
-                      <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px] text-destructive" onClick={() => doDelete(d)}><Trash2 className="h-3 w-3" /></Button>
+                      <Button variant="outline" size="sm" className="rounded-lg h-7 px-2 text-[10px] text-destructive" onClick={() => setDeleteId(d.id)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -180,6 +148,8 @@ export default function ItNetwork() {
         <TabsContent value="ipam">
           <div className="flex justify-between items-center mb-4">
             <p className="text-xs text-muted-foreground">{allocations.length} IP addresses allocated</p>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=it-network")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(allocations, "ip-allocations", [{key:"ip_address",label:"IP Address"},{key:"device_name",label:"Device"},{key:"device_type",label:"Type"},{key:"location",label:"Location"},{key:"assigned_to",label:"Assigned To"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
             <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow" onClick={() => { setIpAddr(""); setIpDevice(""); setIpTypeDNS(""); setIpLoc(""); setIpAssign(""); setIpNotes(""); setIpOpen(true); }}><Plus className="h-4 w-4 mr-1" /> Add IP</Button>
           </div>
           <Table>
@@ -200,6 +170,10 @@ export default function ItNetwork() {
           </Table>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Device</AlertDialogTitle><AlertDialogDescription>This will permanently remove this network device. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await doDelete(deleteId); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

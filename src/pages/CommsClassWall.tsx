@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import { LayoutPanelTop, Plus, Trash2, Pin, Send, Paperclip } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { LayoutPanelTop, Plus, Trash2, Pin, Send, Paperclip, Download, Upload } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { exportToCsv } from "@/lib/export";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,31 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
-import { generateId } from "@/lib/utils";
-
-interface WallPost {
-  id: string;
-  classId: string;
-  className: string;
-  title: string;
-  body: string;
-  author: string;
-  priority: "normal" | "high" | "urgent";
-  pinned: boolean;
-  attachments: { name: string; url: string }[];
-  broadcastToComms: boolean;
-  created_at: string;
-}
-
-const KEY = "eduflow_comms_class_wall";
-function ls(): WallPost[] {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? "[]"); } catch { return []; }
-}
-function ss(v: WallPost[]) {
-  localStorage.setItem(KEY, JSON.stringify(v));
-  emitAppSync(KEY);
-}
+import { useRealtime } from "@/lib/use-realtime";
+import { getClassWallPosts, createClassWallPost, updateClassWallPost, deleteClassWallPost, WallPost } from "@/lib/comms-class-wall";
 
 const CLASSES = [
   "1-A","1-B","2-A","2-B","3-A","3-B","4-A","5-A","6-A","7-A",
@@ -48,11 +28,15 @@ const PRIORITY_BADGE: Record<string, string> = {
 };
 
 export default function CommsClassWall() {
-  const [items, setItems] = useState<WallPost[]>(ls());
-  const refresh = () => setItems(ls());
+  const navigate = useNavigate();
+  const [items, setItems] = useState<WallPost[]>([]);
+  const refresh = useCallback(async () => { setItems(await getClassWallPosts()); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
+  useRealtime("comms_class_wall", refresh);
   const [filterClass, setFilterClass] = useState("all");
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [classId, setClassId] = useState("");
   const [title, setTitle] = useState("");
@@ -64,8 +48,6 @@ export default function CommsClassWall() {
   const [attachments, setAttachments] = useState<{ name: string; url: string }[]>([]);
   const [attachName, setAttachName] = useState("");
   const [attachUrl, setAttachUrl] = useState("");
-
-  useEffect(() => subscribeAppSync([KEY], refresh), []);
 
   const filtered = items.filter((p) => filterClass === "all" || p.classId === filterClass);
   const sorted = [...filtered].sort((a, b) => {
@@ -89,38 +71,28 @@ export default function CommsClassWall() {
     setOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!classId || !body) { toast.error("Class and content are required"); return; }
     const className = CLASSES.find((c) => c === classId) ?? classId;
-    const now = new Date().toISOString();
     if (editingId) {
-      ss(ls().map((x) => x.id === editingId ? {
-        ...x, classId, className, title, body, author, priority, pinned,
-        broadcastToComms: broadcast, attachments,
-      } : x));
+      await updateClassWallPost(editingId, { classId, className, title, body, author, priority, pinned, broadcastToComms: broadcast, attachments });
       toast.success("Post updated");
     } else {
-      const posts = ls();
-      posts.unshift({
-        id: generateId(), classId, className, title, body, author,
-        priority, pinned, attachments, broadcastToComms: broadcast,
-        created_at: now,
-      });
-      ss(posts);
+      await createClassWallPost({ classId, className, title, body, author, priority, pinned, broadcastToComms: broadcast, attachments });
       toast.success(broadcast ? "Post created and broadcast to comms channels" : "Post created");
     }
     setOpen(false);
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    ss(ls().filter((x) => x.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteClassWallPost(id);
     refresh();
     toast.success("Post deleted");
   };
 
-  const handlePin = (id: string) => {
-    ss(ls().map((x) => x.id === id ? { ...x, pinned: !x.pinned } : x));
+  const handlePin = async (id: string, current: boolean) => {
+    await updateClassWallPost(id, { pinned: !current });
     refresh();
   };
 
@@ -143,6 +115,8 @@ export default function CommsClassWall() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">{sorted.length} post(s)</span>
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => navigate("/import?module=comms-class-wall")}><Upload className="h-4 w-4 mr-1" /> Import</Button>
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => exportToCsv(items, "class-wall-posts", [{key:"classId",label:"Class"},{key:"title",label:"Title"},{key:"body",label:"Content"},{key:"author",label:"Author"},{key:"priority",label:"Priority"},{key:"pinned",label:"Pinned"},{key:"broadcastToComms",label:"Broadcast"}])}><Download className="h-4 w-4 mr-1" /> Export</Button>
         <Button size="sm" className="rounded-xl bg-gradient-primary shadow-glow ml-auto" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" /> New Post
         </Button>
@@ -174,10 +148,10 @@ export default function CommsClassWall() {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => handlePin(p.id)} title={p.pinned ? "Unpin" : "Pin"}>
+                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7" onClick={() => handlePin(p.id, p.pinned)} title={p.pinned ? "Unpin" : "Pin"}>
                     <Pin className="h-3 w-3" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7 text-destructive" onClick={() => handleDelete(p.id)} title="Delete">
+                  <Button variant="ghost" size="sm" className="rounded-lg h-7 w-7 text-destructive" onClick={() => setDeleteId(p.id)} title="Delete">
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -186,6 +160,10 @@ export default function CommsClassWall() {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Post</AlertDialogTitle><AlertDialogDescription>This will permanently remove this post. Continue?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (deleteId) { await deleteClassWallPost(deleteId); refresh(); toast.success("Deleted"); } setDeleteId(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

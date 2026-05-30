@@ -71,7 +71,7 @@ import ImportBatchDetailDialog from "@/components/ImportBatchDetailDialog";
 import ImportDetectedHeaders from "@/components/import/ImportDetectedHeaders";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { emitAppSync, subscribeAppSync } from "@/lib/app-sync";
 import {
   buildAutoMappingReport,
@@ -252,6 +252,7 @@ const applyRegistryPresetMapping = (
 
 export default function Import() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
   const [moduleId, setModuleId] = useState("students");
   const [mode, setMode] = useState<ImportMode>("hybrid");
@@ -319,6 +320,7 @@ export default function Import() {
   const registrySettingsRef = useRef(registrySettings);
   registrySettingsRef.current = registrySettings;
   const validationAuditSignatureRef = useRef<string>("");
+  const initialModuleRef = useRef(false);
   savedBatchesRef.current = savedBatches;
   const importFormStateRef = useRef({
     batchName,
@@ -397,6 +399,20 @@ export default function Import() {
     void init();
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (initialModuleRef.current || modules.length === 0) return;
+    initialModuleRef.current = true;
+    const urlModule = searchParams.get("module");
+    if (!urlModule) return;
+    const found = modules.find((m) => m.id === urlModule);
+    if (found) {
+      setModuleId(found.id);
+      toast.success(`Auto-selected "${found.name}" module for import.`);
+    } else {
+      toast.warning(`Import for "${urlModule}" is not yet supported. Please choose from the available modules below.`);
+    }
+  }, [modules]);
 
   useEffect(() => {
     let alive = true;

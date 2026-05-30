@@ -33,152 +33,13 @@ import {
 import { fetchStudentRegister, type StudentRegisterRow } from "@/lib/student-records";
 import { generateCertificateHtml, prepareCertificateData, printCertificate, CERTIFICATE_HTML_TEMPLATE } from "@/lib/certificate-styles";
 import { generatePdfServerSide, streamPdfForDownload } from "@/lib/certificate-pdf-service";
-import { migratePendingBridgeEntries } from "../../legacy/compat/certificates";
+import { migratePendingBridgeEntries } from "@/lib/certificates";
 import { useAuth } from "@/hooks/useAuth";
 
 const toastErr = (e: unknown) => toast.error((e as any)?.message ?? String(e));
 
-/* Legacy bonafide template (from legacy/certificates/bonafide-template.html)
-   Integrated here so previews use the same layout when template HTML isn't provided */
-const DEFAULT_BONAFIDE_TEMPLATE = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GCT Bonafide Certificate Template</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 24px;
-      background: #f3f3f3;
-      font-family: "Times New Roman", serif;
-      color: #000;
-    }
-    .page {
-      width: 210mm;
-      min-height: 297mm;
-      margin: 0 auto;
-      background: #fff;
-      padding: 28mm 22mm 24mm;
-      border: 1px solid #222;
-      position: relative;
-    }
-    .center { text-align: center; }
-    .college-name { font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
-    .college-place { margin-top: 4px; font-size: 18px; font-weight: 700; text-transform: uppercase; }
-    .college-affiliation { margin-top: 4px; font-size: 16px; }
-    .meta { margin-top: 28px; display: flex; justify-content: space-between; font-size: 17px; }
-    .title {
-      margin-top: 26px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: 700;
-      text-transform: uppercase;
-      text-decoration: underline;
-      letter-spacing: 0.5px;
-    }
-    .content { margin-top: 34px; font-size: 20px; line-height: 2.05; text-align: justify; }
-    .fill {
-      display: inline-block;
-      min-width: 130px;
-      border-bottom: 1px dotted #000;
-      padding: 0 6px 2px;
-      text-align: center;
-      font-weight: 700;
-    }
-    .fill-sm { min-width: 90px; }
-    .fill-md { min-width: 180px; }
-    .fill-lg { min-width: 260px; }
-    .fill-xl { min-width: 340px; }
-    .to-block { margin-top: 38px; font-size: 19px; line-height: 1.9; }
-    .signature { margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .seal-box {
-      width: 160px;
-      height: 160px;
-      border: 1px dashed #444;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-size: 16px;
-    }
-    .sign-area { width: 260px; text-align: center; font-size: 18px; }
-    .sign-line { border-top: 1px solid #000; padding-top: 8px; margin-top: 60px; font-weight: 700; }
-    .qr-image {
-      position: absolute;
-      bottom: 20mm;
-      right: 10mm;
-      width: 30mm;
-      height: 30mm;
-      border: 1px solid #000;
-      object-fit: contain;
-    }
-    @page { size: A4; margin: 20mm; }
-    /* tighten print margins and QR sizing for better layout */
-    @media print {
-      .qr-image { width: 25mm; height: 25mm; right: 12mm; bottom: 18mm; }
-      .page { padding: 12mm 14mm; }
-    }
-    @media print {
-      body { background: #fff; padding: 0; }
-      .page {
-        border: none;
-        box-shadow: none;
-        margin: 0;
-        width: 100%;
-        min-height: 100vh;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <div class="center">
-      <div class="college-name">Government College of Technology</div>
-      <div class="college-place">Coimbatore - 641013</div>
-      <div class="college-affiliation">(Affiliated to Anna University, Chennai)</div>
-    </div>
 
-    <div class="meta">
-      <div><strong>No.</strong> <span class="fill fill-md">{{NO}}</span></div>
-      <div><strong>Dated:</strong> <span class="fill fill-md">{{DATED}}</span></div>
-    </div>
 
-    <div class="title">Bonafide Certificate</div>
-
-    <div class="content">
-      This is to certify that <span class="fill fill-xl">{{NAME}}</span>
-      (Roll No. <span class="fill fill-md">{{ROLL}}</span>) is a bonafide
-      student of this college studying in <span class="fill fill-sm">{{YEAR}}</span> year
-      of Four years of B.E./B.Tech. Degree course in
-      <span class="fill fill-lg">{{BRANCH}}</span> during the academic year
-      <span class="fill fill-md">{{ACADEMIC_YEAR}}</span>.
-
-      <br><br>
-
-      This certificate is issued with reference to his/her application dated
-      <span class="fill fill-md">{{APPLICATION_DATE}}</span> to apply for
-      <span class="fill fill-lg">{{APPLICATION_PURPOSE}}</span>.
-    </div>
-
-    <div class="to-block">
-      <strong>To</strong><br>
-      <span class="fill fill-lg">{{AUTHORITY}}</span>
-    </div>
-
-    <div class="signature">
-      <div class="seal-box">Office Seal</div>
-
-      <div class="sign-area">
-        <div class="sign-line">Office of the Principal</div>
-      </div>
-    </div>
-
-    <img class="qr-image" src="{{QR_SRC}}" alt="Verification QR" />
-  </div>
-</body>
-</html>`;
 
 export default function Certificates() {
   const qc = useQueryClient();
@@ -274,10 +135,12 @@ export default function Certificates() {
   // Preview / Print
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewReq, setPreviewReq] = useState<CertRequestJoined | null>(null);
+  const [previewQrDataUrl, setPreviewQrDataUrl] = useState<string | undefined>(undefined);
   const previewRef = useRef<HTMLDivElement | null>(null);
 
-  function renderCertificateHtml(req: CertRequestJoined) {
-    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? req.template ?? DEFAULT_BONAFIDE_TEMPLATE ?? CERTIFICATE_HTML_TEMPLATE;
+  function renderCertificateHtml(req: CertRequestJoined, qrDataUrl?: string) {
+    const tpl = (req.template_body as string) ?? (req.template_html as string) ?? CERTIFICATE_HTML_TEMPLATE;
+    const qrSrc = qrDataUrl ?? (req.qr_base64 ? `data:image/png;base64,${req.qr_base64}` : undefined);
     const data = prepareCertificateData({
       student_name: req.student_name,
       admission_no: req.admission_no,
@@ -303,22 +166,34 @@ export default function Certificates() {
       NO: req.no ?? undefined,
       DATED: req.dated ?? req.issued_at ?? undefined,
       qr_token_short: (req.qr_token ?? "").slice(0, 16),
-      qr_src: req.qr_base64 ? `data:image/png;base64,${req.qr_base64}` : undefined,
+      qr_src: qrSrc,
+      QR_SRC: qrSrc,
     } as Record<string, any>);
 
-    // generateCertificateHtml will substitute variables and conditionals
     return generateCertificateHtml(tpl, data as Record<string, string | boolean | undefined>);
   }
 
-  const openPreview = (r: CertRequestJoined) => {
+  const openPreview = async (r: CertRequestJoined) => {
     setPreviewReq(r);
     setPreviewOpen(true);
+    // Generate QR data URL on the fly (qr_base64 is not stored in DB)
+    if (r.qr_token) {
+      try {
+        const QRCode = await import("qrcode");
+        const url = await QRCode.toDataURL(r.qr_token, { width: 120, margin: 1 });
+        setPreviewQrDataUrl(url);
+      } catch {
+        setPreviewQrDataUrl(undefined);
+      }
+    } else {
+      setPreviewQrDataUrl(undefined);
+    }
   };
 
   const handlePrintPreview = () => {
     if (!previewReq) return;
     try {
-      const html = renderCertificateHtml(previewReq);
+      const html = renderCertificateHtml(previewReq, previewQrDataUrl);
       printCertificate(html, `Certificate - ${previewReq.student_name ?? previewReq.id}`);
     } catch (e: any) {
       toastErr(e);
@@ -336,7 +211,7 @@ export default function Certificates() {
         admissionNo: previewReq.admission_no ?? "",
         templateName: previewReq.template_name ?? previewReq.template ?? "",
         templateCode: previewReq.template_code ?? "",
-        templateHtml: renderCertificateHtml(previewReq),
+        templateHtml: renderCertificateHtml(previewReq, previewQrDataUrl),
         purpose: previewReq.purpose ?? undefined,
         qrToken: previewReq.qr_token ?? "",
         issuedAt: previewReq.issued_at ?? undefined,
@@ -373,7 +248,7 @@ export default function Certificates() {
   const handleDownloadHtml = () => {
     if (!previewReq) return;
     try {
-      const html = renderCertificateHtml(previewReq);
+      const html = renderCertificateHtml(previewReq, previewQrDataUrl);
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -398,7 +273,7 @@ export default function Certificates() {
         admissionNo: previewReq.admission_no ?? "",
         templateName: previewReq.template_name ?? previewReq.template ?? "",
         templateCode: previewReq.template_code ?? "",
-        templateHtml: renderCertificateHtml(previewReq),
+        templateHtml: renderCertificateHtml(previewReq, previewQrDataUrl),
         purpose: previewReq.purpose ?? undefined,
         qrToken: previewReq.qr_token ?? "",
         issuedAt: previewReq.issued_at ?? undefined,
@@ -929,7 +804,7 @@ export default function Certificates() {
             </TabsList>
             <TabsContent value="preview">
               <div className="p-4 border rounded-lg" ref={previewRef} style={{ background: '#fff' }}>
-                <div className="certificate" dangerouslySetInnerHTML={{ __html: previewReq ? renderCertificateHtml(previewReq) : '' }} />
+                <div className="certificate" dangerouslySetInnerHTML={{ __html: previewReq ? renderCertificateHtml(previewReq, previewQrDataUrl) : '' }} />
               </div>
             </TabsContent>
             <TabsContent value="data">
