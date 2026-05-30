@@ -14,23 +14,44 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
-      {
-        "name": "next"
-      }
+      "next",
+      "react",
+      "react-dom",
+      "react-icons",
+      "react-router-dom",
+      "react-query",
+      "@testing-library/react",
+      "@testing-library/jest-dom",
+      "ts-jest",
+      "@types/react",
+      "@types/node",
+      "ts-node",
+      "@types/node",
+      "next-env:next",
+      "next-watch",
+      "next-app-builder",
+      "next-app-contrib",
+      "next-auth",
+      "next-auth:client",
+      "next-auth:provider",
+      "next-auth:passport",
+      "next-auth:redis",
+      "next-auth:memo",
+      "next-auth:webhook",
+      "react-router-dom": "^6.11.0",
+      "react-query": "^3.24.0",
+      "react-dom": "^18.2.0",
+      "react": "^18.2.0",
+      "react-dom/client": "^18.2.0",
+      "react-scripts": "3.10.0",
+      "prettier": "^2.2.5",
+      "prettier-preview": "^2.2.0",
+      "prettier-watch": "true"
     ],
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "types": ["node", "jest"],
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+    "exclude": ["node_modules", "dist"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }
