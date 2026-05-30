@@ -4,7 +4,7 @@ services:
     container_name: eduflow-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: eduflow_universe
+      POSTGRES_DB: college_erp
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -20,12 +20,12 @@ services:
     ports:
       - '3000:3000'
     environment:
-      NEXT_PUBLIC_APP_NAME: Eduflow Universe
+      NEXT_PUBLIC_APP_NAME: Eduflow College ERP
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/eduflow_universe}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/college_erp}
       TZ: Asia/Kolkata
     volumes:
       - ./:/workspace
